@@ -1,0 +1,58 @@
+{
+  "name": "opencode-extend",
+  "private": true,
+  "type": "module",
+  "packageManager": "bun@1.3.13",
+  "workspaces": {
+    "packages": ["packages/*"],
+    "catalog": {
+      "@kobalte/core": "0.13.11",
+      "@opentui/core": "0.1.105",
+      "@opentui/solid": "0.1.105",
+      "@pierre/diffs": "1.1.0-beta.18",
+      "@playwright/test": "1.59.1",
+      "@solid-primitives/storage": "4.3.3",
+      "@solidjs/meta": "0.29.4",
+      "@solidjs/router": "0.15.4",
+      "@solidjs/start": "https://pkg.pr.new/@solidjs/start@dfb2020",
+      "@tailwindcss/vite": "4.1.11",
+      "@tsconfig/node22": "22.0.2",
+      "@types/bun": "1.3.12",
+      "@types/cross-spawn": "6.0.6",
+      "@types/luxon": "3.7.1",
+      "@types/node": "22.13.9",
+      "@typescript/native-preview": "7.0.0-dev.20251207.1",
+      "cross-spawn": "7.0.6",
+      "diff": "8.0.2",
+      "dompurify": "3.3.1",
+      "effect": "4.0.0-beta.48",
+      "fuzzysort": "3.1.0",
+      "glob": "13.0.5",
+      "luxon": "3.6.1",
+      "marked": "17.0.1",
+      "marked-shiki": "1.2.1",
+      "minimatch": "10.2.5",
+      "mime-types": "3.0.2",
+      "motion": "12.34.5",
+      "motion-dom": "12.34.3",
+      "motion-utils": "12.29.2",
+      "remeda": "2.26.0",
+      "remend": "1.3.0",
+      "shiki": "3.20.0",
+      "solid-js": "1.9.10",
+      "solid-list": "0.3.0",
+      "tailwindcss": "4.1.11",
+      "typescript": "5.8.2",
+      "virtua": "0.42.3",
+      "vite": "7.1.4",
+      "vite-plugin-solid": "2.11.10",
+      "zod": "4.1.8"
+    }
+  },
+  "scripts": {
+    "dev": "bun --cwd packages/app dev --host 172.17.0.1 --port 3000"
+  },
+  "patchedDependencies": {
+    "solid-js@1.9.10": "patches/solid-js@1.9.10.patch"
+  }
+}
