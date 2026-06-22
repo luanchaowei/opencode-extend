@@ -445,8 +445,10 @@ export const dict = {
 
   "toast.file.loadFailed.title": "Failed to load file",
   "toast.file.listFailed.title": "Failed to list files",
-  "toast.file.uploadFailed.title": "Failed to upload file",
-  "toast.file.uploadSuccess.title": "File uploaded successfully",
+"toast.file.uploadFailed.title": "Failed to upload file",
+"toast.file.uploadAborted.title": "Upload interrupted",
+"toast.file.uploadAborted.description": "Session switch interrupted upload",
+"toast.file.uploadSuccess.title": "File uploaded successfully",
   "toast.file.uploadSuccess.description": "{{filename}} saved",
   "toast.file.deleteSuccess.title": "File deleted successfully",
   "toast.file.deleteSuccess.description": "{{filename}} deleted",

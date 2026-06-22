@@ -669,7 +669,11 @@ const isDesktop = createMediaQuery("(min-width: 768px)")
                             await Promise.all([file.tree.refresh(""), file.tree.refresh(dir)])
                           } catch (error) {
                             if (error instanceof Error && (error.name === "AbortError" || error.message === "Aborted" || error.message === "Session changed")) {
-                              // Normal abort, don't show error
+                              showToast({
+                                variant: "success",
+                                title: language.t("toast.file.uploadAborted.title"),
+                                description: language.t("toast.file.uploadAborted.description"),
+                              })
                             } else {
                               const errorMsg = error instanceof Error ? error.message : String(error)
                               showToast({
