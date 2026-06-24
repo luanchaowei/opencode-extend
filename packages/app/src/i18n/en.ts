@@ -683,7 +683,6 @@ export const dict = {
   "common.key.esc": "ESC",
 
   "enterprise.contactAdmin": "Contact Admin",
-  "enterprise.queueWarning": "1. Due to computing resources, tasks may need to queue, please wait patiently!!! 2. Due to VM resources, the system periodically cleans up sessions inactive for more than 2 weeks!!!",
   "enterprise.usageGuide.title": "Usage Guide:",
   "enterprise.usageGuide.scenario": "Use cases: Analyze plog logs, dump diagrams (txt format), profiling, etc.",
   "enterprise.usageGuide.reference": "Reference files: Double-click the top-level directory to reference files or directories, the input box will auto-fill: @uploads/ses_xxx/plog.",

@@ -131,6 +131,13 @@ export default function Layout(props: ParentProps) {
   const theme = useTheme()
   const language = useLanguage()
   const device = useDevice()
+  const [deviceInfoData] = createResource(async () => {
+    try {
+      const resp = await fetch("/device/info")
+      if (resp.ok) return await resp.json()
+    } catch {}
+    return {}
+  })
   const initialDirectory = decode64(params.dir)
   const location = useLocation()
   const route = createMemo(() => {
@@ -2314,10 +2321,10 @@ export default function Layout(props: ParentProps) {
 return (
     <div class="relative bg-background-base flex-1 min-h-0 min-w-0 flex flex-col select-none [&_input]:select-text [&_textarea]:select-text [&_[contenteditable]]:select-text">
       {autoselecting() ?? ""}
-      <Show when={language.t("enterprise.queueWarning")}>
+      <Show when={deviceInfoData()?.queueWarning}>
         <div class="flex items-center justify-center py-1.5 px-4 gap-2" style="background-color: #fbbf24; color: #78350f;">
           <Icon name="warning" class="size-4" />
-          <span class="text-12-medium font-bold">{language.t("enterprise.queueWarning")}</span>
+          <span class="text-12-medium font-bold">{deviceInfoData()?.queueWarning}</span>
         </div>
       </Show>
       <Titlebar />

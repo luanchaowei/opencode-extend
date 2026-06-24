@@ -69,7 +69,8 @@ export default [
             const cannVersionList = cannVersions.split('|').filter(line => line.trim())
             res.setHeader("Content-Type", "application/json")
             const helpDocUrl = process.env.VITE_HELP_DOC_URL || ""
-            res.end(JSON.stringify({ clientIP, contactAdmin: contactList, feedbackUrl, caseLibraryDir, cannVersions: cannVersionList, helpDocUrl }))
+            const queueWarning = process.env.VITE_QUEUE_WARNING || ""
+            res.end(JSON.stringify({ clientIP, contactAdmin: contactList, feedbackUrl, caseLibraryDir, cannVersions: cannVersionList, helpDocUrl, queueWarning }))
           } catch (error) {
             res.statusCode = 500
             res.end(JSON.stringify({ error: error.message }))
@@ -901,6 +902,94 @@ const defaults = { heartbeats: {}, totalClientsEver: 0, totalSessionsEverCreated
             clientDaySeen: statsData.clientDaySeen,
             sessionDaySeen: statsData.sessionDaySeen,
           }))
+          return
+        }
+
+        next()
+      })
+    },
+  },
+  {
+    name: "opencode-desktop:config-runtime-api",
+    configureServer(server) {
+      const adminToken = process.env.VITE_STATS_ADMIN_TOKEN || ""
+      server.middlewares.use(async (req, res, next) => {
+        const readBody = async () => {
+          const chunks = []
+          for await (const chunk of req) chunks.push(chunk)
+          return Buffer.concat(chunks).toString()
+        }
+
+        if (req.url?.startsWith("/api/config/runtime") && req.method === "GET") {
+          try {
+            const url = new URL(req.url, "http://localhost")
+            const token = url.searchParams.get("token")
+            if (token !== adminToken) {
+              res.statusCode = 403
+              res.setHeader("Content-Type", "application/json")
+              res.end(JSON.stringify({ error: "Invalid token" }))
+              return
+            }
+            res.setHeader("Content-Type", "application/json")
+            res.end(JSON.stringify({
+              queueWarning: process.env.VITE_QUEUE_WARNING || "",
+              contactAdmin: process.env.VITE_CONTACT_ADMIN || "",
+              feedbackUrl: process.env.VITE_FEEDBACK_URL || "",
+              helpDocUrl: process.env.VITE_HELP_DOC_URL || "",
+            }))
+          } catch (error) {
+            res.statusCode = 500
+            res.setHeader("Content-Type", "application/json")
+            res.end(JSON.stringify({ error: error.message }))
+          }
+          return
+        }
+
+        if (req.url?.startsWith("/api/config/runtime") && req.method === "PATCH") {
+          try {
+            const url = new URL(req.url, "http://localhost")
+            const token = url.searchParams.get("token")
+            if (token !== adminToken) {
+              res.statusCode = 403
+              res.setHeader("Content-Type", "application/json")
+              res.end(JSON.stringify({ error: "Invalid token" }))
+              return
+            }
+            const body = JSON.parse(await readBody())
+            const envMap = {
+              queueWarning: "VITE_QUEUE_WARNING",
+              contactAdmin: "VITE_CONTACT_ADMIN",
+              feedbackUrl: "VITE_FEEDBACK_URL",
+              helpDocUrl: "VITE_HELP_DOC_URL",
+            }
+            for (const [key, envKey] of Object.entries(envMap)) {
+              if (body[key] !== undefined) {
+                process.env[envKey] = body[key] || ""
+              }
+            }
+            const envPath = join(dirname(fileURLToPath(import.meta.url)), "../../.env")
+            let envContent = existsSync(envPath) ? readFileSync(envPath, "utf-8") : ""
+            const envLines = envContent.split("\n")
+            const updatedLines = [...envLines]
+            for (const [key, envKey] of Object.entries(envMap)) {
+              if (body[key] === undefined) continue
+              const value = body[key] || ""
+              const line = `${envKey}="${value}"`
+              const idx = updatedLines.findIndex(l => l.startsWith(`${envKey}=`))
+              if (idx >= 0) {
+                updatedLines[idx] = line
+              } else {
+                updatedLines.push(line)
+              }
+            }
+            writeFileSync(envPath, updatedLines.filter(l => l.trim()).join("\n") + "\n", "utf-8")
+            res.setHeader("Content-Type", "application/json")
+            res.end(JSON.stringify({ success: true }))
+          } catch (error) {
+            res.statusCode = 500
+            res.setHeader("Content-Type", "application/json")
+            res.end(JSON.stringify({ error: error.message }))
+          }
           return
         }
 

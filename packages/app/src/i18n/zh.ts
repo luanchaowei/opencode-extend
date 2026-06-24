@@ -626,7 +626,6 @@ export const dict = {
   "common.key.esc": "ESC",
 
   "enterprise.contactAdmin": "支撑人员",
-  "enterprise.queueWarning": "1. 受算力资源影响，任务可能需要排队，请耐心等待！！！2. 受虚拟机资源影响，系统定期清理2周以上不活跃的会话！！！",
   "enterprise.usageGuide.title": "使用说明",
   "enterprise.usageGuide.scenario": "使用场景：分析plog日志、dump图（txt格式）和profiling等。",
   "enterprise.usageGuide.reference": "引用文件：双击一级目录可引用对应文件或目录，输入框自动填入：@uploads/ses_xxx/plog。",
