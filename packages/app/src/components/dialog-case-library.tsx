@@ -4,22 +4,23 @@ import { useLanguage } from "@/context/language"
 import { Dialog } from "@opencode-ai/ui/dialog"
 import { Icon } from "@opencode-ai/ui/icon"
 import { Spinner } from "@opencode-ai/ui/spinner"
-import { Button } from "@opencode-ai/ui/button"
 import { ResizeHandle } from "@opencode-ai/ui/resize-handle"
 import { Markdown } from "@opencode-ai/ui/markdown"
+import { Collapsible } from "@opencode-ai/ui/collapsible"
 import mermaid from "mermaid"
 
 const DEFAULT_SIDEBAR_WIDTH = 300
 const MERMAID_PREFIX = "MERMAID_BLOCK_"
 const mermaidSvgStore = new Map<string, string>()
+const MAX_DEPTH = 128
 
 export function CaseLibraryDialog() {
   const language = useLanguage()
-  const [currentPath, setCurrentPath] = createSignal("")
   const [selectedFile, setSelectedFile] = createSignal<string | null>(null)
   const [store, setStore] = createStore({
     sidebarWidth: DEFAULT_SIDEBAR_WIDTH,
   })
+  const [expandedDirs, setExpandedDirs] = createStore<Record<string, boolean>>({})
   let wrapperRef: HTMLDivElement | undefined
   let observer: MutationObserver | undefined
   let debounceTimer: ReturnType<typeof setTimeout> | undefined
@@ -30,17 +31,6 @@ export function CaseLibraryDialog() {
       theme: "default",
       securityLevel: "loose",
     })
-  })
-
-  const [items] = createResource(currentPath, async (path) => {
-    try {
-      const url = path ? `/api/case-library/list?path=${encodeURIComponent(path)}` : "/api/case-library/list"
-      const res = await fetch(url)
-      if (!res.ok) return { files: [], dirs: [] }
-      return await res.json()
-    } catch {
-      return { files: [], dirs: [] }
-    }
   })
 
   const [content] = createResource(selectedFile, async (filePath) => {
@@ -186,35 +176,93 @@ export function CaseLibraryDialog() {
 
     if (href.endsWith("/") || !normalized.includes(".")) {
       const newDir = normalized.endsWith("/") ? normalized.slice(0, -1) : normalized
-      setCurrentPath(newDir)
+      setExpandedDirs(newDir, true)
       setSelectedFile(null)
     } else {
       setSelectedFile(normalized)
     }
   }
 
-  const goToParent = () => {
-    const path = currentPath()
-    if (!path) return
-    const parts = path.split("/")
-    parts.pop()
-    setCurrentPath(parts.join("/"))
-    setSelectedFile(null)
+  const toggleExpand = (path: string) => {
+    setExpandedDirs(path, (v) => !v)
   }
 
-  const enterDir = (dirName: string) => {
-    const path = currentPath()
-    setCurrentPath(path ? `${path}/${dirName}` : dirName)
-    setSelectedFile(null)
-  }
-
-  const selectFile = (fileName: string) => {
-    const path = currentPath()
-    setSelectedFile(path ? `${path}/${fileName}` : fileName)
+  const selectFile = (filePath: string) => {
+    setSelectedFile(filePath)
   }
 
   const getDisplayName = (name: string) => {
     return name.length > 30 ? name.substring(0, 27) + "..." : name
+  }
+
+  const fetchItems = async (path: string) => {
+    try {
+      const url = path ? `/api/case-library/list?path=${encodeURIComponent(path)}` : "/api/case-library/list"
+      const res = await fetch(url)
+      if (!res.ok) return { files: [], dirs: [] }
+      return await res.json()
+    } catch {
+      return { files: [], dirs: [] }
+    }
+  }
+
+  const CaseLibraryTreeNode = (props: { path: string; level: number }) => {
+    const [items] = createResource(() => props.path, fetchItems)
+
+    return (
+      <Suspense fallback={<div class="px-2 py-1"><Spinner /></div>}>
+        <Show when={items()?.dirs?.length === 0 && items()?.files?.length === 0 && props.level === 0}>
+          <div class="text-12-regular text-text-weak px-2 py-1">暂无内容</div>
+        </Show>
+        <For each={items()?.dirs || []}>
+          {(dir: { name: string; path: string }) => {
+            const expanded = () => expandedDirs[dir.path] ?? false
+            return (
+              <Collapsible
+                variant="ghost"
+                class="w-full"
+                open={expanded()}
+                onOpenChange={() => toggleExpand(dir.path)}
+              >
+                <Collapsible.Trigger class="w-full">
+                  <div
+                    class="flex items-center gap-1.5 w-full min-w-0 h-6 rounded-md px-1.5 py-0 text-left hover:bg-surface-raised-base-hover transition-colors cursor-pointer"
+                    style={`padding-left: ${Math.max(0, 8 + props.level * 12)}px`}
+                  >
+                    <div class="size-4 flex items-center justify-center text-icon-weak">
+                      <Icon name={expanded() ? "chevron-down" : "chevron-right"} size="small" />
+                    </div>
+                    <Icon name="folder" size="small" class="text-icon-weak" />
+                    <span class="truncate text-12-medium text-text-base" title={dir.name}>{getDisplayName(dir.name)}</span>
+                  </div>
+                </Collapsible.Trigger>
+                <Collapsible.Content class="relative">
+                  <Show
+                    when={props.level < MAX_DEPTH}
+                    fallback={<div class="px-2 py-1 text-12-regular text-text-weak">...</div>}
+                  >
+                    <CaseLibraryTreeNode path={dir.path} level={props.level + 1} />
+                  </Show>
+                </Collapsible.Content>
+              </Collapsible>
+            )
+          }}
+        </For>
+        <For each={items()?.files || []}>
+          {(file: { name: string; path: string }) => (
+            <div
+              class="flex items-center gap-1.5 w-full min-w-0 h-6 rounded-md px-1.5 py-0 text-left hover:bg-surface-raised-base-hover transition-colors cursor-pointer"
+              classList={{ "bg-surface-base-active": selectedFile() === file.path }}
+              style={`padding-left: ${Math.max(0, 8 + props.level * 12 + 20)}px`}
+              onClick={() => selectFile(file.path)}
+            >
+              <Icon name="code" size="small" class="text-icon-weak" />
+              <span class="truncate text-12-medium text-text-base" title={file.name}>{getDisplayName(file.name)}</span>
+            </div>
+          )}
+        </For>
+      </Suspense>
+    )
   }
 
   return (
@@ -225,45 +273,11 @@ export function CaseLibraryDialog() {
           style={{ width: `${store.sidebarWidth}px` }}
         >
           <div class="flex items-center gap-2 px-2 py-1 border-b border-border-weak-base min-h-[36px] shrink-0">
-            <Show when={currentPath()}>
-              <Button variant="ghost" size="small" class="h-6 w-6 p-0" onClick={goToParent}>
-                <Icon name="arrow-left" size="small" />
-              </Button>
-              <span class="text-11-regular text-text-weak truncate flex-1">{currentPath()}</span>
-            </Show>
-            <Show when={!currentPath()}>
-              <span class="text-11-regular text-text-weak">知识库根目录</span>
-            </Show>
+            <Icon name="folder" size="small" class="text-icon-weak" />
+            <span class="text-11-regular text-text-weak">知识库</span>
           </div>
-          <div class="flex-1 overflow-y-auto p-2 min-h-0">
-            <Suspense fallback={<Spinner />}>
-              <Show when={items()?.dirs?.length === 0 && items()?.files?.length === 0}>
-                <div class="text-12-regular text-text-weak">暂无内容</div>
-              </Show>
-              <For each={items()?.dirs || []}>
-                {(dir: { name: string; path: string }) => (
-                  <div
-                    class="flex items-center gap-2 px-2 py-1.5 cursor-pointer hover:bg-surface-raised-base rounded text-12-regular"
-                    onClick={() => enterDir(dir.name)}
-                  >
-                    <Icon name="folder" size="small" class="text-icon-weak" />
-                    <span class="truncate">{getDisplayName(dir.name)}</span>
-                  </div>
-                )}
-              </For>
-              <For each={items()?.files || []}>
-                {(file: { name: string; path: string }) => (
-                  <div
-                    class="flex items-center gap-2 px-2 py-1.5 cursor-pointer hover:bg-surface-raised-base rounded text-12-regular"
-                    classList={{ "bg-surface-raised-base": selectedFile() === file.path }}
-                    onClick={() => selectFile(file.name)}
-                  >
-                    <Icon name="code" size="small" class="text-icon-weak" />
-                    <span class="truncate">{getDisplayName(file.name)}</span>
-                  </div>
-                )}
-              </For>
-            </Suspense>
+          <div class="flex-1 overflow-y-auto p-1 min-h-0">
+            <CaseLibraryTreeNode path="" level={0} />
           </div>
           <ResizeHandle
             direction="horizontal"
