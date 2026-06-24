@@ -291,7 +291,7 @@ export function CaseLibraryDialog() {
             }}
           />
         </div>
-        <div class="flex-1 overflow-y-auto p-2 min-h-0">
+        <div class="flex-1 p-2 min-h-0 flex flex-col">
           <Show when={!selectedFile()}>
             <div class="flex items-center justify-center h-full text-12-regular text-text-weak">
               {language.t("enterprise.selectFileToView")}
