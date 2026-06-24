@@ -692,8 +692,11 @@ export const dict = {
   "enterprise.feedback": "Feedback",
   "enterprise.feedbackUrl": "https://example.com/feedback",
   "enterprise.caseLibrary": "Knowledge Base",
-  "enterprise.cannVersion": "CANN Version",
+"enterprise.cannVersion": "CANN Version",
   "enterprise.selectFileToView": "Click file to view content",
+  "enterprise.toc.title": "Outline",
+  "enterprise.toc.empty": "No outline",
+
   "common.key.ctrl": "Ctrl",
   "common.key.alt": "Alt",
   "common.key.shift": "Shift",

@@ -637,6 +637,8 @@ export const dict = {
   "enterprise.caseLibrary": "知识库",
   "enterprise.cannVersion": "CANN版本",
   "enterprise.selectFileToView": "点击文件查看内容",
+  "enterprise.toc.title": "目录",
+  "enterprise.toc.empty": "无目录",
 
   "sidebar.menu.toggle": "切换菜单",
   "sidebar.nav.projectsAndSessions": "项目和会话",

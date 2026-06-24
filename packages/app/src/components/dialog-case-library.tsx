@@ -7,6 +7,7 @@ import { Spinner } from "@opencode-ai/ui/spinner"
 import { ResizeHandle } from "@opencode-ai/ui/resize-handle"
 import { Markdown } from "@opencode-ai/ui/markdown"
 import { Collapsible } from "@opencode-ai/ui/collapsible"
+import { MarkdownTOC } from "./markdown-toc"
 import mermaid from "mermaid"
 
 const DEFAULT_SIDEBAR_WIDTH = 300
@@ -300,15 +301,18 @@ export function CaseLibraryDialog() {
             <Suspense fallback={<Spinner />}>
               <div class="text-12-medium mb-2 text-text-base">{selectedFile()}</div>
               <Show when={content()?.isMarkdown}>
-                <div
-                  ref={wrapperRef}
-                  class="flex-1 min-h-0 overflow-auto bg-surface-panel p-4 rounded border border-border-weak-base"
-                  onClick={handleLinkClick}
-                >
-                  <Markdown
-                    text={content()?.text || ""}
-                    class="prose prose-sm"
-                  />
+                <div class="flex gap-0 flex-1 min-h-0">
+                  <div
+                    ref={wrapperRef}
+                    class="flex-1 min-h-0 overflow-auto bg-surface-panel p-4 rounded border border-border-weak-base"
+                    onClick={handleLinkClick}
+                  >
+                    <Markdown
+                      text={content()?.text || ""}
+                      class="prose prose-sm"
+                    />
+                  </div>
+                  <MarkdownTOC containerRef={wrapperRef} />
                 </div>
               </Show>
               <Show when={!content()?.isMarkdown}>

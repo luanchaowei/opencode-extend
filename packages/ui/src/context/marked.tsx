@@ -1,6 +1,7 @@
 import { marked } from "marked"
 import markedKatex from "marked-katex-extension"
 import markedShiki from "marked-shiki"
+import markedTocExtension from "marked-toc-extension"
 import katex from "katex"
 import { bundledLanguages, type BundledLanguage } from "shiki"
 import { createSimpleContext } from "./helper"
@@ -477,6 +478,7 @@ export const { use: useMarked, provider: MarkedProvider } = createSimpleContext(
           },
         },
       },
+      markedTocExtension({ generateHeaderId: true }),
       markedKatex({
         throwOnError: false,
         nonStandard: true,
