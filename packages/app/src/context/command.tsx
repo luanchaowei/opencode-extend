@@ -10,10 +10,8 @@ import { Persist, persisted } from "@/utils/persist"
 
 const IS_MAC = typeof navigator === "object" && /(Mac|iPod|iPhone|iPad)/.test(navigator.platform)
 
-const PALETTE_ID = "command.palette"
-const DEFAULT_PALETTE_KEYBIND = "mod+shift+p"
 const SUGGESTED_PREFIX = "suggested."
-const EDITABLE_KEYBIND_IDS = new Set(["terminal.toggle", "terminal.new", "file.attach"])
+const EDITABLE_KEYBIND_IDS = new Set(["file.attach"])
 
 type KeyLabel =
   | "common.key.ctrl"
@@ -78,21 +76,19 @@ export interface CommandOption {
   description?: string
   category?: string
   keybind?: KeybindConfig
-  slash?: string
   suggested?: boolean
   disabled?: boolean
-  onSelect?: (source?: "palette" | "keybind" | "slash") => void
+  onSelect?: (source?: "palette" | "keybind") => void
   onHighlight?: () => (() => void) | void
 }
 
-type CommandSource = "palette" | "keybind" | "slash"
+type CommandSource = "palette" | "keybind"
 
 export type CommandCatalogItem = {
   title: string
   description?: string
   category?: string
   keybind?: KeybindConfig
-  slash?: string
 }
 
 export type CommandRegistration = {
@@ -284,7 +280,6 @@ export const { use: useCommand, provider: CommandProvider } = createSimpleContex
             description: opt.description,
             category: opt.category,
             keybind: opt.keybind,
-            slash: opt.slash,
           }
           return acc
         }, {} as CommandCatalog),
@@ -312,12 +307,6 @@ export const { use: useCommand, provider: CommandProvider } = createSimpleContex
     })
 
     const suspended = () => store.suspendCount > 0
-
-    const palette = createMemo(() => {
-      const config = settings.keybinds.get(PALETTE_ID) ?? DEFAULT_PALETTE_KEYBIND
-      const keybinds = parseKeybind(config)
-      return new Set(keybinds.map((kb) => signature(kb.key, kb.ctrl, kb.meta, kb.shift, kb.alt)))
-    })
 
     const keymap = createMemo(() => {
       const map = new Map<string, CommandOption>()
@@ -351,27 +340,16 @@ export const { use: useCommand, provider: CommandProvider } = createSimpleContex
       option?.onSelect?.(source)
     }
 
-    const showPalette = () => {
-      run("file.open", "palette")
-    }
-
     const handleKeyDown = (event: KeyboardEvent) => {
       if (suspended() || dialog.active) return
 
       const sig = signatureFromEvent(event)
-      const isPalette = palette().has(sig)
       const option = keymap().get(sig)
       const modified = event.ctrlKey || event.metaKey || event.altKey
       const isTab = event.key === "Tab"
 
-      if (isEditableTarget(event.target) && !isPalette && !isAllowedEditableKeybind(option?.id) && !modified && !isTab)
+      if (isEditableTarget(event.target) && !isAllowedEditableKeybind(option?.id) && !modified && !isTab)
         return
-
-      if (isPalette) {
-        event.preventDefault()
-        showPalette()
-        return
-      }
 
       if (!option) return
       event.preventDefault()
@@ -405,10 +383,6 @@ export const { use: useCommand, provider: CommandProvider } = createSimpleContex
         run(id, source)
       },
       keybind(id: string) {
-        if (id === PALETTE_ID) {
-          return formatKeybind(settings.keybinds.get(PALETTE_ID) ?? DEFAULT_PALETTE_KEYBIND, language.t)
-        }
-
         const base = actionId(id)
         const option = options().find((x) => actionId(x.id) === base)
         if (option?.keybind) return formatKeybind(option.keybind, language.t)
@@ -418,7 +392,6 @@ export const { use: useCommand, provider: CommandProvider } = createSimpleContex
         if (!config) return ""
         return formatKeybind(config, language.t)
       },
-      show: showPalette,
       keybinds(enabled: boolean) {
         setStore("suspendCount", (count) => Math.max(0, count + (enabled ? -1 : 1)))
       },

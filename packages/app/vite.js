@@ -65,12 +65,10 @@ export default [
             const contactList = contactAdmin.split('|').filter(line => line.trim())
             const feedbackUrl = process.env.VITE_FEEDBACK_URL || ""
             const caseLibraryDir = process.env.VITE_CASE_LIBRARY_DIR || ""
-            const cannVersions = process.env.VITE_CANN_VERSIONS || ""
-            const cannVersionList = cannVersions.split('|').filter(line => line.trim())
             res.setHeader("Content-Type", "application/json")
             const helpDocUrl = process.env.VITE_HELP_DOC_URL || ""
             const queueWarning = process.env.VITE_QUEUE_WARNING || ""
-            res.end(JSON.stringify({ clientIP, contactAdmin: contactList, feedbackUrl, caseLibraryDir, cannVersions: cannVersionList, helpDocUrl, queueWarning }))
+            res.end(JSON.stringify({ clientIP, contactAdmin: contactList, feedbackUrl, caseLibraryDir, helpDocUrl, queueWarning }))
           } catch (error) {
             res.statusCode = 500
             res.end(JSON.stringify({ error: error.message }))

@@ -21,9 +21,6 @@ import {
   sansDefault,
   sansFontFamily,
   sansInput,
-  terminalDefault,
-  terminalFontFamily,
-  terminalInput,
   useSettings,
 } from "@/context/settings"
 import { decode64 } from "@/utils/base64"
@@ -256,7 +253,6 @@ export const SettingsGeneral: Component = () => {
   const soundOptions = [noneSound, ...SOUND_OPTIONS]
   const mono = () => monoInput(settings.appearance.font())
   const sans = () => sansInput(settings.appearance.uiFont())
-  const terminal = () => terminalInput(settings.appearance.terminalFont())
 
   const soundSelectProps = (
     enabled: () => boolean,
@@ -407,42 +403,6 @@ export const SettingsGeneral: Component = () => {
         </SettingsRow>
 
         <SettingsRow
-          title={language.t("settings.general.row.showNavigation.title")}
-          description={language.t("settings.general.row.showNavigation.description")}
-        >
-          <div data-action="settings-show-navigation">
-            <Switch
-              checked={settings.general.showNavigation()}
-              onChange={(checked) => settings.general.setShowNavigation(checked)}
-            />
-          </div>
-        </SettingsRow>
-
-        <SettingsRow
-          title={language.t("settings.general.row.showSearch.title")}
-          description={language.t("settings.general.row.showSearch.description")}
-        >
-          <div data-action="settings-show-search">
-            <Switch
-              checked={settings.general.showSearch()}
-              onChange={(checked) => settings.general.setShowSearch(checked)}
-            />
-          </div>
-        </SettingsRow>
-
-        <SettingsRow
-          title={language.t("settings.general.row.showTerminal.title")}
-          description={language.t("settings.general.row.showTerminal.description")}
-        >
-          <div data-action="settings-show-terminal">
-            <Switch
-              checked={settings.general.showTerminal()}
-              onChange={(checked) => settings.general.setShowTerminal(checked)}
-            />
-          </div>
-        </SettingsRow>
-
-        <SettingsRow
           title={language.t("settings.general.row.showStatus.title")}
           description={language.t("settings.general.row.showStatus.description")}
         >
@@ -557,29 +517,6 @@ export const SettingsGeneral: Component = () => {
               autocapitalize="off"
               class="text-12-regular"
               style={{ "font-family": monoFontFamily(settings.appearance.font()) }}
-            />
-          </div>
-        </SettingsRow>
-
-        <SettingsRow
-          title={language.t("settings.general.row.terminalFont.title")}
-          description={language.t("settings.general.row.terminalFont.description")}
-        >
-          <div class="w-full sm:w-[220px]">
-            <TextField
-              data-action="settings-terminal-font"
-              label={language.t("settings.general.row.terminalFont.title")}
-              hideLabel
-              type="text"
-              value={terminal()}
-              onChange={(value) => settings.appearance.setTerminalFont(value)}
-              placeholder={terminalDefault}
-              spellcheck={false}
-              autocorrect="off"
-              autocomplete="off"
-              autocapitalize="off"
-              class="text-12-regular"
-              style={{ "font-family": terminalFontFamily(settings.appearance.terminalFont()) }}
             />
           </div>
         </SettingsRow>

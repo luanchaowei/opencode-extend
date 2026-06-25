@@ -18,7 +18,6 @@ import { showToast } from "@opencode-ai/ui/toast"
 import { Binary } from "@opencode-ai/core/util/binary"
 import { getFilename } from "@opencode-ai/core/util/path"
 import { shouldMarkBoundaryGesture, normalizeWheelDelta } from "@/pages/session/message-gesture"
-import { SessionContextUsage } from "@/components/session-context-usage"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { createResizeObserver } from "@solid-primitives/resize-observer"
 import { useLanguage } from "@/context/language"
@@ -209,8 +208,6 @@ function createTimelineStaging(input: TimelineStageInput) {
 }
 
 export function MessageTimeline(props: {
-  mobileChanges: boolean
-  mobileFallback: JSX.Element
   actions?: UserActions
   scroll: { overflow: boolean; bottom: boolean; jump: boolean }
   onResumeScroll: () => void
@@ -585,11 +582,7 @@ return language.t("common.requestFailed")
   }
 
   return (
-    <Show
-      when={!props.mobileChanges}
-      fallback={<div class="relative h-full overflow-hidden">{props.mobileFallback}</div>}
-    >
-      <div class="relative w-full h-full min-w-0">
+    <div class="relative w-full h-full min-w-0">
         <div
           class="absolute left-1/2 -translate-x-1/2 bottom-6 z-[60] pointer-events-none transition-all duration-200 ease-out"
           classList={{
@@ -776,7 +769,6 @@ return language.t("common.requestFailed")
                   <Show when={sessionID()} keyed>
                     {(id) => (
                       <div class="shrink-0 flex items-center gap-3">
-                        <SessionContextUsage placement="bottom" />
                         <Show when={!parentID()}>
                           <DropdownMenu
                             gutter={4}
@@ -953,6 +945,5 @@ return language.t("common.requestFailed")
           </div>
         </ScrollView>
       </div>
-    </Show>
-  )
+   )
 }

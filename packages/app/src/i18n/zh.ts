@@ -3,6 +3,9 @@ import { dict as en } from "./en"
 type Keys = keyof typeof en
 
 export const dict = {
+  "session.search": "搜索会话",
+  "session.search.placeholder": "搜索会话...",
+  "session.search.empty": "未找到会话",
   "command.category.suggested": "建议",
   "command.category.view": "视图",
   "command.category.project": "项目",
@@ -13,7 +16,6 @@ export const dict = {
   "command.category.language": "语言",
   "command.category.file": "文件",
   "command.category.context": "上下文",
-  "command.category.terminal": "终端",
   "command.category.model": "模型",
   "command.category.mcp": "MCP",
   "command.category.agent": "智能体",
@@ -41,8 +43,6 @@ export const dict = {
   "command.session.next.unseen": "下一个未读会话",
   "command.session.delete": "删除会话",
 
-  "command.palette": "命令面板",
-
   "command.theme.cycle": "切换主题",
   "command.theme.set": "使用主题：{{theme}}",
   "command.theme.scheme.cycle": "切换配色方案",
@@ -53,8 +53,6 @@ export const dict = {
 
   "command.session.new": "新建会话",
 
-  "command.file.open": "打开文件",
-
   "command.tab.close": "关闭标签页",
 
   "command.context.addSelection": "将所选内容添加到上下文",
@@ -62,17 +60,7 @@ export const dict = {
 
   "command.input.focus": "聚焦输入框",
 
-  "command.terminal.toggle": "切换终端",
-
   "command.fileTree.toggle": "切换文件树",
-
-  "command.review.toggle": "切换审查",
-
-  "command.terminal.new": "新建终端",
-  "command.terminal.new.description": "创建新的终端标签页",
-
-  "command.steps.toggle": "切换步骤",
-  "command.steps.toggle.description": "显示或隐藏当前消息的步骤",
 
   "command.message.previous": "上一条消息",
   "command.message.previous.description": "跳转到上一条用户消息",
@@ -110,16 +98,6 @@ export const dict = {
   "command.session.compact.description": "总结会话以减少上下文大小",
   "command.session.fork": "从消息分叉",
   "command.session.fork.description": "从之前的消息创建新会话",
-  "command.session.share": "分享会话",
-  "command.session.share.description": "分享此会话并将链接复制到剪贴板",
-  "command.session.unshare": "取消分享会话",
-  "command.session.unshare.description": "停止分享此会话",
-
-  "palette.search.title": "搜索",
-  "palette.search.placeholder": "搜索会话",
-  "palette.empty": "未找到结果",
-  "palette.group.commands": "命令",
-  "palette.group.files": "文件",
 
   "dialog.provider.search.placeholder": "搜索提供商",
   "dialog.provider.empty": "未找到提供商",
@@ -464,17 +442,8 @@ export const dict = {
   "file.download.label": "下载文件",
   "toast.context.noLineSelection.title": "未选择行",
   "toast.context.noLineSelection.description": "请先在文件标签中选择行范围。",
-  "toast.session.share.copyFailed.title": "无法复制链接到剪贴板",
-  "toast.session.share.success.title": "会话已分享",
-  "toast.session.share.success.description": "分享链接已复制到剪贴板",
   "toast.session.nameRequired.title": "会话名称必填",
   "toast.session.nameRequired.description": "请输入会话名称",
-  "toast.session.share.failed.title": "分享会话失败",
-  "toast.session.share.failed.description": "分享会话时发生错误",
-  "toast.session.unshare.success.title": "已取消分享会话",
-  "toast.session.unshare.success.description": "会话已成功取消分享",
-  "toast.session.unshare.failed.title": "取消分享失败",
-  "toast.session.unshare.failed.description": "取消分享会话时发生错误",
   "toast.session.listFailed.title": "无法加载 {{project}} 的会话",
   "toast.update.title": "有可用更新",
   "toast.update.description": "OpenCode 有新版本 ({{version}}) 可安装。",
@@ -530,18 +499,8 @@ export const dict = {
   "home.empty.description": "通过打开本地项目开始使用",
 
   "session.tab.session": "会话",
-  "session.tab.review": "审查",
   "session.tab.context": "上下文",
-  "session.panel.reviewAndFiles": "审查和文件",
-  "session.review.filesChanged": "{{count}} 个文件变更",
-  "session.review.change.one": "更改",
-  "session.review.change.other": "更改",
-  "session.review.loadingChanges": "正在加载更改...",
-  "session.review.empty": "此会话暂无更改",
-  "session.review.noVcs": "未检测到 Git 版本控制系统，无法显示更改",
-  "session.review.noSnapshot": "配置中已禁用快照跟踪，因此会话更改不可用",
-  "session.review.noChanges": "无更改",
-  "session.files.selectToOpen": "选择要打开的文件",
+  
   "session.files.all": "所有文件",
   "session.files.empty": "无文件",
   "session.files.binaryContent": "二进制文件（无法显示内容）",
@@ -554,12 +513,6 @@ export const dict = {
   "session.todo.title": "待办事项",
   "session.todo.collapse": "折叠",
   "session.todo.expand": "展开",
-  "session.followupDock.summary.one": "{{count}} 条排队消息",
-  "session.followupDock.summary.other": "{{count}} 条排队消息",
-  "session.followupDock.sendNow": "立即发送",
-  "session.followupDock.edit": "编辑",
-  "session.followupDock.collapse": "折叠排队消息",
-  "session.followupDock.expand": "展开排队消息",
   "session.revertDock.summary.one": "{{count}} 条已回滚消息",
   "session.revertDock.summary.other": "{{count}} 条已回滚消息",
   "session.revertDock.collapse": "折叠已回滚消息",
@@ -587,29 +540,10 @@ export const dict = {
   "status.popover.tab.plugins": "插件",
   "status.popover.action.manageServers": "管理服务器",
 
-  "session.share.popover.title": "发布到网页",
-  "session.share.popover.description.shared": "此会话已在网页上公开。任何拥有链接的人都可以访问。",
-  "session.share.popover.description.unshared": "在网页上公开分享此会话。任何拥有链接的人都可以访问。",
-  "session.share.action.share": "分享",
-  "session.share.action.publish": "发布",
-  "session.share.action.publishing": "正在发布...",
-  "session.share.action.unpublish": "取消发布",
-  "session.share.action.unpublishing": "正在取消发布...",
-  "session.share.action.view": "查看",
-  "session.share.copy.copied": "已复制",
-  "session.share.copy.copyLink": "复制链接",
-
   "lsp.tooltip.none": "没有 LSP 服务器",
   "lsp.label.connected": "{{count}} LSP",
 
   "prompt.loading": "正在加载提示...",
-
-  "terminal.loading": "正在加载终端...",
-  "terminal.title": "终端",
-  "terminal.title.numbered": "终端 {{number}}",
-  "terminal.close": "关闭终端",
-  "terminal.connectionLost.title": "连接已丢失",
-  "terminal.connectionLost.description": "终端连接已中断。这可能发生在服务器重启时。",
 
   "common.closeTab": "关闭标签页",
   "common.dismiss": "忽略",
@@ -634,7 +568,6 @@ export const dict = {
   "enterprise.feedback": "问题反馈",
   "enterprise.feedbackUrl": "https://example.com/feedback",
   "enterprise.caseLibrary": "知识库",
-  "enterprise.cannVersion": "CANN版本",
   "enterprise.selectFileToView": "点击文件查看内容",
   "enterprise.toc.title": "目录",
   "enterprise.toc.empty": "无目录",
@@ -680,14 +613,8 @@ export const dict = {
   "settings.general.row.theme.description": "自定义 OpenCode 的主题。",
   "settings.general.row.font.title": "代码字体",
   "settings.general.row.font.description": "自定义代码块使用的字体",
-  "settings.general.row.terminalFont.title": "Terminal Font",
-  "settings.general.row.terminalFont.description": "Customise the font used in the terminal",
   "settings.general.row.uiFont.title": "界面字体",
   "settings.general.row.uiFont.description": "自定义整个界面使用的字体",
-  "settings.general.row.followup.title": "跟进消息行为",
-  "settings.general.row.followup.description": "选择跟进提示是立即引导还是在队列中等待",
-  "settings.general.row.followup.option.queue": "排队",
-  "settings.general.row.followup.option.steer": "引导",
   "settings.general.row.reasoningSummaries.title": "显示推理摘要",
   "settings.general.row.reasoningSummaries.description": "在时间线中显示模型推理摘要",
   "settings.general.row.shellToolPartsExpanded.title": "展开 shell 工具部分",
@@ -900,10 +827,6 @@ export const dict = {
   "dialog.server.add.usernamePlaceholder": "用户名",
   "dialog.server.add.passwordPlaceholder": "密码",
   "server.row.noUsername": "无用户名",
-  "session.review.noVcs.createGit.title": "创建 Git 仓库",
-  "session.review.noVcs.createGit.description": "在此项目中跟踪、审查和撤消更改",
-  "session.review.noVcs.createGit.actionLoading": "正在创建 Git 仓库...",
-  "session.review.noVcs.createGit.action": "创建 Git 仓库",
   "session.todo.progress": "已完成 {{done}} 个任务（共 {{total}} 个）",
   "session.question.progress": "{{current}}/{{total}} 个问题",
   "session.header.open.finder": "访达",
@@ -965,5 +888,4 @@ export const dict = {
   "error.childStore.persistedProjectMetadataCreateFailed": "创建持久化项目元数据失败",
   "error.childStore.persistedProjectIconCreateFailed": "创建持久化项目图标失败",
   "error.childStore.storeCreateFailed": "创建存储失败",
-  "terminal.connectionLost.abnormalClose": "WebSocket 异常关闭：{{code}}",
 } satisfies Partial<Record<Keys, string>>

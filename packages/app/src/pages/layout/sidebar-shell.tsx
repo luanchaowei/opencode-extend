@@ -8,8 +8,6 @@ import {
   type DragEvent,
 } from "@thisbeyond/solid-dnd"
 import { ConstrainDragXAxis } from "@/utils/solid-dnd"
-import { Button } from "@opencode-ai/ui/button"
-import { TooltipKeybind } from "@opencode-ai/ui/tooltip"
 import { type LocalProject } from "@/context/layout"
 
 export const SidebarContent = (props: {
@@ -22,9 +20,6 @@ export const SidebarContent = (props: {
   handleDragEnd: () => void
   handleDragOver: (event: DragEvent) => void
   renderProjectOverlay: () => JSX.Element
-  settingsLabel: Accessor<string>
-  settingsKeybind: Accessor<string | undefined>
-  onOpenSettings: () => void
   renderPanel: () => JSX.Element
 }): JSX.Element => {
   const expanded = createMemo(() => !!props.mobile || props.opened())
@@ -65,19 +60,7 @@ export const SidebarContent = (props: {
             <DragOverlay>{props.renderProjectOverlay()}</DragOverlay>
           </DragDropProvider>
         </div>
-        <div class="shrink-0 w-full pt-3 pb-6 px-3 flex flex-col items-center gap-2">
-          <TooltipKeybind placement={placement()} title={props.settingsLabel()} keybind={import.meta.env.VITE_DISABLE_BUTTON ? "" : (props.settingsKeybind() ?? "")}>
-            <Button
-              disabled={import.meta.env.VITE_DISABLE_BUTTON}
-              variant="ghost"
-              size="small"
-              onClick={props.onOpenSettings}
-              aria-label={props.settingsLabel()}
-              class="w-full justify-center"
-            >
-              <span class="text-12-regular">{props.settingsLabel()}</span>
-            </Button>
-          </TooltipKeybind>
+<div class="shrink-0 w-full pt-3 pb-6 px-3 flex flex-col items-center gap-2">
         </div>
       </div>
 

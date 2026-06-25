@@ -17,7 +17,6 @@ const AVATAR_COLOR_KEYS = ["pink", "mint", "orange", "purple", "cyan", "lime"] a
 const DEFAULT_SIDEBAR_WIDTH = 344
 const DEFAULT_FILE_TREE_WIDTH = 250
 const DEFAULT_SESSION_WIDTH = 600
-const DEFAULT_TERMINAL_HEIGHT = 280
 export type AvatarColorKey = (typeof AVATAR_COLOR_KEYS)[number]
 
 export function getAvatarColors(key?: string) {
@@ -40,7 +39,6 @@ type SessionTabs = {
 
 type SessionView = {
   scroll: Record<string, SessionScroll>
-  reviewOpen?: string[]
   pendingMessage?: string
   pendingMessageAt?: number
 }
@@ -52,8 +50,6 @@ type TabHandoff = {
 }
 
 export type LocalProject = Partial<Project> & { worktree: string; expanded: boolean }
-
-export type ReviewDiffStyle = "unified" | "split"
 
 export function ensureSessionKey(key: string, touch: (key: string) => void, seed: (key: string) => void) {
   touch(key)
@@ -94,8 +90,6 @@ export function pruneSessionKeys(input: {
 
 function nextSessionTabsForOpen(current: SessionTabs | undefined, tab: string): SessionTabs {
   const all = current?.all ?? []
-  if (tab === "review") return { all: all.filter((x) => x !== "review"), active: tab }
-  if (tab === "context") return { all: [tab, ...all.filter((x) => x !== tab)], active: tab }
   if (!all.includes(tab)) return { all: [...all, tab], active: tab }
   return { all, active: tab }
 }
@@ -161,7 +155,6 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
         }
       })()
 
-      const review = value.review
       const fileTree = value.fileTree
       const migratedFileTree = (() => {
         if (!isRecord(fileTree)) return { opened: true, width: DEFAULT_FILE_TREE_WIDTH, tab: "changes" }
@@ -174,17 +167,6 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
           opened: true,
           width: width === 260 ? DEFAULT_FILE_TREE_WIDTH : width,
           tab,
-        }
-      })()
-
-      const migratedReview = (() => {
-        if (!isRecord(review)) return review
-        if (typeof review.panelOpened === "boolean") return review
-
-        const opened = isRecord(fileTree) && typeof fileTree.opened === "boolean" ? fileTree.opened : true
-        return {
-          ...review,
-          panelOpened: opened,
         }
       })()
 
@@ -215,7 +197,6 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
 
       if (
         migratedSidebar === sidebar &&
-        migratedReview === review &&
         migratedFileTree === fileTree &&
         migratedSessionTabs === sessionTabs
       ) {
@@ -225,7 +206,6 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
       return {
         ...value,
         sidebar: migratedSidebar,
-        review: migratedReview,
         fileTree: migratedFileTree,
         sessionTabs: migratedSessionTabs,
       }
@@ -240,14 +220,6 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
           width: DEFAULT_SIDEBAR_WIDTH,
           workspaces: {} as Record<string, boolean>,
           workspacesDefault: false,
-        },
-        terminal: {
-          height: DEFAULT_TERMINAL_HEIGHT,
-          opened: false,
-        },
-        review: {
-          diffStyle: "split" as ReviewDiffStyle,
-          panelOpened: true,
         },
         fileTree: {
           opened: true,
@@ -278,7 +250,6 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
 
     const SESSION_STATE_KEYS = [
       { key: "prompt", legacy: "prompt", version: "v2" },
-      { key: "terminal", legacy: "terminal", version: "v1" },
       { key: "file-view", legacy: "file", version: "v1" },
     ] as const
 
@@ -599,22 +570,6 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
           setStore("sidebar", "workspaces", directory, !current)
         },
       },
-      terminal: {
-        height: createMemo(() => store.terminal.height),
-        resize(height: number) {
-          setStore("terminal", "height", height)
-        },
-      },
-      review: {
-        diffStyle: createMemo(() => store.review?.diffStyle ?? "split"),
-        setDiffStyle(diffStyle: ReviewDiffStyle) {
-          if (!store.review) {
-            setStore("review", { diffStyle, panelOpened: true })
-            return
-          }
-          setStore("review", "diffStyle", diffStyle)
-        },
-      },
       fileTree: {
         opened: createMemo(() => store.fileTree?.opened ?? true),
         width: createMemo(() => store.fileTree?.width ?? DEFAULT_FILE_TREE_WIDTH),
@@ -723,32 +678,6 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
       view(sessionKey: string | Accessor<string>) {
         const key = createSessionKeyReader(sessionKey, ensureKey)
         const s = createMemo(() => store.sessionView[key()] ?? { scroll: {} })
-        const terminalOpened = createMemo(() => store.terminal?.opened ?? false)
-        const reviewPanelOpened = createMemo(() => false)
-
-        function setTerminalOpened(next: boolean) {
-          const current = store.terminal
-          if (!current) {
-            setStore("terminal", { height: DEFAULT_TERMINAL_HEIGHT, opened: next })
-            return
-          }
-
-          const value = current.opened ?? false
-          if (value === next) return
-          setStore("terminal", "opened", next)
-        }
-
-        function setReviewPanelOpened(next: boolean) {
-          const current = store.review
-          if (!current) {
-            setStore("review", { diffStyle: "split" as ReviewDiffStyle, panelOpened: next })
-            return
-          }
-
-          const value = current.panelOpened ?? true
-          if (value === next) return
-          setStore("review", "panelOpened", next)
-        }
 
         return {
           scroll(tab: string) {
@@ -756,94 +685,6 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
           },
           setScroll(tab: string, pos: SessionScroll) {
             scroll.setScroll(key(), tab, pos)
-          },
-          terminal: {
-            opened: terminalOpened,
-            open() {
-              setTerminalOpened(true)
-            },
-            close() {
-              setTerminalOpened(false)
-            },
-            toggle() {
-              setTerminalOpened(!terminalOpened())
-            },
-          },
-          reviewPanel: {
-            opened: reviewPanelOpened,
-            open() {
-              setReviewPanelOpened(true)
-            },
-            close() {
-              setReviewPanelOpened(false)
-            },
-            toggle() {
-              setReviewPanelOpened(!reviewPanelOpened())
-            },
-          },
-          review: {
-            open: createMemo(() => s().reviewOpen ?? []),
-            setOpen(open: string[]) {
-              const session = key()
-              const next = Array.from(new Set(open))
-              const current = store.sessionView[session]
-              if (!current) {
-                setStore("sessionView", session, {
-                  scroll: {},
-                  reviewOpen: next,
-                })
-                return
-              }
-
-              if (same(current.reviewOpen, next)) return
-              setStore("sessionView", session, "reviewOpen", next)
-            },
-            openPath(path: string) {
-              const session = key()
-              const current = store.sessionView[session]
-              if (!current) {
-                setStore("sessionView", session, {
-                  scroll: {},
-                  reviewOpen: [path],
-                })
-                return
-              }
-
-              if (!current.reviewOpen) {
-                setStore("sessionView", session, "reviewOpen", [path])
-                return
-              }
-
-              if (current.reviewOpen.includes(path)) return
-              setStore("sessionView", session, "reviewOpen", current.reviewOpen.length, path)
-            },
-            closePath(path: string) {
-              const session = key()
-              const current = store.sessionView[session]?.reviewOpen
-              if (!current) return
-
-              const index = current.indexOf(path)
-              if (index === -1) return
-              setStore(
-                "sessionView",
-                session,
-                "reviewOpen",
-                produce((draft) => {
-                  if (!draft) return
-                  draft.splice(index, 1)
-                }),
-              )
-            },
-            togglePath(path: string) {
-              const session = key()
-              const current = store.sessionView[session]?.reviewOpen
-              if (!current || !current.includes(path)) {
-                this.openPath(path)
-                return
-              }
-
-              this.closePath(path)
-            },
           },
         }
       },
@@ -856,7 +697,7 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
         return {
           tabs,
           active: createMemo(() => tabs().active),
-          all: createMemo(() => tabs().all.filter((tab) => tab !== "review")),
+          all: createMemo(() => tabs().all),
           setActive(tab: string | undefined) {
             const session = key()
             const next = tab ? normalize(tab) : tab
@@ -868,7 +709,7 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
           },
           setAll(all: string[]) {
             const session = key()
-            const next = normalizeAll(all).filter((tab) => tab !== "review")
+            const next = normalizeAll(all)
             if (!store.sessionTabs[session]) {
               setStore("sessionTabs", session, { all: next, active: undefined })
             } else {
@@ -884,12 +725,6 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
             const session = key()
             const current = store.sessionTabs[session]
             if (!current) return
-
-            if (tab === "review") {
-              if (current.active !== tab) return
-              setStore("sessionTabs", session, "active", current.all[0])
-              return
-            }
 
             const all = current.all.filter((x) => x !== tab)
             if (current.active !== tab) {

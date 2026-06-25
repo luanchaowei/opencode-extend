@@ -38,9 +38,7 @@ VITE_OPENCODE_DEFAULT_DIR=/home/user  # 默认工作目录
 VITE_CONTACT_ADMIN=admin:12345678           # 支撑人员联系方式（格式：名称:号码|名称:号码）
 VITE_FEEDBACK_URL=https://example.com       # 问题反馈 URL
 VITE_CASE_LIBRARY_DIR=/path/to/cases        # 知识库目录
-VITE_CANN_VERSIONS=8.0.RC3|8.1.RC1          # CANN 版本列表（|分隔）
 VITE_HELP_DOC_URL=https://docs.example.com  # 帮助文档 URL
-VITE_DISABLE_BUTTON=true                     # 禁用特定按钮
 
 # 统计功能配置
 VITE_STATS_ADMIN_TOKEN=your-token    # 统计页面访问令牌
@@ -66,7 +64,6 @@ opencode-extend/
 
 - **知识库管理**：浏览和搜索本地案例库
 - **统计仪表盘**：查看用户数、会话数、在线用户等统计信息
-- **CANN 版本选择**：快速切换不同的 CANN 版本
 - **帮助文档**：快速访问帮助文档
 - **问题反馈**：快速提交问题反馈
 - **支撑人员联系**：快速联系支撑人员

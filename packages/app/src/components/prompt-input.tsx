@@ -52,7 +52,6 @@ import {
   promptLength,
 } from "./prompt-input/history"
 import { createPromptSubmit, type FollowupDraft } from "./prompt-input/submit"
-import { PromptPopover, type AtOption, type SlashCommand } from "./prompt-input/slash-popover"
 import { PromptContextItems } from "./prompt-input/context-items"
 import { PromptImageAttachments } from "./prompt-input/image-attachments"
 import { promptPlaceholder } from "./prompt-input/placeholder"
@@ -122,7 +121,6 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
   let editorRef!: HTMLDivElement
   let fileInputRef: HTMLInputElement | undefined
   let scrollRef!: HTMLDivElement
-  let slashPopoverRef!: HTMLDivElement
 
   const isOwnProject = createMemo(() => {
     const directory = decode64(params.dir)
@@ -214,14 +212,12 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
 
     const wantsReview = item.commentOrigin === "review" || (item.commentOrigin !== "file" && commentInReview(item.path))
     if (wantsReview) {
-      if (!view().reviewPanel.opened()) view().reviewPanel.open()
       layout.fileTree.setTab("changes")
       tabs().setActive("review")
       queueCommentFocus()
       return
     }
 
-    if (!view().reviewPanel.opened()) view().reviewPanel.open()
     layout.fileTree.setTab("all")
     const tab = files.tab(item.path)
     void tabs().open(tab)
@@ -259,7 +255,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
   )
 
   const [store, setStore] = createStore<{
-    popover: "at" | "slash" | null
+    popover: null
     historyIndex: number
     savedPrompt: PromptHistoryEntry | null
     placeholder: number
@@ -267,7 +263,6 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
     mode: "normal" | "shell"
     applyingHistory: boolean
     uploading: boolean
-    cannVersion: string
   }>({
     popover: null,
     historyIndex: -1,
@@ -277,7 +272,6 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
     mode: "normal",
     applyingHistory: false,
     uploading: false,
-    cannVersion: "",
   })
 
   const buttonsSpring = useSpring(() => (store.mode === "normal" ? 1 : 0), { visualDuration: 0.2, bounce: 0 })
@@ -570,116 +564,6 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
     })
   }
 
-  const agentList = createMemo(() =>
-    [] as AtOption[],
-  )
-  const agentNames = createMemo(() => local.agent.list().map((agent) => agent.name))
-
-  const handleAtSelect = (option: AtOption | undefined) => {
-    if (!option) return
-    if (option.type === "agent") {
-      addPart({ type: "agent", name: option.name, content: "@" + option.name, start: 0, end: 0 })
-    } else {
-      addPart({ type: "file", path: option.path, content: "@" + option.path, start: 0, end: 0 })
-    }
-  }
-
-  const atKey = (x: AtOption | undefined) => {
-    if (!x) return ""
-    return x.type === "agent" ? `agent:${x.name}` : `file:${x.path}`
-  }
-
-  const {
-    flat: atFlat,
-    active: atActive,
-    setActive: setAtActive,
-    onInput: atOnInput,
-    onKeyDown: atOnKeyDown,
-  } = useFilteredList<AtOption>({
-    items: async (query) => {
-      const agents = agentList()
-      const open = recent()
-      const seen = new Set(open)
-      const pinned: AtOption[] = open.map((path) => ({ type: "file", path, display: path, recent: true }))
-      const paths = await files.searchFilesAndDirectories(query || "")
-      const fileOptions: AtOption[] = paths
-        .filter((path) => !seen.has(path))
-        .map((path) => ({ type: "file", path, display: path }))
-      return [...agents, ...pinned, ...fileOptions]
-    },
-    key: atKey,
-    filterKeys: ["display"],
-    groupBy: (item) => {
-      if (item.type === "agent") return "agent"
-      if (item.recent) return "recent"
-      return "file"
-    },
-    sortGroupsBy: (a, b) => {
-      const rank = (category: string) => {
-        if (category === "agent") return 0
-        if (category === "recent") return 1
-        return 2
-      }
-      return rank(a.category) - rank(b.category)
-    },
-    onSelect: handleAtSelect,
-  })
-
-  const slashCommands = createMemo<SlashCommand[]>(() => {
-    const builtin = command.options
-      .filter((opt) => !opt.disabled && !opt.id.startsWith("suggested.") && opt.slash)
-      .map((opt) => ({
-        id: opt.id,
-        trigger: opt.slash!,
-        title: opt.title,
-        description: opt.description,
-        keybind: opt.keybind,
-        type: "builtin" as const,
-      }))
-
-    const custom = sync.data.command.map((cmd) => ({
-      id: `custom.${cmd.name}`,
-      trigger: cmd.name,
-      title: cmd.name,
-      description: cmd.description,
-      type: "custom" as const,
-      source: cmd.source,
-    }))
-
-    return [...custom, ...builtin]
-  })
-
-  const handleSlashSelect = (cmd: SlashCommand | undefined) => {
-    if (!cmd) return
-    closePopover()
-    const images = imageAttachments()
-
-    if (cmd.type === "custom") {
-      const text = `/${cmd.trigger} `
-      setEditorText(text)
-      prompt.set([{ type: "text", content: text, start: 0, end: text.length }, ...images], text.length)
-      focusEditorEnd()
-      return
-    }
-
-    clearEditor()
-    prompt.set([...DEFAULT_PROMPT, ...images], 0)
-    command.trigger(cmd.id, "slash")
-  }
-
-  const {
-    flat: slashFlat,
-    active: slashActive,
-    setActive: setSlashActive,
-    onInput: slashOnInput,
-    onKeyDown: slashOnKeyDown,
-  } = useFilteredList<SlashCommand>({
-    items: slashCommands,
-    key: (x) => x?.id,
-    filterKeys: ["trigger", "title"],
-    onSelect: handleSlashSelect,
-  })
-
   const createPill = (part: FileAttachmentPart | AgentPart) => {
     const pill = document.createElement("span")
     pill.textContent = part.content
@@ -726,35 +610,6 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
     const last = editorRef.lastChild
     if (last?.nodeType === Node.ELEMENT_NODE && (last as HTMLElement).tagName === "BR") {
       editorRef.appendChild(document.createTextNode("\u200B"))
-    }
-  }
-
-  // Auto-scroll active command into view when navigating with keyboard
-  createEffect(() => {
-    const activeId = slashActive()
-    if (!activeId || !slashPopoverRef) return
-
-    requestAnimationFrame(() => {
-      const element = slashPopoverRef.querySelector(`[data-slash-id="${activeId}"]`)
-      element?.scrollIntoView({ block: "nearest", behavior: "smooth" })
-    })
-  })
-  const selectPopoverActive = () => {
-    if (store.popover === "at") {
-      const items = atFlat()
-      if (items.length === 0) return
-      const active = atActive()
-      const item = items.find((entry) => atKey(entry) === active) ?? items[0]
-      handleAtSelect(item)
-      return
-    }
-
-    if (store.popover === "slash") {
-      const items = slashFlat()
-      if (items.length === 0) return
-      const active = slashActive()
-      const item = items.find((entry) => entry.id === active) ?? items[0]
-      handleSlashSelect(item)
     }
   }
 
@@ -887,21 +742,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
       return
     }
 
-    const shellMode = store.mode === "shell"
-
-    if (!shellMode) {
-      const atMatch = rawText.substring(0, cursorPosition).match(/@(\S*)$/)
-
-      if (atMatch) {
-        atOnInput(atMatch[1])
-        setStore("popover", "at")
-      } else {
-        closePopover()
-      }
-    } else {
-      closePopover()
-    }
-
+    closePopover()
     resetHistoryNavigation()
 
     mirror.input = true
@@ -1087,8 +928,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
       resetHistoryNavigation(true)
     },
     setMode: (mode) => setStore("mode", mode),
-    setPopover: (popover) => setStore("popover", popover),
-    cannVersion: () => store.cannVersion || device.cannVersions()[0] || "",
+    setPopover: () => setStore("popover", null),
     newSessionWorktree: () => props.newSessionWorktree,
     onNewSessionWorktreeReset: props.onNewSessionWorktreeReset,
     shouldQueue: props.shouldQueue,
@@ -1186,31 +1026,6 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
 
     const ctrl = event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey
 
-    if (store.popover) {
-      if (event.key === "Tab") {
-        selectPopoverActive()
-        event.preventDefault()
-        return
-      }
-      const nav = event.key === "ArrowUp" || event.key === "ArrowDown"
-      const enterKey = event.key === "Enter"
-      const ctrlNav = ctrl && (event.key === "n" || event.key === "p")
-      if (nav || ctrlNav) {
-        atOnKeyDown(event)
-        event.preventDefault()
-        return
-      }
-      if (enterKey) {
-        if (atFlat().length === 0) {
-          closePopover()
-        } else {
-          atOnKeyDown(event)
-        }
-        event.preventDefault()
-        return
-      }
-    }
-
     if (ctrl && event.code === "KeyG") {
       if (store.popover) {
         closePopover()
@@ -1268,7 +1083,6 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
   }))
 
   const agentsLoading = () => agentsQuery.isLoading
-  const agentsShouldFadeIn = createMemo((prev) => prev ?? agentsLoading())
   const providersLoading = () => agentsLoading() || providersQuery.isLoading || globalProvidersQuery.isLoading
   const providersShouldFadeIn = createMemo((prev) => prev ?? providersLoading())
 
@@ -1280,21 +1094,6 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
   return (
     <div class="relative size-full _max-h-[320px] flex flex-col gap-0">
       {(promptReady(), null)}
-      <PromptPopover
-        popover={store.popover}
-        setSlashPopoverRef={(el) => (slashPopoverRef = el)}
-        atFlat={atFlat()}
-        atActive={atActive() ?? undefined}
-        atKey={atKey}
-        setAtActive={setAtActive}
-        onAtSelect={handleAtSelect}
-        slashFlat={slashFlat()}
-        slashActive={slashActive() ?? undefined}
-        setSlashActive={setSlashActive}
-        onSlashSelect={handleSlashSelect}
-        commandKeybind={command.keybind}
-        t={(key) => language.t(key as Parameters<typeof language.t>[0])}
-      />
       <DockShellForm
         onSubmit={handleSubmit}
         classList={{
@@ -1535,34 +1334,6 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                 </Button>
               </div>
               <div class="flex items-center gap-1.5 min-w-0 flex-1 h-7">
-                <Show when={!agentsLoading() && !import.meta.env.VITE_DISABLE_BUTTON}>
-                  <div
-                    data-component="prompt-agent-control"
-                    style={agentsShouldFadeIn() ? { animation: "fade-in 0.3s" } : undefined}
-                  >
-                    <TooltipKeybind
-                      placement="top"
-                      gutter={4}
-                      title={language.t("command.agent.cycle")}
-                      keybind={command.keybind("agent.cycle")}
-                    >
-                      <Select
-                        size="normal"
-                        options={agentNames()}
-                        current={local.agent.current()?.name ?? ""}
-                        onSelect={(value) => {
-                          local.agent.set(value)
-                          restoreFocus()
-                        }}
-                        class="capitalize max-w-[160px] text-text-base"
-                        valueClass="truncate text-13-regular text-text-base"
-                        triggerStyle={control()}
-                        triggerProps={{ "data-action": "prompt-agent" }}
-                        variant="ghost"
-                      />
-                    </TooltipKeybind>
-                  </div>
-                </Show>
                 <Show when={!providersLoading()}>
                   <Show when={store.mode !== "shell"}>
                     <div
@@ -1667,29 +1438,10 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                           />
                         </TooltipKeybind>
                       </div>
-                    </Show>
-                  </Show>
-                </Show>
-                <Show when={device.cannVersions().length > 0}>
-                  <div data-component="prompt-cann-version-control">
-                    <Select
-                      size="normal"
-                      options={device.cannVersions()}
-                      current={store.cannVersion || device.cannVersions()[0]}
-                      label={(x) => `${language.t("enterprise.cannVersion")}: ${x}`}
-                      onSelect={(value) => {
-                        setStore("cannVersion", value)
-                        restoreFocus()
-                      }}
-                      class="max-w-[200px] text-text-base"
-                      valueClass="truncate text-13-regular text-text-base"
-                      triggerStyle={control()}
-                      triggerProps={{ "data-action": "prompt-cann-version" }}
-                      variant="ghost"
-                    />
-                  </div>
-                </Show>
-              </div>
+                   </Show>
+                 </Show>
+                 </Show>
+               </div>
             </div>
           </div>
         </DockTray>

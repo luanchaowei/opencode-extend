@@ -1,5 +1,4 @@
-import { createEffect, createMemo, For, Show, untrack } from "solid-js"
-import { createStore } from "solid-js/store"
+import { createEffect, createMemo, For, Show } from "solid-js"
 import { useLocation, useNavigate, useParams } from "@solidjs/router"
 import { IconButton } from "@opencode-ai/ui/icon-button"
 import { Icon } from "@opencode-ai/ui/icon"
@@ -15,9 +14,10 @@ import { useCommand } from "@/context/command"
 import { useLanguage } from "@/context/language"
 import { useSettings } from "@/context/settings"
 import { useDevice } from "@/context/device"
-import { applyPath, backPath, forwardPath } from "./titlebar-history"
+
 import { decode64 } from "@/utils/base64"
 import { DialogNewSession } from "@/components/dialog-new-session"
+import { SessionSearchPopover } from "@/components/session-search-popover"
 
 type TauriDesktopWindow = {
   startDragging?: () => Promise<void>
@@ -60,13 +60,6 @@ export function Titlebar() {
   const zoom = () => platform.webviewZoom?.() ?? 1
   const minHeight = () => (mac() ? `${40 / zoom()}px` : undefined)
 
-  const [history, setHistory] = createStore({
-    stack: [] as string[],
-    index: 0,
-    action: undefined as "back" | "forward" | undefined,
-  })
-
-  const path = () => `${location.pathname}${location.search}${location.hash}`
   const creating = createMemo(() => {
     if (!params.dir) return false
     if (params.id) return false
@@ -74,51 +67,7 @@ export function Titlebar() {
     return parts.at(-1) === "session"
   })
 
-  createEffect(() => {
-    const current = path()
-
-    untrack(() => {
-      const next = applyPath(history, current)
-      if (next === history) return
-      setHistory(next)
-    })
-  })
-
-  const canBack = createMemo(() => history.index > 0)
-  const canForward = createMemo(() => history.index < history.stack.length - 1)
   const hasProjects = createMemo(() => layout.projects.list().length > 0)
-  const nav = createMemo(() => import.meta.env.VITE_OPENCODE_CHANNEL !== "beta" || settings.general.showNavigation())
-
-  const back = () => {
-    const next = backPath(history)
-    if (!next) return
-    setHistory(next.state)
-    navigate(next.to)
-  }
-
-  const forward = () => {
-    const next = forwardPath(history)
-    if (!next) return
-    setHistory(next.state)
-    navigate(next.to)
-  }
-
-  command.register(() => [
-    {
-      id: "common.goBack",
-      title: language.t("common.goBack"),
-      category: language.t("command.category.view"),
-      keybind: "mod+[",
-      onSelect: back,
-    },
-    {
-      id: "common.goForward",
-      title: language.t("common.goForward"),
-      category: language.t("command.category.view"),
-      keybind: "mod+]",
-      onSelect: forward,
-    },
-  ])
 
   const getWin = () => {
     if (platform.platform !== "desktop") return
@@ -271,31 +220,7 @@ export function Titlebar() {
                 "duration-180 ease-in": layout.sidebar.opened(),
               }}
             >
-              <Show when={hasProjects() && nav()}>
-                <div class="flex items-center gap-0 transition-transform">
-                  <Tooltip placement="bottom" value={language.t("common.goBack")} openDelay={2000}>
-                    <Button
-                      variant="ghost"
-                      icon="chevron-left"
-                      class="titlebar-icon w-6 h-6 p-0 box-border"
-                      disabled={!canBack()}
-                      onClick={back}
-                      aria-label={language.t("common.goBack")}
-                    />
-                  </Tooltip>
-                  <Tooltip placement="bottom" value={language.t("common.goForward")} openDelay={2000}>
-                    <Button
-                      variant="ghost"
-                      icon="chevron-right"
-                      class="titlebar-icon w-6 h-6 p-0 box-border"
-                      disabled={!canForward()}
-                      onClick={forward}
-                      aria-label={language.t("common.goForward")}
-                    />
-                  </Tooltip>
-                </div>
-              </Show>
-<div id="opencode-titlebar-left" class="flex items-center gap-3 min-w-0 px-2" />
+              <div id="opencode-titlebar-left" class="flex items-center gap-3 min-w-0 px-2" />
               {["beta", "dev"].includes(import.meta.env.VITE_OPENCODE_CHANNEL) && (
                 <div class="bg-icon-interactive-base text-[#FFF] font-medium px-2 rounded-sm uppercase font-mono">
                   {import.meta.env.VITE_OPENCODE_CHANNEL.toUpperCase()}
@@ -307,6 +232,11 @@ export function Titlebar() {
       </div>
 
       <div class="min-w-0 flex items-center justify-center pointer-events-none">
+        <Show when={params.dir}>
+          <div class="pointer-events-auto">
+            <SessionSearchPopover />
+          </div>
+        </Show>
         <div id="opencode-titlebar-center" class="pointer-events-auto min-w-0 flex justify-center w-fit max-w-full" />
       </div>
 

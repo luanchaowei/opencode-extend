@@ -36,7 +36,6 @@ import type { DragEvent } from "@thisbeyond/solid-dnd"
 import { useProviders } from "@/hooks/use-providers"
 import { showToast, Toast, toaster } from "@opencode-ai/ui/toast"
 import { useGlobalSDK } from "@/context/global-sdk"
-import { clearWorkspaceTerminals } from "@/context/terminal"
 import { dropSessionCaches, pickSessionCacheEvictions } from "@/context/global-sync/session-cache"
 import {
   clearSessionPrefetchInflight,
@@ -1083,13 +1082,6 @@ export default function Layout(props: ParentProps) {
         onSelect: () => openServer(),
       },
       {
-        id: "settings.open",
-        title: language.t("command.settings.open"),
-        category: language.t("command.category.settings"),
-        keybind: "mod+comma",
-        onSelect: () => openSettings(),
-      },
-      {
         id: "session.previous",
         title: language.t("command.session.previous"),
         category: language.t("command.category.session"),
@@ -1145,7 +1137,6 @@ export default function Layout(props: ParentProps) {
         title: language.t("command.workspace.toggle"),
         description: language.t("command.workspace.toggle.description"),
         category: language.t("command.category.workspace"),
-        slash: "workspace",
         disabled: !currentProject() || currentProject()?.vcs !== "git",
         onSelect: () => {
           const project = currentProject()
@@ -1238,14 +1229,6 @@ export default function Layout(props: ParentProps) {
     void import("@/components/dialog-select-server").then((x) => {
       if (dialogDead || dialogRun !== run) return
       dialog.show(() => <x.DialogSelectServer />)
-    })
-  }
-
-  function openSettings() {
-    const run = ++dialogRun
-    void import("@/components/dialog-settings").then((x) => {
-      if (dialogDead || dialogRun !== run) return
-      dialog.show(() => <x.DialogSettings />)
     })
   }
 
@@ -1556,11 +1539,6 @@ export default function Layout(props: ParentProps) {
       .then((x) => x.data ?? [])
       .catch(() => [])
 
-    clearWorkspaceTerminals(
-      directory,
-      sessions.map((s) => s.id),
-      platform,
-    )
     await globalSDK.client.instance.dispose({ directory }).catch(() => undefined)
 
     const result = await globalSDK.client.worktree
@@ -2309,9 +2287,6 @@ export default function Layout(props: ParentProps) {
       handleDragEnd={handleDragEnd}
       handleDragOver={handleDragOver}
       renderProjectOverlay={projectOverlay}
-      settingsLabel={() => language.t("sidebar.settings")}
-      settingsKeybind={() => command.keybind("settings.open")}
-      onOpenSettings={openSettings}
       renderPanel={() =>
         mobile ? <SidebarPanel project={currentProject} mobile /> : <SidebarPanel project={currentProject} merged />
       }

@@ -3,7 +3,6 @@ import { Button } from "@opencode-ai/ui/button"
 import { DropdownMenu } from "@opencode-ai/ui/dropdown-menu"
 import { Icon } from "@opencode-ai/ui/icon"
 import { IconButton } from "@opencode-ai/ui/icon-button"
-import { Keybind } from "@opencode-ai/ui/keybind"
 import { Spinner } from "@opencode-ai/ui/spinner"
 import { showToast } from "@opencode-ai/ui/toast"
 import { Tooltip, TooltipKeybind } from "@opencode-ai/ui/tooltip"
@@ -23,7 +22,6 @@ import { useSessionLayout } from "@/pages/session/session-layout"
 import { messageAgentColor } from "@/utils/agent"
 import { decode64 } from "@/utils/base64"
 import { Persist, persisted } from "@/utils/persist"
-import { StatusPopover } from "../status-popover"
 
 const OPEN_APPS = [
   "vscode",
@@ -160,13 +158,9 @@ export function SessionHeader() {
     if (current) return current.name || getFilename(current.worktree)
     return getFilename(projectDirectory())
   })
-  const hotkey = createMemo(() => command.keybind("file.open"))
   const os = createMemo(() => detectOS(platform))
   const isDesktopBeta = platform.platform === "desktop" && import.meta.env.VITE_OPENCODE_CHANNEL === "beta"
-  const search = createMemo(() => !isDesktopBeta || settings.general.showSearch())
   const tree = createMemo(() => !isDesktopBeta || settings.general.showFileTree())
-  const status = createMemo(() => !(import.meta.env.VITE_DISABLE_BUTTON) && (!isDesktopBeta || settings.general.showStatus()))
-  // const status = createMemo(() => false)
 
   const [exists, setExists] = createStore<Partial<Record<OpenApp, boolean>>>({
     finder: true,
@@ -280,36 +274,6 @@ export function SessionHeader() {
           </Portal>
         )}
       </Show>
-      <Show when={search() && centerMount()}>
-        {(mount) => (
-          <Portal mount={mount()}>
-            <Button
-              type="button"
-              variant="ghost"
-              size="small"
-              class="hidden md:flex w-[240px] max-w-full min-w-0 items-center gap-2 justify-between rounded-md border border-border-weak-base bg-surface-panel shadow-none cursor-default"
-              onClick={() => command.trigger("file.open")}
-              aria-label={language.t("session.header.searchFiles")}
-            >
-              <div class="flex min-w-0 flex-1 items-center overflow-visible">
-                <span class="flex-1 min-w-0 text-12-regular text-text-weak truncate text-left">
-                  {language.t("session.header.search.placeholder", {
-                    project: name(),
-                  })}
-                </span>
-              </div>
-
-              <Show when={hotkey()}>
-                {(keybind) => (
-                  <Keybind class="shrink-0 !border-0 !bg-transparent !shadow-none px-0 text-text-weaker">
-                    {keybind()}
-                  </Keybind>
-                )}
-              </Show>
-            </Button>
-          </Portal>
-        )}
-      </Show>
       <Show when={rightMount()}>
         {(mount) => (
           <Portal mount={mount()}>
@@ -397,11 +361,6 @@ export function SessionHeader() {
                 </div>
               </Show>
               <div class="flex items-center gap-1">
-                <Show when={status()}>
-                  <Tooltip placement="bottom" value={language.t("status.popover.trigger")}>
-                    <StatusPopover />
-                  </Tooltip>
-                </Show>
 
                 <div class="hidden md:flex items-center gap-1 shrink-0">
                   <Show when={tree() && params.id}>

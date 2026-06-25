@@ -184,8 +184,7 @@ type PromptSubmitInput = {
   addToHistory: (prompt: Prompt, mode: "normal" | "shell") => void
   resetHistoryNavigation: () => void
   setMode: (mode: "normal" | "shell") => void
-  setPopover: (popover: "at" | "slash" | null) => void
-  cannVersion?: Accessor<string>
+  setPopover: (popover: "at" | null) => void
   newSessionWorktree?: Accessor<string | undefined>
   onNewSessionWorktreeReset?: () => void
   shouldQueue?: Accessor<boolean>
@@ -293,10 +292,7 @@ export function createPromptSubmit(input: PromptSubmitInput) {
     event.preventDefault()
 
     const currentPrompt = prompt.current()
-    const cannVersion = input.cannVersion?.()
-    const cannPrefix = cannVersion ? `[${language.t("enterprise.cannVersion")}: ${cannVersion}] ` : ""
-    const promptWithCann = cannPrefix ? [{ type: "text" as const, content: cannPrefix, start: 0, end: cannPrefix.length }, ...currentPrompt] as Prompt : currentPrompt
-    const text = promptWithCann.map((part) => ("content" in part ? part.content : "")).join("")
+    const text = currentPrompt.map((part) => ("content" in part ? part.content : "")).join("")
     const images = input.imageAttachments().slice()
     const mode = input.mode()
 
@@ -419,7 +415,7 @@ export function createPromptSubmit(input: PromptSubmitInput) {
     const draft: FollowupDraft = {
       sessionID: session.id,
       sessionDirectory,
-      prompt: promptWithCann,
+      prompt: currentPrompt,
       context,
       agent,
       model,
