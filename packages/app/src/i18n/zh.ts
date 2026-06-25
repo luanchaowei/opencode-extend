@@ -566,7 +566,6 @@ export const dict = {
   "enterprise.usageGuide.delete": "删除文件：选中文件或目录点击右键选择\"删除文件\"。",
   "enterprise.usageGuide.example": "使用示例：执行xxx用例，报错是：xxx, plog日志在：@uploads/ses_xxx/plog，dump图在：@uploads/ses_xxx/dump, 需要定位下报错原因。",
   "enterprise.feedback": "问题反馈",
-  "enterprise.feedbackUrl": "https://example.com/feedback",
   "enterprise.caseLibrary": "知识库",
   "enterprise.selectFileToView": "点击文件查看内容",
   "enterprise.toc.title": "目录",
@@ -716,7 +715,6 @@ export const dict = {
   "settings.shortcuts.group.prompt": "提示",
 
   "settings.providers.title": "提供商",
-  "settings.providers.description": "提供商设置将在此处可配置。",
   "settings.providers.section.connected": "已连接的提供商",
   "settings.providers.connected.empty": "没有已连接的提供商",
   "settings.providers.section.popular": "热门提供商",
@@ -725,17 +723,7 @@ export const dict = {
   "settings.providers.tag.custom": "自定义",
   "settings.providers.tag.other": "其他",
 
-  "settings.models.title": "模型",
-  "settings.models.description": "模型设置将在此处可配置。",
-
-  "settings.agents.title": "智能体",
-  "settings.agents.description": "智能体设置将在此处可配置。",
-
-  "settings.commands.title": "命令",
-  "settings.commands.description": "命令设置将在此处可配置。",
-
-  "settings.mcp.title": "MCP",
-  "settings.mcp.description": "MCP 设置将在此处可配置。",
+"settings.models.title": "模型",
 
   "settings.permissions.title": "权限",
   "settings.permissions.description": "控制服务器默认可以使用哪些工具。",
