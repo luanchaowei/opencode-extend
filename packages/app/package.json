@@ -59,7 +59,6 @@
     "@solidjs/router": "catalog:",
     "@tanstack/solid-query": "5.91.4",
     "@thisbeyond/solid-dnd": "0.7.5",
-    "diff": "catalog:",
     "effect": "catalog:",
     "fuzzysort": "catalog:",
     "ghostty-web": "github:anomalyco/ghostty-web#main",

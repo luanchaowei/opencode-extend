@@ -6,15 +6,11 @@ import { IconButton } from "@opencode-ai/ui/icon-button"
 import { TooltipKeybind } from "@opencode-ai/ui/tooltip"
 import { ResizeHandle } from "@opencode-ai/ui/resize-handle"
 import { showToast } from "@opencode-ai/ui/toast"
-import { DragDropProvider, DragDropSensors, DragOverlay, SortableProvider, closestCenter } from "@thisbeyond/solid-dnd"
-import type { DragEvent } from "@thisbeyond/solid-dnd"
-import { ConstrainDragYAxis, getDraggableId } from "@/utils/solid-dnd"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { Icon } from "@opencode-ai/ui/icon"
 import { Spinner } from "@opencode-ai/ui/spinner"
 
 import FileTree from "@/components/file-tree"
-import { SortableTab, FileVisual } from "@/components/session"
 import { useCommand } from "@/context/command"
 import { useDevice } from "@/context/device"
 import { useFile, type SelectedLineRange } from "@/context/file"
@@ -29,7 +25,7 @@ import { useSDK } from "@/context/sdk"
 import { decode64 } from "@/utils/base64"
 import { createFileTabListSync } from "@/pages/session/file-tab-scroll"
 import { FileTabContent } from "@/pages/session/file-tabs"
-import { createOpenSessionFileTab, createSessionTabs, getTabReorderIndex, type Sizing } from "@/pages/session/helpers"
+import { createOpenSessionFileTab, createSessionTabs, type Sizing } from "@/pages/session/helpers"
 import { setSessionHandoff } from "@/pages/session/handoff"
 import { useSessionLayout } from "@/pages/session/session-layout"
 
@@ -151,30 +147,6 @@ const isDesktop = createMediaQuery("(min-width: 768px)")
 
   const showAllFiles = () => {
     layout.fileTree.setTab("all")
-  }
-
-  const [store, setStore] = createStore({
-    activeDraggable: undefined as string | undefined,
-  })
-
-  const handleDragStart = (event: unknown) => {
-    const id = getDraggableId(event)
-    if (!id) return
-    setStore("activeDraggable", id)
-  }
-
-  const handleDragOver = (event: DragEvent) => {
-    const { draggable, droppable } = event
-    if (!draggable || !droppable) return
-
-    const currentTabs = tabs().all()
-    const toIndex = getTabReorderIndex(currentTabs, draggable.id.toString(), droppable.id.toString())
-    if (toIndex === undefined) return
-    tabs().move(draggable.id.toString(), toIndex)
-  }
-
-  const handleDragEnd = () => {
-    setStore("activeDraggable", undefined)
   }
 
   createEffect(() => {

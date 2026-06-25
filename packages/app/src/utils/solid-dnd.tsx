@@ -45,5 +45,3 @@ const createAxisConstraint = (axis: "x" | "y", transformerId: string) => (): JSX
 }
 
 export const ConstrainDragXAxis = createAxisConstraint("x", "constrain-x-axis")
-
-export const ConstrainDragYAxis = createAxisConstraint("y", "constrain-y-axis")
