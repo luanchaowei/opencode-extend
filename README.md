@@ -34,17 +34,9 @@ OpenCode 自定义前端，支持以下功能：
 | `--hostname 172.17.0.1` | `VITE_OPENCODE_SERVER_HOST=172.17.0.1` | 地址必须一致，使用服务器实际 IP |
 | `--cors http://172.17.0.1:3000` | `WEB_HOST=172.17.0.1` + `WEB_PORT=3000` | CORS 允许前端地址 |
 
-## 服务端启动
+> 注意：服务端设置了 `OPENCODE_SERVER_PASSWORD` 认证密码后，前端连接需要提供对应密码，当前版本暂不支持，后续版本会添加。
 
-```bash
-# 基本启动（IP 和端口需与 .env 对齐）
-opencode serve --port 4096 --hostname 172.17.0.1 --cors http://172.17.0.1:3000
-
-# 可选：设置认证密码
-OPENCODE_SERVER_PASSWORD=your_password opencode serve --port 4096 --hostname 172.17.0.1 --cors http://172.17.0.1:3000
-```
-
-## 安装
+## 安装自定义界面
 
 ```bash
 # 安装 Bun
@@ -58,7 +50,7 @@ cd opencode-extend
 bun install
 ```
 
-## 配置
+## 配置自定义界面
 
 编辑 `.env` 文件：
 
@@ -85,13 +77,13 @@ VITE_STATS_ADMIN_TOKEN=token          # 管理面板访问令牌
 VITE_STATS_DATA_PATH=/path/to/stats   # 统计数据存储路径
 ```
 
-## 启动
+## 启动自定义界面
 
 ```bash
-# 先启动服务端
+# 1. 启动服务端（IP 和端口需与 .env 对齐）
 opencode serve --port 4096 --hostname 172.17.0.1 --cors http://172.17.0.1:3000
 
-# 再启动前端
+# 2. 启动前端
 ./restart.sh
 ```
 
