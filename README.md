@@ -75,12 +75,13 @@ VITE_STATS_DATA_PATH=/path/to/stats   # 统计数据存储路径
 ```
 opencode-extend/
 ├── packages/
-│   ├── app/     # 前端应用
-│   ├── ui/      # UI 组件
-│   ├── sdk/     # SDK
-│   └── core/    # 工具库
-├── .env         # 环境配置
-├── restart.sh   # 启动脚本
+│   ├── app/      # 前端应用
+│   ├── scripts/  # 工具脚本
+│   ├── ui/       # UI 组件
+│   ├── sdk/      # SDK
+│   └── core/     # 工具库
+├── .env          # 环境配置
+├── restart.sh    # 启动脚本
 └── package.json
 ```
 

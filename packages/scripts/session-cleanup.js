@@ -22,10 +22,9 @@ import { join, dirname } from "node:path"
 import { existsSync, rmSync, readdirSync } from "node:fs"
 import { fileURLToPath } from "node:url"
 
-// Load .env from project root (packages/app -> packages -> project root)
+// Load .env from project root (packages/scripts -> packages -> project root)
 const scriptDir = dirname(fileURLToPath(import.meta.url))
-const appDir = dirname(scriptDir)
-const packagesDir = dirname(appDir)
+const packagesDir = dirname(scriptDir)
 const projectRoot = dirname(packagesDir)
 const envPath = join(projectRoot, ".env")
 if (existsSync(envPath)) {
