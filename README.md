@@ -17,6 +17,32 @@ OpenCode 自定义前端，支持以下功能：
 ## 环境要求
 
 - Bun >= 1.3.13
+- opencode >= 1.14.39
+
+## 部署说明
+
+前端和服务端必须部署在同一台服务器上：
+
+- 文件上传/下载需要访问同一文件系统
+- 统计功能需要访问 opencode 数据库
+
+服务端与客户端参数必须对齐：
+
+| 服务端参数 | 客户端 (.env) | 说明 |
+|---|---|---|
+| `--port 4096` | `VITE_OPENCODE_SERVER_PORT=4096` | 端口必须一致 |
+| `--hostname 172.17.0.1` | `VITE_OPENCODE_SERVER_HOST=172.17.0.1` | 地址必须一致，使用服务器实际 IP |
+| `--cors http://172.17.0.1:3000` | `WEB_HOST=172.17.0.1` + `WEB_PORT=3000` | CORS 允许前端地址 |
+
+## 服务端启动
+
+```bash
+# 基本启动（IP 和端口需与 .env 对齐）
+opencode serve --port 4096 --hostname 172.17.0.1 --cors http://172.17.0.1:3000
+
+# 可选：设置认证密码
+OPENCODE_SERVER_PASSWORD=your_password opencode serve --port 4096 --hostname 172.17.0.1 --cors http://172.17.0.1:3000
+```
 
 ## 安装
 
@@ -37,14 +63,14 @@ bun install
 编辑 `.env` 文件：
 
 ```bash
-# 服务配置
+# 服务配置（需与服务端 --hostname 和 --cors 对齐）
 WEB_HOST=172.17.0.1              # 前端监听地址
 WEB_PORT=3000                    # 前端端口
 LOG_PATH=/tmp/opencode-extend.log # 日志路径
 
-# 后端配置
-VITE_OPENCODE_SERVER_HOST=127.0.0.1   # 后端地址
-VITE_OPENCODE_SERVER_PORT=4096        # 后端端口
+# 后端配置（需与服务端 --port 和 --hostname 对齐）
+VITE_OPENCODE_SERVER_HOST=172.17.0.1   # 后端地址
+VITE_OPENCODE_SERVER_PORT=4096         # 后端端口
 VITE_OPENCODE_DEFAULT_DIR=/home/user/client # 默认工作目录
 
 # 企业功能
@@ -62,6 +88,10 @@ VITE_STATS_DATA_PATH=/path/to/stats   # 统计数据存储路径
 ## 启动
 
 ```bash
+# 先启动服务端
+opencode serve --port 4096 --hostname 172.17.0.1 --cors http://172.17.0.1:3000
+
+# 再启动前端
 ./restart.sh
 ```
 
