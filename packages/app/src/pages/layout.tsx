@@ -2296,10 +2296,10 @@ export default function Layout(props: ParentProps) {
 return (
     <div class="relative bg-background-base flex-1 min-h-0 min-w-0 flex flex-col select-none [&_input]:select-text [&_textarea]:select-text [&_[contenteditable]]:select-text">
       {autoselecting() ?? ""}
-      <Show when={deviceInfoData()?.queueWarning}>
+      <Show when={deviceInfoData()?.announcementText}>
         <div class="flex items-center justify-center py-1.5 px-4 gap-2" style="background-color: #fbbf24; color: #78350f;">
           <Icon name="warning" class="size-4" />
-          <span class="text-12-medium font-bold">{deviceInfoData()?.queueWarning}</span>
+          <span class="text-12-medium font-bold">{deviceInfoData()?.announcementText}</span>
         </div>
       </Show>
       <Titlebar />

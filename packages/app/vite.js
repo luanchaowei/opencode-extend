@@ -67,8 +67,8 @@ export default [
             const caseLibraryDir = process.env.VITE_CASE_LIBRARY_DIR || ""
             res.setHeader("Content-Type", "application/json")
             const helpDocUrl = process.env.VITE_HELP_DOC_URL || ""
-            const queueWarning = process.env.VITE_QUEUE_WARNING || ""
-            res.end(JSON.stringify({ clientIP, contactAdmin: contactList, feedbackUrl, caseLibraryDir, helpDocUrl, queueWarning }))
+            const announcementText = process.env.VITE_ANNOUNCEMENT_TEXT || ""
+            res.end(JSON.stringify({ clientIP, contactAdmin: contactList, feedbackUrl, caseLibraryDir, helpDocUrl, announcementText }))
           } catch (error) {
             res.statusCode = 500
             res.end(JSON.stringify({ error: error.message }))
@@ -930,7 +930,7 @@ const defaults = { heartbeats: {}, totalClientsEver: 0, totalSessionsEverCreated
             }
             res.setHeader("Content-Type", "application/json")
             res.end(JSON.stringify({
-              queueWarning: process.env.VITE_QUEUE_WARNING || "",
+              announcementText: process.env.VITE_ANNOUNCEMENT_TEXT || "",
               contactAdmin: process.env.VITE_CONTACT_ADMIN || "",
               feedbackUrl: process.env.VITE_FEEDBACK_URL || "",
               helpDocUrl: process.env.VITE_HELP_DOC_URL || "",
@@ -955,7 +955,7 @@ const defaults = { heartbeats: {}, totalClientsEver: 0, totalSessionsEverCreated
             }
             const body = JSON.parse(await readBody())
             const envMap = {
-              queueWarning: "VITE_QUEUE_WARNING",
+              announcementText: "VITE_ANNOUNCEMENT_TEXT",
               contactAdmin: "VITE_CONTACT_ADMIN",
               feedbackUrl: "VITE_FEEDBACK_URL",
               helpDocUrl: "VITE_HELP_DOC_URL",

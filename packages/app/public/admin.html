@@ -159,7 +159,7 @@
         <div style="max-width:640px">
           <div class="field">
             <label>公告</label>
-            <input id="queueWarning" type="text" placeholder="为空则不显示公告">
+            <input id="announcementText" type="text" placeholder="为空则不显示公告">
             <div class="hint">修改后刷新页面生效，为空则不显示公告条</div>
           </div>
           <div class="field">
@@ -227,7 +227,7 @@
         if (resp.ok) {
           authed = true
           const data = await resp.json()
-          document.getElementById('queueWarning').value = data.queueWarning || ''
+          document.getElementById('announcementText').value = data.announcementText || ''
           document.getElementById('contactAdmin').value = data.contactAdmin || ''
           document.getElementById('feedbackUrl').value = data.feedbackUrl || ''
           document.getElementById('helpDocUrl').value = data.helpDocUrl || ''
@@ -253,7 +253,7 @@
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            queueWarning: document.getElementById('queueWarning').value,
+            announcementText: document.getElementById('announcementText').value,
             contactAdmin: document.getElementById('contactAdmin').value,
             feedbackUrl: document.getElementById('feedbackUrl').value,
             helpDocUrl: document.getElementById('helpDocUrl').value,

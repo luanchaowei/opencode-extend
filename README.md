@@ -52,7 +52,7 @@ VITE_CONTACT_ADMIN=admin:12345678      # 支撑人员联系方式
 VITE_FEEDBACK_URL=https://example.com/feedback # 问题反馈 URL
 VITE_CASE_LIBRARY_DIR=/path/to/cases   # 知识库目录
 VITE_HELP_DOC_URL=https://docs.example.com # 帮助文档 URL
-VITE_QUEUE_WARNING="..."               # 排队提示文案
+VITE_ANNOUNCEMENT_TEXT="..."           # 公告文案
 
 # 统计功能
 VITE_STATS_ADMIN_TOKEN=token          # 管理面板访问令牌
