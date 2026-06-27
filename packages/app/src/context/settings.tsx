@@ -9,15 +9,6 @@ export interface NotificationSettings {
   errors: boolean
 }
 
-export interface SoundSettings {
-  agentEnabled: boolean
-  agent: string
-  permissionsEnabled: boolean
-  permissions: string
-  errorsEnabled: boolean
-  errors: string
-}
-
 export interface Settings {
   general: {
     autoSave: boolean
@@ -43,7 +34,6 @@ export interface Settings {
     autoApprove: boolean
   }
   notifications: NotificationSettings
-  sounds: SoundSettings
 }
 
 export const monoDefault = "System Mono"
@@ -115,14 +105,6 @@ const defaultSettings: Settings = {
     agent: true,
     permissions: true,
     errors: false,
-  },
-  sounds: {
-    agentEnabled: true,
-    agent: "staplebops-01",
-    permissionsEnabled: true,
-    permissions: "staplebops-02",
-    errorsEnabled: true,
-    errors: "nope-03",
   },
 }
 
@@ -252,35 +234,6 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
         errors: withFallback(() => store.notifications?.errors, defaultSettings.notifications.errors),
         setErrors(value: boolean) {
           setStore("notifications", "errors", value)
-        },
-      },
-      sounds: {
-        agentEnabled: withFallback(() => store.sounds?.agentEnabled, defaultSettings.sounds.agentEnabled),
-        setAgentEnabled(value: boolean) {
-          setStore("sounds", "agentEnabled", value)
-        },
-        agent: withFallback(() => store.sounds?.agent, defaultSettings.sounds.agent),
-        setAgent(value: string) {
-          setStore("sounds", "agent", value)
-        },
-        permissionsEnabled: withFallback(
-          () => store.sounds?.permissionsEnabled,
-          defaultSettings.sounds.permissionsEnabled,
-        ),
-        setPermissionsEnabled(value: boolean) {
-          setStore("sounds", "permissionsEnabled", value)
-        },
-        permissions: withFallback(() => store.sounds?.permissions, defaultSettings.sounds.permissions),
-        setPermissions(value: string) {
-          setStore("sounds", "permissions", value)
-        },
-        errorsEnabled: withFallback(() => store.sounds?.errorsEnabled, defaultSettings.sounds.errorsEnabled),
-        setErrorsEnabled(value: boolean) {
-          setStore("sounds", "errorsEnabled", value)
-        },
-        errors: withFallback(() => store.sounds?.errors, defaultSettings.sounds.errors),
-        setErrors(value: string) {
-          setStore("sounds", "errors", value)
         },
       },
     }
