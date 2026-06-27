@@ -13,7 +13,6 @@ export interface Settings {
   general: {
     autoSave: boolean
     releaseNotes: boolean
-    followup: "steer"
     showFileTree: boolean
     showStatus: boolean
     showReasoningSummaries: boolean
@@ -81,7 +80,6 @@ const defaultSettings: Settings = {
   general: {
     autoSave: true,
     releaseNotes: true,
-    followup: "steer",
     showFileTree: false,
     showStatus: false,
     showReasoningSummaries: false,
@@ -137,10 +135,6 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
         releaseNotes: withFallback(() => store.general?.releaseNotes, defaultSettings.general.releaseNotes),
         setReleaseNotes(value: boolean) {
           setStore("general", "releaseNotes", value)
-        },
-        followup: withFallback(() => store.general?.followup, defaultSettings.general.followup),
-        setFollowup(value: "steer") {
-          setStore("general", "followup", value)
         },
         showFileTree: withFallback(() => store.general?.showFileTree, defaultSettings.general.showFileTree),
         setShowFileTree(value: boolean) {
