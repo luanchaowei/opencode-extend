@@ -89,7 +89,18 @@ const toOptimisticPart = (part: PromptRequestPart, sessionID: string, messageID:
 }
 
 export function buildRequestParts(input: BuildRequestPartsInput) {
+  const sessionInfoPart: PromptRequestPart = {
+    id: Identifier.ascending("part"),
+    type: "text",
+    text: `<system-reminder>
+Current session ID: ${input.sessionID}
+This information is provided for your context. You do not need to respond to or reference this ID unless the user specifically asks about it.
+</system-reminder>`,
+    synthetic: true,
+  }
+
   const requestParts: PromptRequestPart[] = [
+    sessionInfoPart,
     {
       id: Identifier.ascending("part"),
       type: "text",
