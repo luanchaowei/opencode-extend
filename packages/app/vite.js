@@ -68,7 +68,8 @@ export default [
             res.setHeader("Content-Type", "application/json")
             const helpDocUrl = process.env.VITE_HELP_DOC_URL || ""
             const announcementText = process.env.VITE_ANNOUNCEMENT_TEXT || ""
-            res.end(JSON.stringify({ clientIP, contactAdmin: contactList, feedbackUrl, caseLibraryDir, helpDocUrl, announcementText }))
+            const downloadCutoffText = process.env.VITE_DOWNLOAD_CUTOFF_TEXT || ""
+            res.end(JSON.stringify({ clientIP, contactAdmin: contactList, feedbackUrl, caseLibraryDir, helpDocUrl, announcementText, downloadCutoffText }))
           } catch (error) {
             res.statusCode = 500
             res.end(JSON.stringify({ error: error.message }))
@@ -934,6 +935,7 @@ const defaults = { heartbeats: {}, totalClientsEver: 0, totalSessionsEverCreated
               contactAdmin: process.env.VITE_CONTACT_ADMIN || "",
               feedbackUrl: process.env.VITE_FEEDBACK_URL || "",
               helpDocUrl: process.env.VITE_HELP_DOC_URL || "",
+              downloadCutoffText: process.env.VITE_DOWNLOAD_CUTOFF_TEXT || "",
             }))
           } catch (error) {
             res.statusCode = 500
@@ -959,6 +961,7 @@ const defaults = { heartbeats: {}, totalClientsEver: 0, totalSessionsEverCreated
               contactAdmin: "VITE_CONTACT_ADMIN",
               feedbackUrl: "VITE_FEEDBACK_URL",
               helpDocUrl: "VITE_HELP_DOC_URL",
+              downloadCutoffText: "VITE_DOWNLOAD_CUTOFF_TEXT",
             }
             for (const [key, envKey] of Object.entries(envMap)) {
               if (body[key] !== undefined) {

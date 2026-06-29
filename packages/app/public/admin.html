@@ -175,6 +175,11 @@
             <label>帮助文档URL</label>
             <input id="helpDocUrl" type="text" placeholder="https://example.com/help">
           </div>
+          <div class="field">
+            <label>下载截断标记</label>
+            <input id="downloadCutoffText" type="text" placeholder="以上回答是否在帮助到了你">
+            <div class="hint">下载Markdown文件时，从此文本开始的行及其之后的内容不写入文件</div>
+          </div>
           <button id="save-btn" class="save-btn" onclick="save()">保存配置</button>
           <div id="msg" class="msg"></div>
         </div>
@@ -231,6 +236,7 @@
           document.getElementById('contactAdmin').value = data.contactAdmin || ''
           document.getElementById('feedbackUrl').value = data.feedbackUrl || ''
           document.getElementById('helpDocUrl').value = data.helpDocUrl || ''
+          document.getElementById('downloadCutoffText').value = data.downloadCutoffText || ''
           showPanel('main')
           fetchStats()
         } else {
@@ -257,6 +263,7 @@
             contactAdmin: document.getElementById('contactAdmin').value,
             feedbackUrl: document.getElementById('feedbackUrl').value,
             helpDocUrl: document.getElementById('helpDocUrl').value,
+            downloadCutoffText: document.getElementById('downloadCutoffText').value,
           })
         })
         if (resp.ok) {

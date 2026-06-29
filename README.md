@@ -11,6 +11,7 @@ OpenCode 自定义前端，支持以下功能：
 - 支撑人员联系 - 快速联系支撑人员
 - IP 自动路由 - 根据客户端 IP 自动进入专属项目目录
 - 权限控制 - 基于客户端 IP 进行权限控制
+- 下载回复 - 将助手回复下载为 Markdown 文件，支持截断标记配置
 
 代码仓库：https://gitcode.com/luanchaowei/opencode-extend.git
 
@@ -71,7 +72,7 @@ VITE_FEEDBACK_URL=https://example.com/feedback # 问题反馈 URL
 VITE_CASE_LIBRARY_DIR=/path/to/cases   # 知识库目录
 VITE_HELP_DOC_URL=https://docs.example.com # 帮助文档 URL
 VITE_ANNOUNCEMENT_TEXT="..."           # 公告文案
-
+VITE_DOWNLOAD_CUTOFF_TEXT=""            # 下载截断标记
 # 统计功能
 VITE_STATS_ADMIN_TOKEN=token          # 管理面板访问令牌
 VITE_STATS_DATA_PATH=/path/to/stats   # 统计数据存储路径
