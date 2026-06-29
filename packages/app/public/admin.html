@@ -278,6 +278,12 @@
       btn.textContent = '保存配置'
     }
 
+    function statusSortOrder(status) {
+      if (status === 'busy') return 0
+      if (status === 'retry') return 1
+      return 2
+    }
+
     function statusLabel(status) {
       if (status === 'busy') return '<span class="status-busy">AI处理中</span>'
       if (status === 'retry') return '<span class="status-retry">重试中</span>'
@@ -310,7 +316,7 @@
         document.getElementById('total-messages').textContent = data.summary.totalMessagesEver
         document.getElementById('online-sessions').textContent = data.summary.onlineSessions
         document.getElementById('processing-sessions').textContent = data.summary.processingSessions
-        allSessions = data.currentSessions
+        allSessions = data.currentSessions.sort((a, b) => statusSortOrder(a.status) - statusSortOrder(b.status))
         currentPage = 1
         populateIpFilter(allSessions)
         renderTable(allSessions)
