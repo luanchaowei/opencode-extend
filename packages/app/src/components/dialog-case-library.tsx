@@ -3,6 +3,7 @@ import { createStore } from "solid-js/store"
 import { useLanguage } from "@/context/language"
 import { Dialog } from "@opencode-ai/ui/dialog"
 import { Icon } from "@opencode-ai/ui/icon"
+import { IconButton } from "@opencode-ai/ui/icon-button"
 import { Spinner } from "@opencode-ai/ui/spinner"
 import { ResizeHandle } from "@opencode-ai/ui/resize-handle"
 import { Markdown } from "@opencode-ai/ui/markdown"
@@ -18,6 +19,8 @@ const MAX_DEPTH = 128
 export function CaseLibraryDialog() {
   const language = useLanguage()
   const [selectedFile, setSelectedFile] = createSignal<string | null>(null)
+  const [history, setHistory] = createSignal<string[]>([])
+  const [historyIndex, setHistoryIndex] = createSignal(-1)
   const [store, setStore] = createStore({
     sidebarWidth: DEFAULT_SIDEBAR_WIDTH,
   })
@@ -180,7 +183,7 @@ export function CaseLibraryDialog() {
       setExpandedDirs(newDir, true)
       setSelectedFile(null)
     } else {
-      setSelectedFile(normalized)
+      selectFile(normalized)
     }
   }
 
@@ -190,6 +193,27 @@ export function CaseLibraryDialog() {
 
   const selectFile = (filePath: string) => {
     setSelectedFile(filePath)
+    const h = history()
+    const i = historyIndex()
+    setHistory([...h.slice(0, i + 1), filePath])
+    setHistoryIndex(i + 1)
+  }
+
+  const goBack = () => {
+    const i = historyIndex()
+    if (i > 0) {
+      setHistoryIndex(i - 1)
+      setSelectedFile(history()[i - 1])
+    }
+  }
+
+  const goForward = () => {
+    const i = historyIndex()
+    const h = history()
+    if (i < h.length - 1) {
+      setHistoryIndex(i + 1)
+      setSelectedFile(h[i + 1])
+    }
   }
 
   const getDisplayName = (name: string) => {
@@ -299,7 +323,25 @@ export function CaseLibraryDialog() {
           </Show>
           <Show when={selectedFile()}>
             <Suspense fallback={<Spinner />}>
-              <div class="text-12-medium mb-2 text-text-base">{selectedFile()}</div>
+              <div class="flex items-center gap-1 mb-2">
+                <IconButton
+                  icon="arrow-left"
+                  size="small"
+                  variant="ghost"
+                  onClick={goBack}
+                  disabled={historyIndex() <= 0}
+                  aria-label="后退"
+                />
+                <IconButton
+                  icon="arrow-right"
+                  size="small"
+                  variant="ghost"
+                  onClick={goForward}
+                  disabled={historyIndex() >= history().length - 1}
+                  aria-label="前进"
+                />
+                <span class="text-12-medium text-text-base">{selectedFile()}</span>
+              </div>
               <Show when={content()?.isMarkdown}>
                 <div class="flex gap-0 flex-1 min-h-0">
                   <div
