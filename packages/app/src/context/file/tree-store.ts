@@ -68,11 +68,11 @@ export function createFileTreeStore(options: TreeStoreOptions) {
         const nextChildren = nodes.map((node) => node.path)
         const nextSet = new Set(nextChildren)
 
+        const removedDirs: string[] = []
+
         setTree(
           "node",
           produce((draft) => {
-            const removedDirs: string[] = []
-
             for (const child of prevChildren) {
               if (nextSet.has(child)) continue
               const existing = draft[child]
@@ -96,6 +96,23 @@ export function createFileTreeStore(options: TreeStoreOptions) {
             }
           }),
         )
+
+        if (removedDirs.length > 0) {
+          setTree(
+            "dir",
+            produce((draft) => {
+              for (const removed of removedDirs) {
+                delete draft[removed]
+                const keys = Object.keys(draft)
+                for (const key of keys) {
+                  if (key.startsWith(removed + "/")) {
+                    delete draft[key]
+                  }
+                }
+              }
+            }),
+          )
+        }
 
         setTree(
           "dir",
@@ -157,6 +174,32 @@ export function createFileTreeStore(options: TreeStoreOptions) {
     return out
   }
 
+  const removeDir = (input: string) => {
+    const dir = options.normalizeDir(input)
+    setTree(
+      "dir",
+      produce((draft) => {
+        const keys = Object.keys(draft)
+        for (const key of keys) {
+          if (key === dir || key.startsWith(dir + "/")) {
+            delete draft[key]
+          }
+        }
+      }),
+    )
+    setTree(
+      "node",
+      produce((draft) => {
+        const keys = Object.keys(draft)
+        for (const key of keys) {
+          if (key === dir || key.startsWith(dir + "/")) {
+            delete draft[key]
+          }
+        }
+      }),
+    )
+  }
+
   return {
     listDir,
     expandDir,
@@ -165,6 +208,7 @@ export function createFileTreeStore(options: TreeStoreOptions) {
     children,
     node: (path: string) => tree.node[path],
     isLoaded: (path: string) => Boolean(tree.dir[path]?.loaded),
+    removeDir,
     reset,
   }
 }

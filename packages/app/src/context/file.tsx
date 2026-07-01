@@ -73,7 +73,9 @@ export const { use: useFile, provider: FileProvider } = createSimpleContext({
     const tree = createFileTreeStore({
       scope,
       normalizeDir: path.normalizeDir,
-      list: (dir) => sdk.client.file.list({ path: dir }).then((x) => x.data ?? []),
+      list: (dir) => {
+        return sdk.client.file.list({ path: dir }).then((x) => x.data ?? [])
+      },
       onError: (message) => {
         showToast({
           variant: "error",
@@ -257,6 +259,7 @@ export const { use: useFile, provider: FileProvider } = createSimpleContext({
         children: tree.children,
         expand: tree.expandDir,
         collapse: tree.collapseDir,
+        removeDir: tree.removeDir,
         toggle(input: string) {
           if (tree.dirState(input)?.expanded) {
             tree.collapseDir(input)

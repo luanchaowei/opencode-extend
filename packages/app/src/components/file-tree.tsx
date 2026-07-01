@@ -349,7 +349,10 @@ export default function FileTree(props: {
         description: language.t("toast.file.deleteSuccess.description", { filename: node.name }),
       })
       
-      const parentDir = node.path.includes("/") ? node.path.substring(0, node.path.lastIndexOf("/")) : ""
+      file.tree.removeDir(node.path)
+      
+      const normalizedPath = node.path.endsWith("/") ? node.path.slice(0, -1) : node.path
+      const parentDir = normalizedPath.includes("/") ? normalizedPath.substring(0, normalizedPath.lastIndexOf("/")) : ""
       file.tree.refresh(parentDir)
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error)
