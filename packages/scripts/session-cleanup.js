@@ -22,11 +22,11 @@ import { join, dirname } from "node:path"
 import { existsSync, rmSync, readdirSync } from "node:fs"
 import { fileURLToPath } from "node:url"
 
-// Load .env from project root (packages/scripts -> packages -> project root)
 const scriptDir = dirname(fileURLToPath(import.meta.url))
 const packagesDir = dirname(scriptDir)
 const projectRoot = dirname(packagesDir)
 const envPath = join(projectRoot, ".env")
+const envVars = {}
 if (existsSync(envPath)) {
   const envContent = await Bun.file(envPath).text()
   for (const line of envContent.split("\n")) {
@@ -35,16 +35,23 @@ if (existsSync(envPath)) {
       const [key, ...valueParts] = trimmed.split("=")
       if (key && valueParts.length > 0) {
         let value = valueParts.join("=")
-        // Remove quotes if present
         if ((value.startsWith('"') && value.endsWith('"')) || 
             (value.startsWith("'") && value.endsWith("'"))) {
           value = value.slice(1, -1)
         }
+        envVars[key] = value
         process.env[key] = process.env[key] ?? value
       }
     }
   }
 }
+
+const serverHost = envVars.VITE_OPENCODE_SERVER_HOST || "127.0.0.1"
+const serverPort = envVars.VITE_OPENCODE_SERVER_PORT || "4096"
+const serverUrl = `http://${serverHost}:${serverPort}`
+const webHost = envVars.WEB_HOST || "0.0.0.0"
+const webPort = envVars.WEB_PORT || "3000"
+const webUrl = `http://${webHost}:${webPort}`
 
 const args = process.argv.slice(2)
 
@@ -141,7 +148,6 @@ if (!existsSync(dbPath)) {
 }
 
 const db = new Database(dbPath)
-db.run("PRAGMA foreign_keys = ON")
 
 let sessions
 const threshold = cleanAll ? 0 : Date.now() - days * 24 * 60 * 60 * 1000
@@ -326,7 +332,7 @@ if (dryRun) {
   process.exit(0)
 }
 
-// Delete sessions
+// Delete sessions via API
 let deleted = 0
 let failed = 0
 
@@ -335,15 +341,27 @@ for (const session of sessions) {
     const timeField = mode === "inactive" ? session.time_updated : session.time_archived
     const timeLabel = mode === "inactive" ? "last updated" : "archived"
     
-    // Delete uploads directory first
+    const deleteUrl = `${serverUrl}/session/${session.id}?directory=${encodeURIComponent(session.directory)}`
+    const res = await fetch(deleteUrl, { method: "DELETE" })
+    if (!res.ok) {
+      const body = await res.text()
+      failed++
+      console.error(`Failed to delete ${session.id}: API returned ${res.status} ${body}`)
+      continue
+    }
+    
+    await fetch(`${webUrl}/api/stats/session-delete`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sessionID: session.id }),
+    }).catch(() => {})
+    
     const uploadPath = join(session.directory, "uploads", session.id)
     if (existsSync(uploadPath)) {
       rmSync(uploadPath, { recursive: true, force: true })
       console.log(`Deleted uploads: ${uploadPath}`)
     }
     
-    // Delete from session table (cascade will delete messages, parts, etc.)
-    db.run("DELETE FROM session WHERE id = ?", [session.id])
     deleted++
     console.log(
       `Deleted: ${session.id} "${session.title}" (${timeLabel}: ${new Date(timeField).toISOString()}, dir: ${session.directory})`,
