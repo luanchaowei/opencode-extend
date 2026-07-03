@@ -2,7 +2,7 @@
 
 OpenCode 自定义前端，支持以下功能：
 
-- 聊天界面 - 与 AI 进行对话交互
+- 聊天界面 - 与 AI 进行对话交互，诊断报告下载
 - 文件树 - 浏览项目文件、上传/下载/删除文件
 - 知识库管理 - 浏览和搜索本地案例库
 - 统计仪表盘 - 查看用户数、会话数、在线用户等统计信息
@@ -80,18 +80,34 @@ VITE_STATS_DATA_PATH=/path/to/stats   # 统计数据存储路径
 
 ## 启动自定义界面
 
-```bash
-# 1. 启动服务端（IP 和端口需与 .env 对齐）
-opencode serve --port 4096 --hostname 172.17.0.1 --cors http://172.17.0.1:3000
+先启动服务端（IP 和端口需与 .env 对齐）：
 
-# 2. 启动前端
-./restart.sh
+```bash
+opencode serve --port 4096 --hostname 172.17.0.1 --cors http://172.17.0.1:3000
+```
+
+再启动前端，支持两种模式：
+
+```bash
+# 开发模式（Vite dev server，支持 HMR 热更新）
+bash restart.sh dev
+
+# 生产模式（build + server.js，无 HMR，性能更好）[默认]
+bash restart.sh prod
+```
+
+停止前端：
+
+```bash
+bash stop.sh
 ```
 
 访问地址：
 
 - 前端页面：http://\<WEB_HOST\>:\<WEB_PORT\>
 - 管理面板：http://\<WEB_HOST\>:\<WEB_PORT\>/admin.html?token=\<VITE_STATS_ADMIN_TOKEN\>
+
+> **两种模式区别**：dev 模式用 Vite 开发服务器（`bun dev`），修改源码后浏览器自动刷新；prod 模式先 `vite build` 再用 `server.js` 启动 Bun 生产服务器，适合正式部署。
 
 ## 项目结构
 
@@ -104,7 +120,8 @@ opencode-extend/
 │   ├── sdk/      # SDK
 │   └── core/     # 工具库
 ├── .env          # 环境配置
-├── restart.sh    # 启动脚本
+├── restart.sh    # 启动脚本（bash restart.sh [dev|prod]）
+├── stop.sh       # 停止脚本
 └── package.json
 ```
 

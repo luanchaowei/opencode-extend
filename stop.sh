@@ -11,4 +11,4 @@ source .env
 set +a
 
 # 停止进程
-pkill -f "bun.*packages/app.*${WEB_PORT:-3000}"
+pkill -f "bun.*packages/app" || true

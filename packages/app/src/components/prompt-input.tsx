@@ -903,7 +903,6 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
       setCursorPosition(editorRef, promptLength(prompt.current()))
     },
     addPart,
-    readClipboardImage: platform.readClipboardImage,
   })
 
   const variants = createMemo(() => ["default", ...local.model.variant.list()])

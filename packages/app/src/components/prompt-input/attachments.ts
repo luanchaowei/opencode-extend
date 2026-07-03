@@ -32,7 +32,6 @@ type PromptAttachmentsInput = {
   setDraggingType: (type: "image" | "@mention" | null) => void
   focusEditor: () => void
   addPart: (part: ContentPart) => boolean
-  readClipboardImage?: () => Promise<File | null>
 }
 
 export function createPromptAttachments(input: PromptAttachmentsInput) {
@@ -108,9 +107,6 @@ export function createPromptAttachments(input: PromptAttachmentsInput) {
     const clipboardData = event.clipboardData
     if (!clipboardData) return
 
-    event.preventDefault()
-    event.stopPropagation()
-
     const files = Array.from(clipboardData.items).flatMap((item) => {
       if (item.kind !== "file") return []
       const file = item.getAsFile()
@@ -118,22 +114,20 @@ export function createPromptAttachments(input: PromptAttachmentsInput) {
     })
 
     if (files.length > 0) {
-      await addAttachments(files)
+      event.preventDefault()
+      event.stopPropagation()
+      showToast({
+        title: "图片粘贴不支持",
+        description: "请将文件拖拽到左侧文件树上传",
+      })
       return
     }
 
     const plainText = clipboardData.getData("text/plain") ?? ""
-
-    // Desktop: Browser clipboard has no images and no text, try platform's native clipboard for images
-    if (input.readClipboardImage && !plainText) {
-      const file = await input.readClipboardImage()
-      if (file) {
-        await addAttachment(file)
-        return
-      }
-    }
-
     if (!plainText) return
+
+    event.preventDefault()
+    event.stopPropagation()
 
     const text = normalizePaste(plainText)
 
