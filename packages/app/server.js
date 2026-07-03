@@ -750,6 +750,26 @@ Bun.serve({
   },
 })
 
+const logPath = envVars.LOG_PATH || "/tmp/opencode-extend.log"
+const MAX_LOG_SIZE = 50 * 1024 * 1024
+const rotateLog = () => {
+  try {
+    if (!existsSync(logPath)) return
+    const size = statSync(logPath).size
+    if (size < MAX_LOG_SIZE) return
+    for (let i = 5; i >= 1; i--) {
+      const oldPath = `${logPath}.${i}`
+      const newPath = `${logPath}.${i + 1}`
+      if (i === 5) { try { unlinkSync(oldPath) } catch {} }
+      else { try { renameSync(oldPath, newPath) } catch {} }
+    }
+    try { renameSync(logPath, `${logPath}.1`) } catch {}
+    console.log(`[log] rotated, previous size: ${(size / 1024 / 1024).toFixed(1)}MB`)
+  } catch {}
+}
+setInterval(rotateLog, 600000)
+rotateLog()
+
 console.log(`[server] Production server listening on ${webHost}:${webPort}`)
 console.log(`[server] Static files from: ${distDir}`)
 console.log(`[server] Stats data: ${statsPath}`)
