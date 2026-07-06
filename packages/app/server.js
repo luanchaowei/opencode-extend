@@ -29,6 +29,8 @@ if (existsSync(envPath)) {
 const serverHost = envVars.VITE_OPENCODE_SERVER_HOST || "127.0.0.1"
 const serverPort = parseInt(envVars.VITE_OPENCODE_SERVER_PORT || "4096")
 const serverUrl = `http://${serverHost}:${serverPort}`
+process.env.NO_PROXY = "*"
+console.log("[server] NO_PROXY=* (skip proxy for all fetch requests)")
 const webHost = envVars.WEB_HOST || "0.0.0.0"
 const webPort = parseInt(envVars.WEB_PORT || "3000")
 const distDir = join(__dirname, "dist")
@@ -617,22 +619,41 @@ async function handleAPI(req, server) {
     if (token !== adminToken) return jsonResponse({ error: "Invalid token" }, 403)
 
     try {
-      const statusRes = await fetch(`${serverUrl}/session/status`, { signal: AbortSignal.timeout(5000) })
-      if (statusRes.ok) {
-        const realStatusMap = await statusRes.json()
-        for (const ip of Object.keys(statsData.heartbeats)) {
-          for (const sid of Object.keys(statsData.heartbeats[ip].sessions || {})) {
-            const real = realStatusMap[sid]
-            if (real) {
-              statsData.heartbeats[ip].sessions[sid].status = real.type
-            } else {
-              statsData.heartbeats[ip].sessions[sid].status = "idle"
-            }
+      const baseDir = envVars.VITE_OPENCODE_DEFAULT_DIR || process.cwd()
+      const now = Date.now()
+      const tenMinAgo = now - 600000
+      const directories = new Set()
+      for (const ip of Object.keys(statsData.heartbeats)) {
+        if (statsData.heartbeats[ip].lastSeen >= tenMinAgo) {
+          directories.add(`${baseDir}/${ip}`)
+        }
+      }
+      const allRealStatuses = {}
+      for (const dir of directories) {
+        try {
+          const res = await fetch(`${serverUrl}/session/status?directory=${encodeURIComponent(dir)}`, { signal: AbortSignal.timeout(5000) })
+          if (res.ok) {
+            const map = await res.json()
+            Object.assign(allRealStatuses, map)
+          }
+        } catch (err) {
+          console.error(`[stats] failed to query status for directory ${dir}: ${err.message}`)
+        }
+      }
+      for (const ip of Object.keys(statsData.heartbeats)) {
+        for (const sid of Object.keys(statsData.heartbeats[ip].sessions || {})) {
+          const real = allRealStatuses[sid]
+          if (real) {
+            statsData.heartbeats[ip].sessions[sid].status = real.type
+          } else {
+            statsData.heartbeats[ip].sessions[sid].status = "idle"
           }
         }
-        markDirty()
       }
-    } catch {}
+      markDirty()
+    } catch (err) {
+      console.error(`[stats] failed to align session status: ${err.message}`)
+    }
 
     const now = Date.now()
     const tenMinAgo = now - 600000
