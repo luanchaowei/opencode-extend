@@ -615,6 +615,25 @@ async function handleAPI(req, server) {
     if (!adminToken) return jsonResponse({ error: "VITE_STATS_ADMIN_TOKEN not configured" }, 403)
     const token = url.searchParams.get("token")
     if (token !== adminToken) return jsonResponse({ error: "Invalid token" }, 403)
+
+    try {
+      const statusRes = await fetch(`${serverUrl}/session/status`, { signal: AbortSignal.timeout(5000) })
+      if (statusRes.ok) {
+        const realStatusMap = await statusRes.json()
+        for (const ip of Object.keys(statsData.heartbeats)) {
+          for (const sid of Object.keys(statsData.heartbeats[ip].sessions || {})) {
+            const real = realStatusMap[sid]
+            if (real) {
+              statsData.heartbeats[ip].sessions[sid].status = real.type
+            } else {
+              statsData.heartbeats[ip].sessions[sid].status = "idle"
+            }
+          }
+        }
+        markDirty()
+      }
+    } catch {}
+
     const now = Date.now()
     const tenMinAgo = now - 600000
     let onlineClients = 0
