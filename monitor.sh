@@ -9,7 +9,7 @@ set +a
 echo "[$(date)] start monitor opencode"
 
 if ! pgrep -f "opencode serve" > /dev/null; then
-    nohup opencode serve \
+    nohup UV_THREADPOOL_SIZE=16 opencode serve \
       --port ${VITE_OPENCODE_SERVER_PORT:-4096} \
       --hostname ${VITE_OPENCODE_SERVER_HOST:-172.17.0.1} \
       --cors http://${WEB_HOST:-0.0.0.0}:${WEB_PORT:-3000} > /dev/null 2>&1 &
