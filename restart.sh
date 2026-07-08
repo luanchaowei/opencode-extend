@@ -3,11 +3,16 @@
 set -e
 
 MODE="${1:-prod}"
+BUILD=false
+if [ "$2" = "--build" ]; then
+  BUILD=true
+fi
 
 if [ "$MODE" != "dev" ] && [ "$MODE" != "prod" ]; then
-  echo "用法: bash restart.sh [dev|prod]"
-  echo "  dev  - 开发模式（Vite dev server，支持 HMR）"
-  echo "  prod - 生产模式（build + server.js，无 HMR，更快）[默认]"
+  echo "用法: bash restart.sh [dev|prod] [--build]"
+  echo "  dev      - 开发模式（Vite dev server，支持 HMR）"
+  echo "  prod     - 生产模式（server.js，无 HMR，更快）[默认]"
+  echo "  --build  - 启动前先构建前端（仅 prod 模式生效）"
   exit 1
 fi
 
@@ -31,8 +36,10 @@ done
 [ -f "${LOG_FILE}" ] && mv "${LOG_FILE}" "${LOG_FILE}.1" 2>/dev/null || true
 
 if [ "$MODE" = "prod" ]; then
-  echo "构建前端..."
-  bun --cwd packages/app build
+  if [ "$BUILD" = true ]; then
+    echo "构建前端..."
+    bun --cwd packages/app build
+  fi
   echo "启动生产模式: http://${WEB_HOST:-0.0.0.0}:${WEB_PORT:-3000}"
   nohup bun packages/app/server.js > "${LOG_PATH:-/tmp/opencode-extend.log}" 2>&1 &
 else
