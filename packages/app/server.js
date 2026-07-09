@@ -618,14 +618,20 @@ async function handleAPI(req, server) {
     const token = url.searchParams.get("token")
     if (token !== adminToken) return jsonResponse({ error: "Invalid token" }, 403)
 
+    const now = Date.now()
+    const tenMinAgo = now - 600000
+
     try {
       const baseDir = envVars.VITE_OPENCODE_DEFAULT_DIR || process.cwd()
-      const now = Date.now()
-      const tenMinAgo = now - 600000
       const directories = new Set()
       for (const ip of Object.keys(statsData.heartbeats)) {
-        if (statsData.heartbeats[ip].lastSeen >= tenMinAgo) {
-          directories.add(`${baseDir}/${ip}`)
+        if (statsData.heartbeats[ip].lastSeen < tenMinAgo) continue
+        for (const sid of Object.keys(statsData.heartbeats[ip].sessions || {})) {
+          const s = statsData.heartbeats[ip].sessions[sid]
+          if (s.status === "busy" || s.status === "retry") {
+            directories.add(`${baseDir}/${ip}`)
+            break
+          }
         }
       }
       const allRealStatuses = {}
@@ -641,22 +647,18 @@ async function handleAPI(req, server) {
         }
       }
       for (const ip of Object.keys(statsData.heartbeats)) {
+        if (statsData.heartbeats[ip].lastSeen < tenMinAgo) continue
         for (const sid of Object.keys(statsData.heartbeats[ip].sessions || {})) {
+          const s = statsData.heartbeats[ip].sessions[sid]
+          if (s.status !== "busy" && s.status !== "retry") continue
           const real = allRealStatuses[sid]
-          if (real) {
-            statsData.heartbeats[ip].sessions[sid].status = real.type
-          } else {
-            statsData.heartbeats[ip].sessions[sid].status = "idle"
-          }
+          s.status = real ? real.type : "idle"
         }
       }
       markDirty()
     } catch (err) {
       console.error(`[stats] failed to align session status: ${err.message}`)
     }
-
-    const now = Date.now()
-    const tenMinAgo = now - 600000
     let onlineClients = 0
     let onlineSessions = 0
     let processingSessions = 0
