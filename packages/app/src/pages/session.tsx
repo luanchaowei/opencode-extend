@@ -358,6 +358,7 @@ export default function Page() {
   const sendHeartbeat = async () => {
     const ip = device.clientIP()
     if (!ip) return
+    if (!device.isOwnProject(sdk.directory)) return
     const currentSessionID = params.id
     const sessions = []
     if (currentSessionID) {
