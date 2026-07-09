@@ -29,6 +29,9 @@ if (existsSync(envPath)) {
 const serverHost = envVars.VITE_OPENCODE_SERVER_HOST || "127.0.0.1"
 const serverPort = parseInt(envVars.VITE_OPENCODE_SERVER_PORT || "4096")
 const serverUrl = `http://${serverHost}:${serverPort}`
+const serverPassword = envVars.VITE_OPENCODE_SERVER_PASSWORD || ""
+const serverUsername = envVars.VITE_OPENCODE_SERVER_USERNAME || "opencode"
+const serverAuthHeader = serverPassword ? `Basic ${Buffer.from(`${serverUsername}:${serverPassword}`).toString("base64")}` : ""
 process.env.NO_PROXY = "*"
 console.log("[server] NO_PROXY=* (skip proxy for all fetch requests)")
 const webHost = envVars.WEB_HOST || "0.0.0.0"
@@ -640,7 +643,10 @@ async function handleAPI(req, server) {
       const allRealStatuses = {}
       for (const dir of directories) {
         try {
-          const res = await fetch(`${serverUrl}/session/status?directory=${encodeURIComponent(dir)}`, { signal: AbortSignal.timeout(5000) })
+          const res = await fetch(`${serverUrl}/session/status?directory=${encodeURIComponent(dir)}`, {
+            signal: AbortSignal.timeout(5000),
+            headers: serverAuthHeader ? { Authorization: serverAuthHeader } : {},
+          })
           if (res.ok) {
             const map = await res.json()
             Object.assign(allRealStatuses, map)

@@ -12,6 +12,9 @@ OpenCode 自定义前端，支持以下功能：
 - IP 自动路由 - 根据客户端 IP 自动进入专属项目目录
 - 权限控制 - 基于客户端 IP 进行权限控制
 - 下载回复 - 将助手回复下载为 Markdown 文件，支持截断标记配置
+- 新手指引 - 首次访问自动弹出功能引导，可随时通过"新手指引"按钮重新查看
+- 服务端认证 - 支持 OPENCODE_SERVER_PASSWORD 认证
+- 进程监控 - 通过 monitor.sh 定时检测并自动拉起前后端进程
 
 代码仓库：https://gitcode.com/luanchaowei/opencode-extend.git
 
@@ -35,7 +38,7 @@ OpenCode 自定义前端，支持以下功能：
 | `--hostname 172.17.0.1` | `VITE_OPENCODE_SERVER_HOST=172.17.0.1` | 地址必须一致，使用服务器实际 IP |
 | `--cors http://172.17.0.1:3000` | `WEB_HOST=172.17.0.1` + `WEB_PORT=3000` | CORS 允许前端地址 |
 
-> 注意：服务端设置了 `OPENCODE_SERVER_PASSWORD` 认证密码后，前端连接需要提供对应密码，当前版本暂不支持，后续版本会添加。
+> 注意：服务端设置了 `OPENCODE_SERVER_PASSWORD` 认证密码后，前端需在 `.env` 中配置相同的 `VITE_OPENCODE_SERVER_PASSWORD`。用户名默认为 `opencode`，如服务端通过 `OPENCODE_SERVER_USERNAME` 自定义了用户名，前端必须配置相同的 `VITE_OPENCODE_SERVER_USERNAME`。
 
 ## 安装自定义界面
 
@@ -56,7 +59,7 @@ bun install
 编辑 `.env` 文件：
 
 ```bash
-# 服务配置（需与服务端 --hostname 和 --cors 对齐）
+# 服务配置
 WEB_HOST=172.17.0.1              # 前端监听地址
 WEB_PORT=3000                    # 前端端口
 LOG_PATH=/tmp/opencode-extend.log # 日志路径
@@ -65,6 +68,10 @@ LOG_PATH=/tmp/opencode-extend.log # 日志路径
 VITE_OPENCODE_SERVER_HOST=172.17.0.1   # 后端地址
 VITE_OPENCODE_SERVER_PORT=4096         # 后端端口
 VITE_OPENCODE_DEFAULT_DIR=/home/user/client # 默认工作目录
+
+# 后端认证
+VITE_OPENCODE_SERVER_PASSWORD=""        # 后端认证密码，为空表示不认证
+VITE_OPENCODE_SERVER_USERNAME="opencode" # 后端认证用户名，必须与服务端一致，默认 opencode
 
 # 企业功能
 VITE_CONTACT_ADMIN=admin:12345678      # 支撑人员联系方式
@@ -92,14 +99,27 @@ opencode serve --port 4096 --hostname 172.17.0.1 --cors http://172.17.0.1:3000
 # 开发模式（Vite dev server，支持 HMR 热更新）
 bash restart.sh dev
 
-# 生产模式（build + server.js，无 HMR，性能更好）[默认]
+# 生产模式（server.js，无 HMR，性能更好）[默认]
 bash restart.sh prod
+
+# 生产模式 + 构建前端（修改代码后需要重新构建）
+bash restart.sh prod --build
+
+# 查看帮助
+bash restart.sh --help
 ```
 
 停止前端：
 
 ```bash
 bash stop.sh
+```
+
+进程监控（定时检测并自动拉起）：
+
+```bash
+# 添加到 crontab，每分钟检测一次
+* * * * * bash /path/to/opencode-extend/monitor.sh
 ```
 
 访问地址：
@@ -120,8 +140,9 @@ opencode-extend/
 │   ├── sdk/      # SDK
 │   └── core/     # 工具库
 ├── .env          # 环境配置
-├── restart.sh    # 启动脚本（bash restart.sh [dev|prod]）
+├── restart.sh    # 启动脚本（bash restart.sh [dev|prod] [--build]）
 ├── stop.sh       # 停止脚本
+├── monitor.sh    # 进程监控脚本（定时检测并自动拉起）
 └── package.json
 ```
 
