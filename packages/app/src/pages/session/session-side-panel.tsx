@@ -476,7 +476,7 @@ const isDesktop = createMediaQuery("(min-width: 768px)")
                           <p class="text-12-medium">{uploading() ? language.t("session.files.uploading") : language.t("session.files.uploadHint")}</p>
                         </div>
                       </div>
-                      <div class="mt-2 px-1 text-12-regular text-text-weaker leading-4">
+                      <div data-component="usage-guide" class="mt-2 px-1 text-12-regular text-text-weaker leading-4">
                         <p class="text-12-medium text-text-weak mb-1">{language.t("enterprise.usageGuide.title")}（<span style="color:#f59e0b">黄区环境</span>）：</p>
                         <p>{language.t("enterprise.usageGuide.scenario")}</p>
                         <p>{language.t("enterprise.usageGuide.reference")}</p>

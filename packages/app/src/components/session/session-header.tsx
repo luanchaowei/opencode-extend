@@ -271,6 +271,15 @@ export function SessionHeader() {
                 <span class="text-12-regular">{language.t("session.header.help")}</span>
               </Button>
             </Show>
+            <Button
+              variant="ghost"
+              size="small"
+              id="onboarding-button"
+              onClick={() => window.dispatchEvent(new CustomEvent("start-onboarding"))}
+              class="text-text-interactive-base hover:text-text-interactive-base-hover"
+            >
+              <span class="text-12-regular">{language.t("session.header.onboarding")}</span>
+            </Button>
           </Portal>
         )}
       </Show>

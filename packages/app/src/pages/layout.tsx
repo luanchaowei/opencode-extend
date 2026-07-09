@@ -64,6 +64,7 @@ import { DebugBar } from "@/components/debug-bar"
 import { Titlebar } from "@/components/titlebar"
 import { DialogNewSession } from "@/components/dialog-new-session"
 import { FeedbackWidget } from "@/components/feedback-widget"
+import { OnboardingTour } from "@/components/onboarding-tour"
 import { useServer } from "@/context/server"
 import { useLanguage, type Locale } from "@/context/language"
 import {
@@ -2296,7 +2297,7 @@ return (
     <div class="relative bg-background-base flex-1 min-h-0 min-w-0 flex flex-col select-none [&_input]:select-text [&_textarea]:select-text [&_[contenteditable]]:select-text">
       {autoselecting() ?? ""}
       <Show when={deviceInfoData()?.announcementText}>
-        <div class="flex items-center justify-center py-1.5 px-4 gap-2" style="background-color: #fbbf24; color: #78350f;">
+        <div data-component="announcement" class="flex items-center justify-center py-1.5 px-4 gap-2" style="background-color: #fbbf24; color: #78350f;">
           <Icon name="warning" class="size-4" />
           <span class="text-12-medium font-bold">{deviceInfoData()?.announcementText}</span>
         </div>
@@ -2445,6 +2446,7 @@ return (
         </div>
         {import.meta.env.DEV && <DebugBar />}
         <FeedbackWidget />
+        <OnboardingTour />
       </div>
       <Toast.Region />
     </div>
