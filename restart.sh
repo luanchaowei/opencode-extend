@@ -2,17 +2,28 @@
 
 set -e
 
-MODE="${1:-prod}"
+for arg in "$@"; do
+  if [ "$arg" = "--help" ] || [ "$arg" = "-h" ]; then
+    echo "用法: bash restart.sh [dev|prod] [--build]"
+    echo "  dev      - 开发模式（Vite dev server，支持 HMR）"
+    echo "  prod     - 生产模式（server.js，无 HMR，更快）[默认]"
+    echo "  --build  - 启动前先构建前端（仅 prod 模式生效）"
+    exit 0
+  fi
+done
+
+MODE="prod"
 BUILD=false
-if [ "$2" = "--build" ]; then
-  BUILD=true
-fi
+for arg in "$@"; do
+  if [ "$arg" = "dev" ] || [ "$arg" = "prod" ]; then
+    MODE="$arg"
+  elif [ "$arg" = "--build" ]; then
+    BUILD=true
+  fi
+done
 
 if [ "$MODE" != "dev" ] && [ "$MODE" != "prod" ]; then
-  echo "用法: bash restart.sh [dev|prod] [--build]"
-  echo "  dev      - 开发模式（Vite dev server，支持 HMR）"
-  echo "  prod     - 生产模式（server.js，无 HMR，更快）[默认]"
-  echo "  --build  - 启动前先构建前端（仅 prod 模式生效）"
+  echo "无效模式: $MODE，请使用 --help 查看用法"
   exit 1
 fi
 
