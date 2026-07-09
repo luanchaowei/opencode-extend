@@ -99,10 +99,13 @@ let statsData = { ...defaults }
 
 const refreshTotalClients = () => {
   try {
-    const result = execSync(`opencode db "select count(1) from (select replace(directory, '/client', '') from session where directory like '%ge_agent/1%' or directory like '%ge_agent/client%' group by replace(directory, '/client', ''))"`, { encoding: "utf8", timeout: 10000 })
-    const lines = result.trim().split('\n')
-    const count = parseInt(lines[lines.length - 1], 10)
-    if (count > 0) statsData.totalClientsEver = count
+    const result = execSync(`opencode db "select distinct directory from session"`, { encoding: "utf8", timeout: 10000 })
+    const ips = new Set()
+    for (const line of result.trim().split('\n')) {
+      const match = line.trim().match(/(\d+_\d+_\d+_\d+)/)
+      if (match) ips.add(match[1])
+    }
+    if (ips.size > 0) statsData.totalClientsEver = ips.size
   } catch {}
 }
 
