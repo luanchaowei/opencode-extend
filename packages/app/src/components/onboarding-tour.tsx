@@ -233,23 +233,23 @@ export function OnboardingTour() {
   return (
     <Show when={active()}>
       <div class="fixed inset-0 z-[1000]">
-        <div class="fixed inset-0 bg-black/50" onClick={(e) => e.stopPropagation()} />
         <Show when={targetRect()}>
-          {() => (
-            <div
-              class="fixed"
-              style={{
-                top: `${targetRect()!.top - 4}px`,
-                left: `${targetRect()!.left - 4}px`,
-                width: `${targetRect()!.width + 8}px`,
-                height: `${targetRect()!.height + 8}px`,
-                "box-shadow": "0 0 0 9999px rgba(0, 0, 0, 0.5)",
-                "border-radius": "8px",
-                transition: "all 0.2s ease",
-              }}
-              onClick={(e) => e.stopPropagation()}
-            />
-          )}
+          <div
+            class="fixed"
+            style={{
+              top: `${targetRect()!.top - 4}px`,
+              left: `${targetRect()!.left - 4}px`,
+              width: `${targetRect()!.width + 8}px`,
+              height: `${targetRect()!.height + 8}px`,
+              "box-shadow": "0 0 0 9999px rgba(0, 0, 0, 0.6)",
+              "border-radius": "8px",
+              transition: "all 0.3s ease",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          />
+        </Show>
+        <Show when={!targetRect()}>
+          <div class="fixed inset-0" style={{ background: "rgba(0, 0, 0, 0.6)" }} onClick={(e) => e.stopPropagation()} />
         </Show>
         <div
           class="fixed"
