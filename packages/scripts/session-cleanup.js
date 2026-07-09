@@ -374,4 +374,20 @@ for (const session of sessions) {
 
 console.log(`\nCleanup completed: ${deleted} deleted, ${failed} failed`)
 
+if (deleted > 0 && !dryRun) {
+  console.log("\nRunning VACUUM to reclaim disk space...")
+  try {
+    db.exec("VACUUM;")
+    console.log("VACUUM completed")
+  } catch (error) {
+    console.error(`VACUUM failed: ${error.message}`)
+  }
+  try {
+    db.exec("PRAGMA wal_checkpoint(TRUNCATE);")
+    console.log("WAL checkpoint completed")
+  } catch (error) {
+    console.error(`WAL checkpoint failed: ${error.message}`)
+  }
+}
+
 db.close()
