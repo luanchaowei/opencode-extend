@@ -1,23 +1,11 @@
 # OpenCode Extend
 
-OpenCode 自定义前端，支持以下功能：
+OpenCode 自定义前端，支持按客户端IP进行权限隔离。
 
-- 聊天界面 - 与 AI 进行对话交互，诊断报告下载
-- 文件树 - 浏览项目文件、上传/下载/删除文件
-- 知识库管理 - 浏览和搜索本地案例库
-- 统计仪表盘 - 查看用户数、会话数、在线用户等统计信息
-- 帮助文档 - 快速访问帮助文档
-- 问题反馈 - 提交问题反馈
-- 支撑人员联系 - 快速联系支撑人员
-- IP 自动路由 - 根据客户端 IP 自动进入专属项目目录
-- 权限控制 - 基于客户端 IP 进行权限控制
-- 下载回复 - 将助手回复下载为 Markdown 文件，支持截断标记配置
-- 新手指引 - 首次访问自动弹出功能引导，可随时通过"新手指引"按钮重新查看
-- 服务端认证 - 支持 OPENCODE_SERVER_PASSWORD 认证
-- 进程监控 - 通过 monitor.sh 定时检测并自动拉起前后端进程
-- 会话自动清理 - 定时清理不活跃会话，释放数据库空间
+## 详细文档
 
-代码仓库：https://gitcode.com/luanchaowei/opencode-extend.git
+- [使用指南](doc/user-guide.md) - 面向终端用户，按模块详细介绍各功能使用方法
+- [运维指南](doc/admin-guide.md) - 面向管理员，统计面板和系统配置说明
 
 ## 环境要求
 
@@ -110,6 +98,8 @@ bash restart.sh prod --build
 bash restart.sh --help
 ```
 
+> **两种模式区别**：dev 模式用 Vite 开发服务器（`bun dev`），修改源码后浏览器自动刷新；prod 模式先 `vite build` 再用 `server.js` 启动 Bun 生产服务器，适合正式部署。
+
 停止前端：
 
 ```bash
@@ -155,8 +145,6 @@ bun packages/scripts/session-cleanup.js --help
 
 - 前端页面：http://\<WEB_HOST\>:\<WEB_PORT\>
 - 管理面板：http://\<WEB_HOST\>:\<WEB_PORT\>/admin.html?token=\<VITE_STATS_ADMIN_TOKEN\>
-
-> **两种模式区别**：dev 模式用 Vite 开发服务器（`bun dev`），修改源码后浏览器自动刷新；prod 模式先 `vite build` 再用 `server.js` 启动 Bun 生产服务器，适合正式部署。
 
 ## 项目结构
 

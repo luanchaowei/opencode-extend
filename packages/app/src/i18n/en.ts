@@ -645,6 +645,7 @@ export const dict = {
   "enterprise.usageGuide.delete": "Delete files: Right-click on a file or directory and select \"Delete file\".",
   "enterprise.usageGuide.example": "Example: Execute xxx test case, error is: xxx, plog log at: @uploads/ses_xxx/plog, dump diagram at: @uploads/ses_xxx/dump, need to locate the error cause.",
   "enterprise.feedback": "Feedback",
+  "enterprise.copied": "Copied to clipboard",
   "enterprise.caseLibrary": "Knowledge Base",
   "enterprise.selectFileToView": "Click file to view content",
   "enterprise.toc.title": "Outline",

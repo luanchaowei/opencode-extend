@@ -594,6 +594,7 @@ export const dict = {
   "enterprise.usageGuide.delete": "删除文件：选中文件或目录点击右键选择\"删除文件\"。",
   "enterprise.usageGuide.example": "使用示例：执行xxx用例，报错是：xxx, plog日志在：@uploads/ses_xxx/plog，dump图在：@uploads/ses_xxx/dump, 需要定位下报错原因。",
   "enterprise.feedback": "问题反馈",
+  "enterprise.copied": "已复制到剪贴板",
   "enterprise.caseLibrary": "知识库",
   "enterprise.selectFileToView": "点击文件查看内容",
   "enterprise.toc.title": "目录",

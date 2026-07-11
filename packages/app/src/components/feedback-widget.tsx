@@ -3,6 +3,7 @@ import { useLanguage } from "@/context/language"
 import { useDevice } from "@/context/device"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { HoverCard } from "@opencode-ai/ui/hover-card"
+import { showToast } from "@opencode-ai/ui/toast"
 import { Icon } from "@opencode-ai/ui/icon"
 import { CaseLibraryDialog } from "./dialog-case-library"
 
@@ -87,7 +88,27 @@ export function FeedbackWidget() {
         >
           <div class="flex flex-col gap-1 text-left p-2 bg-surface-panel rounded-md border border-border-weak-base shadow-md select-text">
             <For each={device.contactAdmin()}>
-              {(contact) => <div class="text-12-regular">{contact}</div>}
+              {(contact) => (
+                <div
+                  class="text-12-regular cursor-pointer hover:text-text-interactive-base transition-colors"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    const textarea = document.createElement("textarea")
+                    textarea.value = contact
+                    textarea.style.position = "fixed"
+                    textarea.style.opacity = "0"
+                    document.body.appendChild(textarea)
+                    textarea.select()
+                    try {
+                      document.execCommand("copy")
+                      showToast({ title: language.t("enterprise.copied"), variant: "success" })
+                    } catch {}
+                    document.body.removeChild(textarea)
+                  }}
+                >
+                  {contact}
+                </div>
+              )}
             </For>
           </div>
         </HoverCard>
