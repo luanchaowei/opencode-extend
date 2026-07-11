@@ -15,6 +15,7 @@ OpenCode 自定义前端，支持以下功能：
 - 新手指引 - 首次访问自动弹出功能引导，可随时通过"新手指引"按钮重新查看
 - 服务端认证 - 支持 OPENCODE_SERVER_PASSWORD 认证
 - 进程监控 - 通过 monitor.sh 定时检测并自动拉起前后端进程
+- 会话自动清理 - 定时清理不活跃会话，释放数据库空间
 
 代码仓库：https://gitcode.com/luanchaowei/opencode-extend.git
 
@@ -121,6 +122,34 @@ bash stop.sh
 # 添加到 crontab，每分钟检测一次
 * * * * * bash /path/to/opencode-extend/monitor.sh
 ```
+
+会话清理（定时清理不活跃会话，释放数据库空间）：
+
+```bash
+# 清理 14 天未活跃的会话（默认）
+bun packages/scripts/session-cleanup.js
+
+# 清理 30 天未活跃的会话
+bun packages/scripts/session-cleanup.js --days 30
+
+# 清理已归档会话
+bun packages/scripts/session-cleanup.js --archived --days 7
+
+# 清理孤儿上传目录（session 已删除但上传目录残留）
+bun packages/scripts/session-cleanup.js --orphans
+
+# 预览将要删除的内容（不实际删除）
+bun packages/scripts/session-cleanup.js --dry-run
+
+# 查看帮助
+bun packages/scripts/session-cleanup.js --help
+
+# 建议凌晨定时执行，清理后自动 VACUUM 回收空间
+# 添加到 crontab，每天凌晨 3 点执行
+0 3 * * * cd /path/to/opencode-extend && bun packages/scripts/session-cleanup.js --days 14 >> /tmp/session-cleanup.log 2>&1
+```
+
+> 清理会话后自动执行 `VACUUM` 和 `WAL checkpoint` 回收数据库空间，建议在凌晨低峰期执行。
 
 访问地址：
 
