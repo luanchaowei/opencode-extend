@@ -601,6 +601,7 @@ export default function FileTree(props: {
                         draggable={props.draggable}
                         showDelete={props.showDelete}
                         isOwnProject={props.isOwnProject}
+                        onFileDoubleClick={props.onFileDoubleClick}
                         _filter={filter()}
                         _marks={marks()}
                         _deeps={deeps()}
