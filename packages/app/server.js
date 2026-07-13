@@ -97,7 +97,7 @@ const statsDir = envVars.VITE_STATS_DATA_PATH || __dirname
 const statsPath = join(statsDir, "stats.json")
 const adminToken = envVars.VITE_STATS_ADMIN_TOKEN || ""
 
-const defaults = { heartbeats: {}, totalClientsEver: 0, totalSessionsEverCreated: 0, totalSessionsCurrent: 0, totalMessagesEver: 0, dailyStats: {}, clientDaySeen: {}, sessionDaySeen: {} }
+const defaults = { heartbeats: {}, totalClientsEver: 0, totalSessionsEverCreated: 0, totalMessagesEver: 0, dailyStats: {}, clientDaySeen: {}, sessionDaySeen: {} }
 let statsData = { ...defaults }
 
 const refreshTotalClients = () => {
@@ -132,7 +132,6 @@ const loadStats = () => {
       const loaded = JSON.parse(raw)
       statsData = { ...defaults, ...loaded }
       if (!statsData.totalSessionsEverCreated && statsData.totalSessionsCreated) statsData.totalSessionsEverCreated = statsData.totalSessionsCreated
-      if (!statsData.totalSessionsCurrent && statsData.totalSessionsCreated) statsData.totalSessionsCurrent = statsData.totalSessionsCreated
       if (!statsData.clientDaySeen) statsData.clientDaySeen = {}
       if (!statsData.sessionDaySeen) statsData.sessionDaySeen = {}
       if (statsData.hourlyStats && Object.keys(statsData.hourlyStats).length > 0) {
@@ -487,11 +486,7 @@ async function handleAPI(req, server) {
       }
       if (sessions && Array.isArray(sessions)) {
         for (const s of sessions) {
-          if (!statsData.heartbeats[clientIP].sessions[s.sessionID]) {
-            statsData.heartbeats[clientIP].sessions[s.sessionID] = { status: s.status, lastSeen: timestamp }
-            statsData.totalSessionsEverCreated++
-            statsData.totalSessionsCurrent++
-          } else {
+          if (statsData.heartbeats[clientIP].sessions[s.sessionID]) {
             statsData.heartbeats[clientIP].sessions[s.sessionID].status = s.status
             statsData.heartbeats[clientIP].sessions[s.sessionID].lastSeen = timestamp
           }
@@ -506,6 +501,7 @@ async function handleAPI(req, server) {
       }
       if (sessions && Array.isArray(sessions)) {
         for (const s of sessions) {
+          if (!statsData.heartbeats[clientIP].sessions[s.sessionID]) continue
           const sessionDayKey = `${s.sessionID}:${dayKey}`
           if (!statsData.sessionDaySeen[sessionDayKey]) {
             statsData.sessionDaySeen[sessionDayKey] = true
@@ -542,8 +538,6 @@ async function handleAPI(req, server) {
         for (const sid of allSessionIDs) {
           if (!statsData.heartbeats[clientIP].sessions[sid]) {
             statsData.heartbeats[clientIP].sessions[sid] = { status: "idle", lastSeen: timestamp }
-            statsData.totalSessionsEverCreated++
-            statsData.totalSessionsCurrent++
           }
           const sessionDayKey = `${sid}:${dayKey}`
           if (!statsData.sessionDaySeen[sessionDayKey]) {
@@ -571,7 +565,6 @@ async function handleAPI(req, server) {
       if (!statsData.heartbeats[clientIP].sessions[sessionID]) {
         statsData.heartbeats[clientIP].sessions[sessionID] = { status: "idle", lastSeen: timestamp }
         statsData.totalSessionsEverCreated++
-        statsData.totalSessionsCurrent++
       }
       const dayKey = getDayKey(timestamp)
       ensureDayStats(dayKey)
@@ -595,7 +588,6 @@ async function handleAPI(req, server) {
           found = true
         }
       }
-      if (found) statsData.totalSessionsCurrent = Math.max(0, statsData.totalSessionsCurrent - 1)
       markDirty()
       return jsonResponse({ ok: true })
     } catch (err) {
@@ -701,7 +693,6 @@ async function handleAPI(req, server) {
         totalClientsEver: statsData.totalClientsEver,
         onlineClients,
         totalSessionsEverCreated: statsData.totalSessionsEverCreated,
-        totalSessionsCurrent: statsData.totalSessionsCurrent,
         totalMessagesEver: statsData.totalMessagesEver,
         onlineSessions,
         processingSessions,
