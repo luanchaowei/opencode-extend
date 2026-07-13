@@ -143,13 +143,27 @@ export function OnboardingTour() {
       setActive(false)
       return
     }
-    setStepIndex(next)
     const step = steps[next]
-    step?.beforeStep?.()
-    if (step?.selector) {
-      await new Promise((r) => setTimeout(r, step.selector === "#side-panel" ? 350 : 0))
+    let needWait = false
+    if (step?.beforeStep) {
+      const fileTreeWasOpen = layout.fileTree.opened()
+      step.beforeStep()
+      if (step.selector === "#side-panel" && !fileTreeWasOpen) needWait = true
     }
-    await updateTargetRect()
+    if (needWait) {
+      await new Promise((r) => setTimeout(r, 350))
+    }
+    const el = step?.selector ? await waitForElement(step.selector) : null
+    if (step?.selector && el) {
+      const rect = el.getBoundingClientRect()
+      const inViewport = rect.top > 0 && rect.bottom < window.innerHeight
+      if (!inViewport) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" })
+        await new Promise((r) => setTimeout(r, 300))
+      }
+    }
+    setStepIndex(next)
+    setTargetRect(el ? el.getBoundingClientRect() : null)
   }
 
   const start = () => {
