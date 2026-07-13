@@ -355,6 +355,8 @@ export default function Page() {
     )
   )
 
+  let firstHeartbeat = true
+
   const sendHeartbeat = async () => {
     const ip = device.clientIP()
     if (!ip) return
@@ -371,11 +373,22 @@ export default function Page() {
       }
     }
     try {
-      await fetch("/api/stats/heartbeat", {
+      const res = await fetch("/api/stats/heartbeat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ clientIP: ip, sessions, timestamp: Date.now() }),
       })
+      const data = await res.json()
+      if (device.isOwnProject(sdk.directory) && data.buildTime) {
+        if (!firstHeartbeat) {
+          const stored = localStorage.getItem("buildTime")
+          if (stored && stored !== String(data.buildTime)) {
+            window.location.reload()
+          }
+        }
+        localStorage.setItem("buildTime", String(data.buildTime))
+        firstHeartbeat = false
+      }
     } catch {}
   }
 

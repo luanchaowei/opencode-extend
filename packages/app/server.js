@@ -32,6 +32,7 @@ const serverUrl = `http://${serverHost}:${serverPort}`
 const serverPassword = envVars.VITE_OPENCODE_SERVER_PASSWORD || ""
 const serverUsername = envVars.VITE_OPENCODE_SERVER_USERNAME || "opencode"
 const serverAuthHeader = serverPassword ? `Basic ${Buffer.from(`${serverUsername}:${serverPassword}`).toString("base64")}` : ""
+const buildTime = Date.now()
 process.env.NO_PROXY = "*"
 console.log("[server] NO_PROXY=* (skip proxy for all fetch requests)")
 const webHost = envVars.WEB_HOST || "0.0.0.0"
@@ -511,7 +512,7 @@ async function handleAPI(req, server) {
         }
       }
       markDirty()
-      return jsonResponse({ ok: true })
+      return jsonResponse({ ok: true, buildTime })
     } catch (err) {
       return jsonResponse({ error: err.message }, 500)
     }
@@ -558,6 +559,7 @@ async function handleAPI(req, server) {
       const body = JSON.parse(await readBody(req))
       const { clientIP, sessionID, timestamp } = body
       if (!clientIP || !sessionID) return jsonResponse({ error: "Missing clientIP or sessionID" }, 400)
+      const existed = !!statsData.heartbeats[clientIP]?.sessions?.[sessionID]
       if (!statsData.heartbeats[clientIP]) {
         statsData.totalClientsEver++
         statsData.heartbeats[clientIP] = { lastSeen: timestamp, sessions: {} }
@@ -568,6 +570,9 @@ async function handleAPI(req, server) {
         const dayKey = getDayKey(timestamp)
         ensureDayStats(dayKey)
         statsData.dailyStats[dayKey].newSessions++
+        console.log(`[stats] session-create NEW: ip=${clientIP} sid=${sessionID} total=${statsData.totalSessionsEverCreated}`)
+      } else {
+        console.log(`[stats] session-create DEDUP: ip=${clientIP} sid=${sessionID} (already in heartbeat, existed=${existed})`)
       }
       markDirty()
       return jsonResponse({ ok: true })
