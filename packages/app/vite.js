@@ -671,7 +671,7 @@ const defaults = { heartbeats: {}, totalClientsEver: 0, totalSessionsEverCreated
         if (req.url === "/api/stats/heartbeat" && req.method === "POST") {
           try {
             const body = JSON.parse(await readBody())
-            const { clientIP, sessions, totalExistingSessions, timestamp } = body
+            const { clientIP, sessions, timestamp } = body
             if (!clientIP) { res.statusCode = 400; res.end(JSON.stringify({ error: "Missing clientIP" })); return }
 
             if (!statsData.heartbeats[clientIP]) {
@@ -798,11 +798,9 @@ const defaults = { heartbeats: {}, totalClientsEver: 0, totalSessionsEverCreated
             const { sessionID } = body
             if (!sessionID) { res.statusCode = 400; res.end(JSON.stringify({ error: "Missing sessionID" })); return }
 
-            let found = false
             for (const ip of Object.keys(statsData.heartbeats)) {
               if (statsData.heartbeats[ip].sessions?.[sessionID]) {
                 delete statsData.heartbeats[ip].sessions[sessionID]
-                found = true
               }
             }
 

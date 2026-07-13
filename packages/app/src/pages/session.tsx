@@ -374,7 +374,7 @@ export default function Page() {
       await fetch("/api/stats/heartbeat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ clientIP: ip, sessions, totalExistingSessions: sync.data.sessionTotal, timestamp: Date.now() }),
+        body: JSON.stringify({ clientIP: ip, sessions, timestamp: Date.now() }),
       })
     } catch {}
   }

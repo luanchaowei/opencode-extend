@@ -471,7 +471,7 @@ async function handleAPI(req, server) {
   if (url.pathname === "/api/stats/heartbeat" && method === "POST") {
     try {
       const body = JSON.parse(await readBody(req))
-      const { clientIP, sessions, totalExistingSessions, timestamp } = body
+      const { clientIP, sessions, timestamp } = body
       if (!clientIP) return jsonResponse({ error: "Missing clientIP" }, 400)
       if (!statsData.heartbeats[clientIP]) {
         statsData.totalClientsEver++
@@ -581,11 +581,9 @@ async function handleAPI(req, server) {
       const body = JSON.parse(await readBody(req))
       const { sessionID } = body
       if (!sessionID) return jsonResponse({ error: "Missing sessionID" }, 400)
-      let found = false
       for (const ip of Object.keys(statsData.heartbeats)) {
         if (statsData.heartbeats[ip].sessions?.[sessionID]) {
           delete statsData.heartbeats[ip].sessions[sessionID]
-          found = true
         }
       }
       markDirty()
