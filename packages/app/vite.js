@@ -778,10 +778,10 @@ const defaults = { heartbeats: {}, totalClientsEver: 0, totalSessionsEverCreated
             if (!statsData.heartbeats[clientIP].sessions[sessionID]) {
               statsData.heartbeats[clientIP].sessions[sessionID] = { status: "idle", lastSeen: timestamp }
               statsData.totalSessionsEverCreated++
+              const dayKey = getDayKey(timestamp)
+              ensureDayStats(dayKey)
+              statsData.dailyStats[dayKey].newSessions++
             }
-            const dayKey = getDayKey(timestamp)
-            ensureDayStats(dayKey)
-            statsData.dailyStats[dayKey].newSessions++
 
             markDirty()
             res.setHeader("Content-Type", "application/json")

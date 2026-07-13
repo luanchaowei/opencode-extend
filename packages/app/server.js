@@ -565,10 +565,10 @@ async function handleAPI(req, server) {
       if (!statsData.heartbeats[clientIP].sessions[sessionID]) {
         statsData.heartbeats[clientIP].sessions[sessionID] = { status: "idle", lastSeen: timestamp }
         statsData.totalSessionsEverCreated++
+        const dayKey = getDayKey(timestamp)
+        ensureDayStats(dayKey)
+        statsData.dailyStats[dayKey].newSessions++
       }
-      const dayKey = getDayKey(timestamp)
-      ensureDayStats(dayKey)
-      statsData.dailyStats[dayKey].newSessions++
       markDirty()
       return jsonResponse({ ok: true })
     } catch (err) {

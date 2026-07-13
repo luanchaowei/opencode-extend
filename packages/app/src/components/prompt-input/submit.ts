@@ -381,11 +381,6 @@ export function createPromptSubmit(input: PromptSubmitInput) {
         local.session.promote(sessionDirectory, session.id)
         layout.handoff.setTabs(base64Encode(sessionDirectory), session.id)
         navigate(`/${base64Encode(sessionDirectory)}/session/${session.id}`)
-        fetch("/api/stats/session-create", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ clientIP: device.clientIP(), sessionID: session.id, timestamp: Date.now() }),
-        }).catch(() => {})
       }
     }
     if (!session) {
