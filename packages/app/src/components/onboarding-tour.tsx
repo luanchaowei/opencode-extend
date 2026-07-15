@@ -176,12 +176,16 @@ export function OnboardingTour() {
 
   const close = () => {
     setActive(false)
+    localStorage.setItem("onboarding-completed", "true")
     if (rafId) cancelAnimationFrame(rafId)
   }
 
   const handleNext = () => goToStep(stepIndex() + 1)
   const handlePrev = () => goToStep(stepIndex() - 1)
-  const handleSkip = () => close()
+  const handleSkip = () => {
+    setActive(false)
+    if (rafId) cancelAnimationFrame(rafId)
+  }
 
   const handleResize = () => {
     if (!active()) return
@@ -202,6 +206,7 @@ export function OnboardingTour() {
     const dirName = getFilename(directory)
     if (dirName !== ip) return
     if (started) return
+    if (localStorage.getItem("onboarding-completed")) return
     setTimeout(() => start(), 1500)
   })
 

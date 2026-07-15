@@ -6,8 +6,6 @@ set -a
 source .env
 set +a
 
-echo "[$(date)] start monitor opencode"
-
 if ! pgrep -f "opencode serve" > /dev/null; then
     nohup UV_THREADPOOL_SIZE=16 opencode serve \
       --port ${VITE_OPENCODE_SERVER_PORT:-4096} \
@@ -20,4 +18,3 @@ if ! pgrep -f "bun.*packages/app" > /dev/null; then
     bash restart.sh prod 2>&1
     echo "[$(date)] frontend restarted via restart.sh"
 fi
-echo "[$(date)] end monitor opencode"
