@@ -644,10 +644,13 @@ async function handleAPI(req, server) {
           })
           if (res.ok) {
             const map = await res.json()
+            console.log(`[stats] align dir=${dir} backendStatus=${JSON.stringify(map)}`)
             Object.assign(allRealStatuses, map)
+          } else {
+            console.log(`[stats] align dir=${dir} backend returned ${res.status}`)
           }
         } catch (err) {
-          console.error(`[stats] failed to query status for directory ${dir}: ${err.message}`)
+          console.error(`[stats] align dir=${dir} fetch failed: ${err.message}`)
         }
       }
       for (const ip of Object.keys(statsData.heartbeats)) {
@@ -656,7 +659,9 @@ async function handleAPI(req, server) {
           const s = statsData.heartbeats[ip].sessions[sid]
           if (s.status !== "busy" && s.status !== "retry") continue
           const real = allRealStatuses[sid]
+          const oldStatus = s.status
           s.status = real ? real.type : "idle"
+          console.log(`[stats] align sid=${sid} ip=${ip} oldStatus=${oldStatus} realStatus=${real ? JSON.stringify(real) : "null"} newStatus=${s.status}`)
         }
       }
       markDirty()
