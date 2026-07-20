@@ -34,7 +34,7 @@ const serverUsername = envVars.VITE_OPENCODE_SERVER_USERNAME || "opencode"
 const serverAuthHeader = serverPassword ? `Basic ${Buffer.from(`${serverUsername}:${serverPassword}`).toString("base64")}` : ""
 const buildTime = Date.now()
 process.env.NO_PROXY = "*"
-console.log("[server] NO_PROXY=* (skip proxy for all fetch requests)")
+console.log(`[${getTzTime()}] NO_PROXY=* (skip proxy for all fetch requests)`)
 const webHost = envVars.WEB_HOST || "0.0.0.0"
 const webPort = parseInt(envVars.WEB_PORT || "3000")
 const distDir = join(__dirname, "dist")
@@ -165,23 +165,23 @@ const loadStats = () => {
         delete statsData.sessionHourSeen
       }
     } catch (err) {
-      console.error("[stats] loadStats: FAILED:", err.message)
+      console.error(`[${getTzTime()}] loadStats: FAILED: ${err.message}`)
       try {
         const raw = readFileSync(statsPath, "utf8")
         const partial = raw.slice(0, raw.lastIndexOf("}") + 1) + "}"
         const recovered = JSON.parse(partial)
         statsData = { ...defaults, ...recovered }
-        console.error("[stats] loadStats: partially recovered")
+        console.error(`[${getTzTime()}] loadStats: partially recovered`)
         saveStats()
       } catch {
-        console.error("[stats] loadStats: recovery failed, starting with defaults")
+        console.error(`[${getTzTime()}] loadStats: recovery failed, starting with defaults`)
         try { copyFileSync(statsPath, statsPath + ".bak") } catch {}
         statsData = { ...defaults }
         saveStats()
       }
     }
   } else {
-    console.log("[stats] loadStats: file not found, starting with defaults")
+    console.log(`[${getTzTime()}] loadStats: file not found, starting with defaults`)
     statsData = { ...defaults }
     saveStats()
   }
@@ -418,7 +418,7 @@ async function handleAPI(req, server) {
             const headerEnd = data.indexOf(Buffer.from('\r\n\r\n'))
             if (headerEnd !== -1) {
               const header = data.slice(0, headerEnd).toString()
-              console.log(`[upload] header parsed: ${header.replace(/\r\n/g, '|')}`)
+              console.log(`[${getTzTime()}] header parsed: ${header.replace(/\r\n/g, '|')}`)
               data = data.slice(headerEnd + 4)
               if (header.includes('name="file"')) {
                 tmpPath = join(directory, `.upload_tmp_${Date.now()}`)
@@ -496,7 +496,7 @@ async function handleAPI(req, server) {
 
       return jsonResponse({ success: true, path: fullPath })
     } catch (error) {
-      console.error("[upload] error:", error.message)
+      console.error(`[${getTzTime()}] error: ${error.message}`)
       if (tmpPath) { try { unlinkSync(tmpPath) } catch {} }
       return jsonResponse({ error: error.message }, 500)
     }
@@ -657,9 +657,9 @@ async function handleAPI(req, server) {
         const dayKey = getDayKey(timestamp)
         ensureDayStats(dayKey)
         statsData.dailyStats[dayKey].newSessions++
-        console.log(`[stats] session-create NEW: ip=${clientIP} sid=${sessionID} total=${statsData.totalSessionsEverCreated}`)
+        console.log(`[${getTzTime()}] session-create NEW: ip=${clientIP} sid=${sessionID} total=${statsData.totalSessionsEverCreated}`)
       } else {
-        console.log(`[stats] session-create DEDUP: ip=${clientIP} sid=${sessionID} (already in heartbeat, existed=${existed})`)
+        console.log(`[${getTzTime()}] session-create DEDUP: ip=${clientIP} sid=${sessionID} (already in heartbeat, existed=${existed})`)
       }
       markDirty()
       return jsonResponse({ ok: true })
@@ -731,13 +731,13 @@ async function handleAPI(req, server) {
           })
           if (res.ok) {
             const map = await res.json()
-            console.log(`[stats] align dir=${dir} backendStatus=${JSON.stringify(map)}`)
+            console.log(`[${getTzTime()}] align dir=${dir} backendStatus=${JSON.stringify(map)}`)
             Object.assign(allRealStatuses, map)
           } else {
-            console.log(`[stats] align dir=${dir} backend returned ${res.status}`)
+            console.log(`[${getTzTime()}] align dir=${dir} backend returned ${res.status}`)
           }
         } catch (err) {
-          console.error(`[stats] align dir=${dir} fetch failed: ${err.message}`)
+          console.error(`[${getTzTime()}] align dir=${dir} fetch failed: ${err.message}`)
         }
       }
       for (const ip of Object.keys(statsData.heartbeats)) {
@@ -748,12 +748,12 @@ async function handleAPI(req, server) {
           const real = allRealStatuses[sid]
           const oldStatus = s.status
           s.status = real ? real.type : "idle"
-          console.log(`[stats] align sid=${sid} ip=${ip} oldStatus=${oldStatus} realStatus=${real ? JSON.stringify(real) : "null"} newStatus=${s.status}`)
+          console.log(`[${getTzTime()}] align sid=${sid} ip=${ip} oldStatus=${oldStatus} realStatus=${real ? JSON.stringify(real) : "null"} newStatus=${s.status}`)
         }
       }
       markDirty()
     } catch (err) {
-      console.error(`[stats] failed to align session status: ${err.message}`)
+      console.error(`[${getTzTime()}] failed to align session status: ${err.message}`)
     }
     let onlineClients = 0
     let onlineSessions = 0
@@ -857,6 +857,13 @@ async function handleAPI(req, server) {
   return null
 }
 
+function getTzTime() {
+  return new Date().toLocaleString('zh-CN', {
+    timeZone: 'Asia/Shanghai',
+    hour12: false
+  })
+}
+
 Bun.serve({
   hostname: webHost,
   port: webPort,
@@ -865,31 +872,29 @@ Bun.serve({
   async fetch(req, server) {
     const url = new URL(req.url, "http://localhost")
     const start = Date.now()
-    console.log(`[request] ${req.method} ${url.pathname}${url.search}`)
 
     try {
       const apiRes = await handleAPI(req, server)
       if (apiRes) {
-        console.log(`[response] ${req.method} ${url.pathname} -> middleware ${apiRes.status} ${Date.now() - start}ms`)
+        console.log(`[${getTzTime()}] ${req.method} ${url.pathname} -> middleware ${apiRes.status} ${Date.now() - start}ms`)
         return apiRes
       }
 
       const staticResult = serveStatic(url.pathname)
       if (staticResult) {
-        console.log(`[response] ${req.method} ${url.pathname} -> static ${Date.now() - start}ms`)
         return new Response(staticResult.content, { headers: { "Content-Type": staticResult.mime } })
       }
 
       const indexPath = join(distDir, 'index.html')
       if (existsSync(indexPath)) {
-        console.log(`[response] ${req.method} ${url.pathname} -> spa-fallback ${Date.now() - start}ms`)
+        console.log(`[${getTzTime()}] ${req.method} ${url.pathname} -> spa-fallback ${Date.now() - start}ms`)
         return new Response(readFileSync(indexPath), { headers: { "Content-Type": "text/html" } })
       }
 
-      console.log(`[response] ${req.method} ${url.pathname} -> 404 ${Date.now() - start}ms`)
+      console.log(`[${getTzTime()}] ${req.method} ${url.pathname} -> 404 ${Date.now() - start}ms`)
       return new Response("Not Found", { status: 404 })
     } catch (error) {
-      console.error(`[error] ${req.method} ${url.pathname} -> ${error.message}`)
+      console.error(`[${getTzTime()}][error] ${req.method} ${url.pathname} -> ${error.message}`)
       return jsonResponse({ error: error.message }, 500)
     }
   },
@@ -909,12 +914,12 @@ const rotateLog = () => {
       else { try { renameSync(oldPath, newPath) } catch {} }
     }
     try { renameSync(logPath, `${logPath}.1`) } catch {}
-    console.log(`[log] rotated, previous size: ${(size / 1024 / 1024).toFixed(1)}MB`)
+    console.log(`[${getTzTime()}] rotated, previous size: ${(size / 1024 / 1024).toFixed(1)}MB`)
   } catch {}
 }
 setInterval(rotateLog, 600000)
 rotateLog()
 
-console.log(`[server] Production server listening on ${webHost}:${webPort}`)
-console.log(`[server] Static files from: ${distDir}`)
-console.log(`[server] Stats data: ${statsPath}`)
+console.log(`[${getTzTime()}] Production server listening on ${webHost}:${webPort}`)
+console.log(`[${getTzTime()}] Static files from: ${distDir}`)
+console.log(`[${getTzTime()}] Stats data: ${statsPath}`)
