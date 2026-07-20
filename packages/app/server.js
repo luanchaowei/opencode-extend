@@ -340,6 +340,8 @@ async function handleAPI(req, server) {
   }
 
   if (url.pathname.startsWith("/file/upload") && method === "POST") {
+    let tmpPath = null
+    let writer = null
     try {
       const directory = url.searchParams.get("directory")
       if (directory) {
@@ -357,60 +359,141 @@ async function handleAPI(req, server) {
       const boundary = req.headers.get("content-type")?.split("boundary=")[1]
       if (!boundary) return jsonResponse({ error: "Missing boundary" }, 400)
 
-      const boundaryBuffer = Buffer.from(`--${boundary}`)
-      const chunks = []
+      const boundaryBuf = Buffer.from(`\r\n--${boundary}`)
+      const endBoundaryBuf = Buffer.from(`--${boundary}--`)
+      const firstBoundaryBuf = Buffer.from(`--${boundary}\r\n`)
       const reader = req.body.getReader()
+
+      let state = "search_first"
+      let leftover = Buffer.alloc(0)
+      let filePath = null
+
       while (true) {
         const { done, value } = await reader.read()
         if (done) break
-        chunks.push(value)
-      }
-      const buffer = Buffer.concat(chunks)
 
-      const boundaryPositions = []
-      let pos = 0
-      while (pos < buffer.length) {
-        const idx = buffer.indexOf(boundaryBuffer, pos)
-        if (idx === -1) break
-        boundaryPositions.push(idx)
-        pos = idx + boundaryBuffer.length
-      }
+        let data = Buffer.concat([leftover, value])
+        leftover = Buffer.alloc(0)
 
-      let fileContent = null
-      let filePath = null
-      for (let i = 0; i < boundaryPositions.length - 1; i++) {
-        const start = boundaryPositions[i] + boundaryBuffer.length
-        const end = boundaryPositions[i + 1]
-        const part = buffer.slice(start, end)
-        const nameMatch = part.indexOf(Buffer.from('name="file"'))
-        if (nameMatch !== -1) {
-          const headerEnd = part.indexOf(Buffer.from('\r\n\r\n'))
-          if (headerEnd !== -1) {
-            fileContent = part.slice(headerEnd + 4, part.length - 2)
+        if (state === "search_first") {
+          const idx = data.indexOf(firstBoundaryBuf)
+          if (idx !== -1) {
+            data = data.slice(idx + firstBoundaryBuf.length)
+            state = "read_header"
+          } else {
+            leftover = data
           }
         }
-        const pathMatch = part.indexOf(Buffer.from('name="path"'))
-        if (pathMatch !== -1) {
-          const headerEnd = part.indexOf(Buffer.from('\r\n\r\n'))
+
+        if (state === "read_header") {
+          const headerEnd = data.indexOf(Buffer.from('\r\n\r\n'))
           if (headerEnd !== -1) {
-            filePath = part.slice(headerEnd + 4, part.length - 2).toString().trim()
+            const header = data.slice(0, headerEnd).toString()
+            data = data.slice(headerEnd + 4)
+            if (header.includes('name="file"')) {
+              tmpPath = join(directory, `.upload_tmp_${Date.now()}`)
+              writer = Bun.file(tmpPath).writer()
+              state = "write_file"
+            } else if (header.includes('name="path"')) {
+              state = "read_path"
+            } else {
+              state = "skip_part"
+            }
+          } else {
+            leftover = data
           }
+        }
+
+        if (state === "write_file") {
+          const boundaryIdx = data.indexOf(boundaryBuf)
+          if (boundaryIdx !== -1) {
+            writer.write(data.slice(0, boundaryIdx))
+            writer.end()
+            data = data.slice(boundaryIdx + boundaryBuf.length + 2)
+            state = "read_header"
+            const headerEnd = data.indexOf(Buffer.from('\r\n\r\n'))
+            if (headerEnd !== -1) {
+              const header = data.slice(0, headerEnd).toString()
+              console.log(`[upload] header parsed: ${header.replace(/\r\n/g, '|')}`)
+              data = data.slice(headerEnd + 4)
+              if (header.includes('name="file"')) {
+                tmpPath = join(directory, `.upload_tmp_${Date.now()}`)
+                writer = Bun.file(tmpPath).writer()
+                state = "write_file"
+              } else if (header.includes('name="path"')) {
+                state = "read_path"
+              } else {
+                state = "skip_part"
+              }
+            } else {
+              leftover = data
+            }
+          } else {
+            const safeLen = data.length - boundaryBuf.length
+            if (safeLen > 0) {
+              writer.write(data.slice(0, safeLen))
+              leftover = data.slice(safeLen)
+            } else {
+              leftover = data
+            }
+          }
+        }
+
+        if (state === "read_path") {
+          const boundaryIdx = data.indexOf(boundaryBuf)
+          if (boundaryIdx !== -1) {
+            filePath = data.slice(0, boundaryIdx).toString().trim()
+            data = data.slice(boundaryIdx + boundaryBuf.length)
+            state = "read_header"
+          } else {
+            leftover = data
+          }
+        }
+
+        if (state === "skip_part") {
+          const boundaryIdx = data.indexOf(boundaryBuf)
+          if (boundaryIdx !== -1) {
+            data = data.slice(boundaryIdx + boundaryBuf.length + 2)
+            state = "read_header"
+            const headerEnd = data.indexOf(Buffer.from('\r\n\r\n'))
+            if (headerEnd !== -1) {
+              const header = data.slice(0, headerEnd).toString()
+              console.log(`[upload] header parsed: ${header.replace(/\r\n/g, '|')}`)
+              data = data.slice(headerEnd + 4)
+              if (header.includes('name="file"')) {
+                tmpPath = join(directory, `.upload_tmp_${Date.now()}`)
+                writer = Bun.file(tmpPath).writer()
+                state = "write_file"
+              } else if (header.includes('name="path"')) {
+                state = "read_path"
+              } else {
+                state = "skip_part"
+              }
+            } else {
+              leftover = data
+            }
+          } else {
+            leftover = data
+          }
+        }
+
+        if (state === "read_header" && data.includes(endBoundaryBuf)) {
+          break
         }
       }
 
-      if (!fileContent || !filePath) return jsonResponse({ error: "Missing file or path" }, 400)
+      if (!tmpPath || !filePath) return jsonResponse({ error: "Missing file or path" }, 400)
 
       const fullPath = filePath.startsWith("/") ? filePath : join(directory, filePath)
       const dir = dirname(fullPath)
       if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
-
-      const tmpPath = fullPath + '.tmp'
-      writeFileSync(tmpPath, fileContent)
       renameSync(tmpPath, fullPath)
+      tmpPath = null
 
       return jsonResponse({ success: true, path: fullPath })
     } catch (error) {
       console.error("[upload] error:", error.message)
+      if (tmpPath) { try { unlinkSync(tmpPath) } catch {} }
       return jsonResponse({ error: error.message }, 500)
     }
   }
@@ -425,13 +508,13 @@ async function handleAPI(req, server) {
       if (!existsSync(fullPath)) return jsonResponse({ error: "File not found" }, 404)
       const stats = statSync(fullPath)
       if (stats.isDirectory()) return jsonResponse({ error: "Path is a directory, not a file" }, 400)
-      const fileContent = readFileSync(fullPath)
+      const file = Bun.file(fullPath)
       const filename = filePath.split("/").pop() || "download"
-      return new Response(fileContent, {
+      return new Response(file, {
         headers: {
           "Content-Type": "application/octet-stream",
           "Content-Disposition": `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`,
-          "Content-Length": fileContent.length,
+          "Content-Length": file.size,
         },
       })
     } catch (error) {
