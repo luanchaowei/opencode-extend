@@ -812,6 +812,7 @@ async function handleAPI(req, server) {
       fileTreePollInterval: process.env.VITE_FILE_TREE_POLL_INTERVAL || "5000",
       heartbeatInterval: process.env.VITE_HEARTBEAT_INTERVAL || "60000",
       diskUsageThreshold: process.env.VITE_DISK_USAGE_THRESHOLD || "90",
+      caseLibraryDir: process.env.VITE_CASE_LIBRARY_DIR || "",
     })
   }
 
@@ -830,6 +831,7 @@ async function handleAPI(req, server) {
         fileTreePollInterval: "VITE_FILE_TREE_POLL_INTERVAL",
         heartbeatInterval: "VITE_HEARTBEAT_INTERVAL",
         diskUsageThreshold: "VITE_DISK_USAGE_THRESHOLD",
+        caseLibraryDir: "VITE_CASE_LIBRARY_DIR",
       }
       for (const [key, envKey] of Object.entries(envMap)) {
         if (body[key] !== undefined) process.env[envKey] = String(body[key])

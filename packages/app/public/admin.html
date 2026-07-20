@@ -161,7 +161,7 @@
         <div class="page-title">系统设置</div>
         <div style="max-width:760px">
           <div class="settings-group">
-            <div class="settings-group-title">用户面配置</div>
+            <div class="settings-group-title">功能参数</div>
             <div class="settings-grid">
               <div class="field">
                 <label>公告</label>
@@ -180,6 +180,11 @@
               <div class="field">
                 <label>帮助文档URL</label>
                 <input id="helpDocUrl" type="text" placeholder="https://example.com/help">
+              </div>
+              <div class="field">
+                <label>知识库目录</label>
+                <input id="caseLibraryDir" type="text" placeholder="/path/to/cases">
+                <div class="hint">本地案例库文件所在目录路径</div>
               </div>
               <div class="field">
                 <label>下载截断标记</label>
@@ -268,6 +273,7 @@
           document.getElementById('fileTreePollInterval').value = data.fileTreePollInterval || '5000'
           document.getElementById('heartbeatInterval').value = data.heartbeatInterval || '60000'
           document.getElementById('diskUsageThreshold').value = data.diskUsageThreshold || '90'
+          document.getElementById('caseLibraryDir').value = data.caseLibraryDir || ''
           showPanel('main')
           fetchStats()
         } else {
@@ -298,6 +304,7 @@
             fileTreePollInterval: document.getElementById('fileTreePollInterval').value,
             heartbeatInterval: document.getElementById('heartbeatInterval').value,
             diskUsageThreshold: document.getElementById('diskUsageThreshold').value,
+            caseLibraryDir: document.getElementById('caseLibraryDir').value,
           })
         })
         if (resp.ok) {

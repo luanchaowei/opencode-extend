@@ -931,6 +931,10 @@ const defaults = { heartbeats: {}, totalClientsEver: 0, totalSessionsEverCreated
               feedbackUrl: process.env.VITE_FEEDBACK_URL || "",
               helpDocUrl: process.env.VITE_HELP_DOC_URL || "",
               downloadCutoffText: process.env.VITE_DOWNLOAD_CUTOFF_TEXT || "",
+              fileTreePollInterval: process.env.VITE_FILE_TREE_POLL_INTERVAL || "5000",
+              heartbeatInterval: process.env.VITE_HEARTBEAT_INTERVAL || "60000",
+              diskUsageThreshold: process.env.VITE_DISK_USAGE_THRESHOLD || "90",
+              caseLibraryDir: process.env.VITE_CASE_LIBRARY_DIR || "",
             }))
           } catch (error) {
             res.statusCode = 500
@@ -957,10 +961,14 @@ const defaults = { heartbeats: {}, totalClientsEver: 0, totalSessionsEverCreated
               feedbackUrl: "VITE_FEEDBACK_URL",
               helpDocUrl: "VITE_HELP_DOC_URL",
               downloadCutoffText: "VITE_DOWNLOAD_CUTOFF_TEXT",
+              fileTreePollInterval: "VITE_FILE_TREE_POLL_INTERVAL",
+              heartbeatInterval: "VITE_HEARTBEAT_INTERVAL",
+              diskUsageThreshold: "VITE_DISK_USAGE_THRESHOLD",
+              caseLibraryDir: "VITE_CASE_LIBRARY_DIR",
             }
             for (const [key, envKey] of Object.entries(envMap)) {
               if (body[key] !== undefined) {
-                process.env[envKey] = body[key] || ""
+                process.env[envKey] = String(body[key])
               }
             }
             const envPath = join(dirname(fileURLToPath(import.meta.url)), "../../.env")
@@ -969,7 +977,7 @@ const defaults = { heartbeats: {}, totalClientsEver: 0, totalSessionsEverCreated
             const updatedLines = [...envLines]
             for (const [key, envKey] of Object.entries(envMap)) {
               if (body[key] === undefined) continue
-              const value = body[key] || ""
+              const value = String(body[key] ?? "")
               const line = `${envKey}="${value}"`
               const idx = updatedLines.findIndex(l => l.startsWith(`${envKey}=`))
               if (idx >= 0) {
