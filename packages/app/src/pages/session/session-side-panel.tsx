@@ -1,4 +1,4 @@
-import { For, Match, Show, Switch, createEffect, createMemo, onCleanup, on, type JSX, createSignal } from "solid-js"
+import { For, Match, Show, Switch, createEffect, createMemo, onCleanup, onMount, on, type JSX, createSignal } from "solid-js"
 import { createStore } from "solid-js/store"
 import { createMediaQuery } from "@solid-primitives/media"
 import { Tabs } from "@opencode-ai/ui/tabs"
@@ -64,8 +64,26 @@ const isDesktop = createMediaQuery("(min-width: 768px)")
     }
   }))
 
+  // Poll upload directory for changes
+  let pollInterval: ReturnType<typeof setInterval> | undefined
+  const startPolling = () => {
+    if (pollInterval) return
+    pollInterval = setInterval(() => {
+      const dir = uploadDir()
+      if (dir) file.tree.refresh(dir)
+    }, 5000)
+  }
+  const stopPolling = () => {
+    if (pollInterval) { clearInterval(pollInterval); pollInterval = undefined }
+  }
+  createEffect(() => {
+    if (layout.fileTree.opened() && uploadDir() && isOwnProject()) startPolling()
+    else stopPolling()
+  })
+
   // Cleanup on component destroy
   onCleanup(() => {
+    stopPolling()
     uploadAbortController?.abort()
     setUploading(false)
     document.body.removeAttribute("data-drop-completed")
