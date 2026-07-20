@@ -277,6 +277,9 @@ async function handleAPI(req, server) {
       helpDocUrl: process.env.VITE_HELP_DOC_URL || "",
       announcementText: process.env.VITE_ANNOUNCEMENT_TEXT || "",
       downloadCutoffText: process.env.VITE_DOWNLOAD_CUTOFF_TEXT || "",
+      fileTreePollInterval: parseInt(process.env.VITE_FILE_TREE_POLL_INTERVAL || "5000", 10),
+      heartbeatInterval: parseInt(process.env.VITE_HEARTBEAT_INTERVAL || "60000", 10),
+      diskUsageThreshold: parseInt(process.env.VITE_DISK_USAGE_THRESHOLD || "90", 10),
     })
   }
 
@@ -349,8 +352,9 @@ async function handleAPI(req, server) {
           const dfOutput = execSync(`df "${directory}" --output=pcent`, { encoding: "utf8" }).trim()
           const lines = dfOutput.split("\n")
           const usePercent = parseInt(lines[1]?.trim().replace("%", ""), 10)
-          if (usePercent >= 90) {
-            return jsonResponse({ error: `磁盘使用率 ${usePercent}%，超过90%阈值，无法上传文件，请联系管理员！` }, 507)
+          const diskThreshold = parseInt(process.env.VITE_DISK_USAGE_THRESHOLD || "90", 10)
+          if (usePercent >= diskThreshold) {
+            return jsonResponse({ error: `磁盘使用率 ${usePercent}%，超过${diskThreshold}%阈值，无法上传文件，请联系管理员！` }, 507)
           }
         } catch {}
       }
@@ -805,6 +809,9 @@ async function handleAPI(req, server) {
       feedbackUrl: process.env.VITE_FEEDBACK_URL || "",
       helpDocUrl: process.env.VITE_HELP_DOC_URL || "",
       downloadCutoffText: process.env.VITE_DOWNLOAD_CUTOFF_TEXT || "",
+      fileTreePollInterval: process.env.VITE_FILE_TREE_POLL_INTERVAL || "5000",
+      heartbeatInterval: process.env.VITE_HEARTBEAT_INTERVAL || "60000",
+      diskUsageThreshold: process.env.VITE_DISK_USAGE_THRESHOLD || "90",
     })
   }
 
@@ -820,16 +827,19 @@ async function handleAPI(req, server) {
         feedbackUrl: "VITE_FEEDBACK_URL",
         helpDocUrl: "VITE_HELP_DOC_URL",
         downloadCutoffText: "VITE_DOWNLOAD_CUTOFF_TEXT",
+        fileTreePollInterval: "VITE_FILE_TREE_POLL_INTERVAL",
+        heartbeatInterval: "VITE_HEARTBEAT_INTERVAL",
+        diskUsageThreshold: "VITE_DISK_USAGE_THRESHOLD",
       }
       for (const [key, envKey] of Object.entries(envMap)) {
-        if (body[key] !== undefined) process.env[envKey] = body[key] || ""
+        if (body[key] !== undefined) process.env[envKey] = String(body[key])
       }
       let envContent = existsSync(envPath) ? readFileSync(envPath, "utf-8") : ""
       const envLines = envContent.split("\n")
       const updatedLines = [...envLines]
       for (const [key, envKey] of Object.entries(envMap)) {
         if (body[key] === undefined) continue
-        const value = body[key] || ""
+        const value = String(body[key] ?? "")
         const line = `${envKey}="${value}"`
         const idx = updatedLines.findIndex(l => l.startsWith(`${envKey}=`))
         if (idx >= 0) updatedLines[idx] = line

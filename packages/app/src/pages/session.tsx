@@ -401,7 +401,7 @@ export default function Page() {
 
   onMount(() => {
     sendHeartbeat()
-    heartbeatInterval = setInterval(sendHeartbeat, 60000)
+    heartbeatInterval = setInterval(sendHeartbeat, device.heartbeatInterval())
     document.addEventListener("visibilitychange", onVisibilityChange)
   })
 

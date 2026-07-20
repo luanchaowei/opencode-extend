@@ -68,10 +68,11 @@ const isDesktop = createMediaQuery("(min-width: 768px)")
   let pollInterval: ReturnType<typeof setInterval> | undefined
   const startPolling = () => {
     if (pollInterval) return
+    const interval = device.fileTreePollInterval()
     pollInterval = setInterval(() => {
       const dir = uploadDir()
       if (dir) file.tree.refresh(dir)
-    }, 5000)
+    }, interval)
   }
   const stopPolling = () => {
     if (pollInterval) { clearInterval(pollInterval); pollInterval = undefined }

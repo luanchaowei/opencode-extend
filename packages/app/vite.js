@@ -69,7 +69,10 @@ export default [
             const helpDocUrl = process.env.VITE_HELP_DOC_URL || ""
             const announcementText = process.env.VITE_ANNOUNCEMENT_TEXT || ""
             const downloadCutoffText = process.env.VITE_DOWNLOAD_CUTOFF_TEXT || ""
-            res.end(JSON.stringify({ clientIP, contactAdmin: contactList, feedbackUrl, caseLibraryDir, helpDocUrl, announcementText, downloadCutoffText }))
+            const fileTreePollInterval = process.env.VITE_FILE_TREE_POLL_INTERVAL || "5000"
+            const heartbeatInterval = process.env.VITE_HEARTBEAT_INTERVAL || "60000"
+            const diskUsageThreshold = process.env.VITE_DISK_USAGE_THRESHOLD || "90"
+            res.end(JSON.stringify({ clientIP, contactAdmin: contactList, feedbackUrl, caseLibraryDir, helpDocUrl, announcementText, downloadCutoffText, fileTreePollInterval, heartbeatInterval, diskUsageThreshold }))
           } catch (error) {
             res.statusCode = 500
             res.end(JSON.stringify({ error: error.message }))

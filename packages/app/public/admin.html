@@ -176,6 +176,21 @@
             <input id="helpDocUrl" type="text" placeholder="https://example.com/help">
           </div>
           <div class="field">
+            <label>文件树监听周期（毫秒）</label>
+            <input id="fileTreePollInterval" type="number" placeholder="5000" min="1000">
+            <div class="hint">文件树自动刷新间隔，默认5000毫秒（5秒）</div>
+          </div>
+          <div class="field">
+            <label>心跳周期（毫秒）</label>
+            <input id="heartbeatInterval" type="number" placeholder="60000" min="10000">
+            <div class="hint">客户端心跳上报间隔，默认60000毫秒（60秒）</div>
+          </div>
+          <div class="field">
+            <label>磁盘使用率阈值（%）</label>
+            <input id="diskUsageThreshold" type="number" placeholder="90" min="1" max="99">
+            <div class="hint">超过此阈值时禁止上传文件，默认90%</div>
+          </div>
+          <div class="field">
             <label>下载截断标记</label>
             <input id="downloadCutoffText" type="text" placeholder="以上回答是否在帮助到了你">
             <div class="hint">下载Markdown文件时，从此文本开始的行及其之后的内容不写入文件</div>
@@ -237,6 +252,9 @@
           document.getElementById('feedbackUrl').value = data.feedbackUrl || ''
           document.getElementById('helpDocUrl').value = data.helpDocUrl || ''
           document.getElementById('downloadCutoffText').value = data.downloadCutoffText || ''
+          document.getElementById('fileTreePollInterval').value = data.fileTreePollInterval || '5000'
+          document.getElementById('heartbeatInterval').value = data.heartbeatInterval || '60000'
+          document.getElementById('diskUsageThreshold').value = data.diskUsageThreshold || '90'
           showPanel('main')
           fetchStats()
         } else {
@@ -264,6 +282,9 @@
             feedbackUrl: document.getElementById('feedbackUrl').value,
             helpDocUrl: document.getElementById('helpDocUrl').value,
             downloadCutoffText: document.getElementById('downloadCutoffText').value,
+            fileTreePollInterval: document.getElementById('fileTreePollInterval').value,
+            heartbeatInterval: document.getElementById('heartbeatInterval').value,
+            diskUsageThreshold: document.getElementById('diskUsageThreshold').value,
           })
         })
         if (resp.ok) {

@@ -9,13 +9,13 @@ export const { use: useDevice, provider: DeviceProvider } = createSimpleContext(
       try {
         const response = await fetch('/device/info')
         if (response.ok) {
-          const { clientIP, contactAdmin, feedbackUrl, caseLibraryDir, helpDocUrl, downloadCutoffText } = await response.json()
-           return { clientIP, contactAdmin, feedbackUrl, caseLibraryDir, helpDocUrl, downloadCutoffText }
-        }
-      } catch (error) {
-        console.error('Failed to get device info:', error)
-      }
-      return { clientIP: null, contactAdmin: [], feedbackUrl: "", caseLibraryDir: "", helpDocUrl: "", downloadCutoffText: "" }
+          const { clientIP, contactAdmin, feedbackUrl, caseLibraryDir, helpDocUrl, downloadCutoffText, fileTreePollInterval, heartbeatInterval, diskUsageThreshold } = await response.json()
+           return { clientIP, contactAdmin, feedbackUrl, caseLibraryDir, helpDocUrl, downloadCutoffText, fileTreePollInterval, heartbeatInterval, diskUsageThreshold }
+         }
+       } catch (error) {
+         console.error('Failed to get device info:', error)
+       }
+       return { clientIP: null, contactAdmin: [], feedbackUrl: "", caseLibraryDir: "", helpDocUrl: "", downloadCutoffText: "", fileTreePollInterval: 5000, heartbeatInterval: 60000, diskUsageThreshold: 90 }
     })
 
     const clientIP = () => deviceInfo()?.clientIP
@@ -25,6 +25,9 @@ export const { use: useDevice, provider: DeviceProvider } = createSimpleContext(
 
     const helpDocUrl = () => deviceInfo()?.helpDocUrl ?? ""
     const downloadCutoffText = () => deviceInfo()?.downloadCutoffText ?? ""
+    const fileTreePollInterval = () => deviceInfo()?.fileTreePollInterval ?? 5000
+    const heartbeatInterval = () => deviceInfo()?.heartbeatInterval ?? 60000
+    const diskUsageThreshold = () => deviceInfo()?.diskUsageThreshold ?? 90
 
     const isOwnProject = (projectWorktree: string): boolean => {
       const ip = clientIP()
@@ -41,6 +44,9 @@ export const { use: useDevice, provider: DeviceProvider } = createSimpleContext(
       caseLibraryDir,
       helpDocUrl,
       downloadCutoffText,
+      fileTreePollInterval,
+      heartbeatInterval,
+      diskUsageThreshold,
       isOwnProject,
     }
   },
