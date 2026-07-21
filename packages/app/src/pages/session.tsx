@@ -405,25 +405,7 @@ export default function Page() {
     document.addEventListener("visibilitychange", onVisibilityChange)
   })
 
-  let sessionInitDone = false
-  createEffect(
-    on(() => sync.status === "complete", (ready) => {
-      if (!ready || sessionInitDone) return
-      sessionInitDone = true
-      const ip = device.clientIP()
-      if (!ip) return
-      const allSessionIDs = sync.data.session.filter(s => !s.time.archived).map(s => s.id)
-      fetch("/api/stats/session-init", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ clientIP: ip, allSessionIDs, timestamp: Date.now() }),
-      }).catch(() => {})
-    })
-  )
 
-  createEffect(
-    on(() => params.dir, () => { sessionInitDone = false })
-  )
 
   createEffect(() => {
     const status = sync.data.session_status[params.id ?? ""]

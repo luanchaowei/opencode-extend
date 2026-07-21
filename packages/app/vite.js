@@ -726,48 +726,6 @@ const defaults = { heartbeats: {}, totalClientsEver: 0, totalSessionsEverCreated
           return
         }
 
-        if (req.url === "/api/stats/session-init" && req.method === "POST") {
-          try {
-            const body = JSON.parse(await readBody())
-            const { clientIP, allSessionIDs, timestamp } = body
-            if (!clientIP) { res.statusCode = 400; res.end(JSON.stringify({ error: "Missing clientIP" })); return }
-
-            if (!statsData.heartbeats[clientIP]) {
-              statsData.totalClientsEver++
-              statsData.heartbeats[clientIP] = { lastSeen: timestamp, sessions: {} }
-            }
-            statsData.heartbeats[clientIP].lastSeen = timestamp
-
-            const dayKey = getDayKey(timestamp)
-            ensureDayStats(dayKey)
-            const clientDayKey = `${clientIP}:${dayKey}`
-            if (!statsData.clientDaySeen[clientDayKey]) {
-              statsData.clientDaySeen[clientDayKey] = true
-              statsData.dailyStats[dayKey].activeClients++
-            }
-
-            if (allSessionIDs && Array.isArray(allSessionIDs)) {
-              for (const sid of allSessionIDs) {
-                if (!statsData.heartbeats[clientIP].sessions[sid]) {
-                  statsData.heartbeats[clientIP].sessions[sid] = { status: "idle", lastSeen: timestamp }
-                }
-                const sessionDayKey = `${sid}:${dayKey}`
-                if (!statsData.sessionDaySeen[sessionDayKey]) {
-                  statsData.sessionDaySeen[sessionDayKey] = true
-                  statsData.dailyStats[dayKey].activeSessions++
-                }
-              }
-            }
-
-            markDirty()
-            res.setHeader("Content-Type", "application/json")
-            res.end(JSON.stringify({ ok: true }))
-          } catch (err) {
-            res.statusCode = 500; res.end(JSON.stringify({ error: err.message }))
-          }
-          return
-        }
-
         if (req.url === "/api/stats/session-create" && req.method === "POST") {
           try {
             const body = JSON.parse(await readBody())

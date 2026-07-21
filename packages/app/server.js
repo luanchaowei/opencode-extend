@@ -605,42 +605,6 @@ async function handleAPI(req, server) {
     }
   }
 
-  if (url.pathname === "/api/stats/session-init" && method === "POST") {
-    try {
-      const body = JSON.parse(await readBody(req))
-      const { clientIP, allSessionIDs, timestamp } = body
-      if (!clientIP) return jsonResponse({ error: "Missing clientIP" }, 400)
-      if (!statsData.heartbeats[clientIP]) {
-        statsData.totalClientsEver++
-        statsData.heartbeats[clientIP] = { lastSeen: timestamp, sessions: {} }
-      }
-      statsData.heartbeats[clientIP].lastSeen = timestamp
-      const dayKey = getDayKey(timestamp)
-      ensureDayStats(dayKey)
-      const clientDayKey = `${clientIP}:${dayKey}`
-      if (!statsData.clientDaySeen[clientDayKey]) {
-        statsData.clientDaySeen[clientDayKey] = true
-        statsData.dailyStats[dayKey].activeClients++
-      }
-      if (allSessionIDs && Array.isArray(allSessionIDs)) {
-        for (const sid of allSessionIDs) {
-          if (!statsData.heartbeats[clientIP].sessions[sid]) {
-            statsData.heartbeats[clientIP].sessions[sid] = { status: "idle", lastSeen: timestamp }
-          }
-          const sessionDayKey = `${sid}:${dayKey}`
-          if (!statsData.sessionDaySeen[sessionDayKey]) {
-            statsData.sessionDaySeen[sessionDayKey] = true
-            statsData.dailyStats[dayKey].activeSessions++
-          }
-        }
-      }
-      markDirty()
-      return jsonResponse({ ok: true })
-    } catch (err) {
-      return jsonResponse({ error: err.message }, 500)
-    }
-  }
-
   if (url.pathname === "/api/stats/session-create" && method === "POST") {
     try {
       const body = JSON.parse(await readBody(req))
