@@ -120,17 +120,29 @@
             </div>
           </div>
 
-          <div class="card" style="margin-bottom:24px">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-              <h2 style="font-size:16px;font-weight:600;color:#fff">使用趋势</h2>
-              <div style="display:flex;gap:8px">
-                <button class="range-btn active" data-range="7d" onclick="setRange('7d')">近7天</button>
-                <button class="range-btn" data-range="1m" onclick="setRange('1m')">近1月</button>
-                <button class="range-btn" data-range="1q" onclick="setRange('1q')">近1季</button>
-                <button class="range-btn" data-range="1y" onclick="setRange('1y')">近1年</button>
-              </div>
+          <div style="display:flex;align-items:center;justify-content:flex-end;margin-bottom:16px;gap:8px">
+            <button class="range-btn active" data-range="7d" onclick="setRange('7d')">近7天</button>
+            <button class="range-btn" data-range="1m" onclick="setRange('1m')">近1月</button>
+            <button class="range-btn" data-range="1q" onclick="setRange('1q')">近1季</button>
+            <button class="range-btn" data-range="1y" onclick="setRange('1y')">近1年</button>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px">
+            <div class="card">
+              <h2 style="font-size:14px;font-weight:600;color:#fff;margin-bottom:12px">在线人数</h2>
+              <div style="height:140px"><canvas id="chart-active-clients"></canvas></div>
             </div>
-            <div style="height:320px"><canvas id="trend-chart"></canvas></div>
+            <div class="card">
+              <h2 style="font-size:14px;font-weight:600;color:#fff;margin-bottom:12px">在线会话</h2>
+              <div style="height:140px"><canvas id="chart-active-sessions"></canvas></div>
+            </div>
+            <div class="card">
+              <h2 style="font-size:14px;font-weight:600;color:#fff;margin-bottom:12px">新建会话</h2>
+              <div style="height:140px"><canvas id="chart-new-sessions"></canvas></div>
+            </div>
+            <div class="card">
+              <h2 style="font-size:14px;font-weight:600;color:#fff;margin-bottom:12px">问题数</h2>
+              <div style="height:140px"><canvas id="chart-messages"></canvas></div>
+            </div>
           </div>
 
           <div class="card">
@@ -224,7 +236,7 @@
     const token = new URLSearchParams(window.location.search).get('token')
     let authed = false
     let currentRange = '7d'
-    let trendChart = null
+    let charts = {}
     let refreshTimer = null
     let allSessions = []
     let currentPage = 1
@@ -463,35 +475,48 @@
       }
     }
 
+    const chartConfigs = [
+      { id: 'chart-active-clients', label: '在线人数', color: '#3b82f6', bgColor: 'rgba(59,130,246,0.1)' },
+      { id: 'chart-active-sessions', label: '在线会话', color: '#22c55e', bgColor: 'rgba(34,197,94,0.1)' },
+      { id: 'chart-new-sessions', label: '新建会话', color: '#a855f7', bgColor: 'rgba(168,85,247,0.1)' },
+      { id: 'chart-messages', label: '问题数', color: '#ec4899', bgColor: 'rgba(236,72,153,0.1)' },
+    ]
+
     function renderChart(dailyTrend, clientDaySeen, sessionDaySeen) {
       const { labels, activeClients, activeSessions, newSessions, messagesSent } = aggregateTrend(dailyTrend, clientDaySeen, sessionDaySeen, currentRange)
-      const ctx = document.getElementById('trend-chart').getContext('2d')
-      if (trendChart) trendChart.destroy()
-      trendChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels,
-          datasets: [
-            { label: '在线人数', data: activeClients, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)', tension: 0.3, fill: false },
-            { label: '在线会话', data: activeSessions, borderColor: '#22c55e', backgroundColor: 'rgba(34,197,94,0.1)', tension: 0.3, fill: false },
-            { label: '新建会话', data: newSessions, borderColor: '#a855f7', backgroundColor: 'rgba(168,85,247,0.1)', tension: 0.3, fill: false },
-            { label: '问题数', data: messagesSent, borderColor: '#ec4899', backgroundColor: 'rgba(236,72,153,0.1)', tension: 0.3, fill: false },
-          ]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          interaction: { mode: 'index', intersect: false },
-          scales: {
-            x: { ticks: { color: '#888', font: { size: 11 } }, grid: { color: '#1a1a1a' } },
-            y: { beginAtZero: true, ticks: { color: '#888', font: { size: 11 } }, grid: { color: '#1a1a1a' } }
+      const dataMap = [activeClients, activeSessions, newSessions, messagesSent]
+      for (let i = 0; i < chartConfigs.length; i++) {
+        const cfg = chartConfigs[i]
+        const ctx = document.getElementById(cfg.id).getContext('2d')
+        if (charts[cfg.id]) charts[cfg.id].destroy()
+        charts[cfg.id] = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels,
+            datasets: [{
+              label: cfg.label,
+              data: dataMap[i],
+              borderColor: cfg.color,
+              backgroundColor: cfg.bgColor,
+              tension: 0.3,
+              fill: false,
+            }]
           },
-          plugins: {
-            legend: { labels: { color: '#e5e5e5', font: { size: 12 } } },
-            tooltip: { backgroundColor: '#1a1a1a', titleColor: '#fff', bodyColor: '#e5e5e5', borderColor: '#2a2a2a', borderWidth: 1 }
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            scales: {
+              x: { ticks: { color: '#888', font: { size: 11 } }, grid: { color: '#1a1a1a' } },
+              y: { beginAtZero: true, ticks: { color: '#888', font: { size: 11 } }, grid: { color: '#1a1a1a' } }
+            },
+            plugins: {
+              legend: { display: false },
+              tooltip: { backgroundColor: '#1a1a1a', titleColor: '#fff', bodyColor: '#e5e5e5', borderColor: '#2a2a2a', borderWidth: 1 }
+            }
           }
-        }
-      })
+        })
+      }
     }
 
     function setRange(range) {
