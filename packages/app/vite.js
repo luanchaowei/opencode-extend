@@ -673,6 +673,9 @@ statsData.dailyStats[dayKey] = { activeClients: 0, activeSessions: 0, processing
 
             if (!statsData.heartbeats[clientIP]) {
               statsData.heartbeats[clientIP] = { lastSeen: timestamp, sessions: {} }
+              const dayKey = getDayKey(timestamp)
+              ensureDayStats(dayKey)
+              statsData.dailyStats[dayKey].newClients++
             }
 
             statsData.heartbeats[clientIP].lastSeen = timestamp

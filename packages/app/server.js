@@ -555,6 +555,9 @@ async function handleAPI(req, server) {
       if (!clientIP) return jsonResponse({ error: "Missing clientIP" }, 400)
       if (!statsData.heartbeats[clientIP]) {
         statsData.heartbeats[clientIP] = { lastSeen: timestamp, sessions: {} }
+        const dayKey = getDayKey(timestamp)
+        ensureDayStats(dayKey)
+        statsData.dailyStats[dayKey].newClients++
       }
       statsData.heartbeats[clientIP].lastSeen = timestamp
       const reportedSessionIDs = new Set((sessions || []).map(s => s.sessionID))
