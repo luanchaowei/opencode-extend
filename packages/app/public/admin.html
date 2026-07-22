@@ -7,7 +7,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
   <style>
     body { background-color: #0a0a0a; color: #e5e5e5; font-family: system-ui, -apple-system, sans-serif; margin: 0; }
-    .layout { display: flex; max-width: 1200px; margin: 0 auto; min-height: 100vh; }
+    .layout { display: flex; max-width: 1400px; margin: 0 auto; min-height: 100vh; }
     .sidebar { width: 180px; background: #111; border-right: 1px solid #2a2a2a; border-radius: 8px; padding: 16px 0; flex-shrink: 0; }
     .sidebar-brand { padding: 0 16px 20px; font-size: 16px; font-weight: 700; color: #fff; }
     .sidebar-item { padding: 10px 16px; color: #888; cursor: pointer; font-size: 13px; font-weight: 500; border-left: 3px solid transparent; transition: all 0.15s; }
@@ -120,26 +120,36 @@
             </div>
           </div>
 
-          <div style="display:flex;align-items:center;justify-content:flex-end;margin-bottom:16px;gap:8px">
-            <button class="range-btn active" data-range="7d" onclick="setRange('7d')">近7天</button>
-            <button class="range-btn" data-range="1m" onclick="setRange('1m')">近1月</button>
-            <button class="range-btn" data-range="1q" onclick="setRange('1q')">近1季</button>
-            <button class="range-btn" data-range="1y" onclick="setRange('1y')">近1年</button>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;gap:8px;flex-wrap:wrap">
+            <div style="position:relative">
+              <button class="range-btn" onclick="toggleChartMenu()">图表筛选 ▾</button>
+              <div id="chart-menu" style="display:none;position:absolute;top:calc(100% + 4px);left:0;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:6px;padding:8px 12px;z-index:100;min-width:120px;box-shadow:0 4px 12px rgba(0,0,0,0.4)"></div>
+            </div>
+            <div style="display:flex;gap:8px">
+              <button class="range-btn active" data-range="7d" onclick="setRange('7d')">近7天</button>
+              <button class="range-btn" data-range="1m" onclick="setRange('1m')">近1月</button>
+              <button class="range-btn" data-range="1q" onclick="setRange('1q')">近1季</button>
+              <button class="range-btn" data-range="1y" onclick="setRange('1y')">近1年</button>
+            </div>
           </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px">
-            <div class="card">
+          <div id="charts-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px">
+            <div class="card" data-chart-id="chart-active-clients">
               <h2 style="font-size:14px;font-weight:600;color:#fff;margin-bottom:12px">在线人数</h2>
               <div style="height:140px"><canvas id="chart-active-clients"></canvas></div>
             </div>
-            <div class="card">
+            <div class="card" data-chart-id="chart-active-sessions">
               <h2 style="font-size:14px;font-weight:600;color:#fff;margin-bottom:12px">在线会话</h2>
               <div style="height:140px"><canvas id="chart-active-sessions"></canvas></div>
             </div>
-            <div class="card">
+            <div class="card" data-chart-id="chart-new-sessions">
               <h2 style="font-size:14px;font-weight:600;color:#fff;margin-bottom:12px">新建会话</h2>
               <div style="height:140px"><canvas id="chart-new-sessions"></canvas></div>
             </div>
-            <div class="card">
+            <div class="card" data-chart-id="chart-new-clients">
+              <h2 style="font-size:14px;font-weight:600;color:#fff;margin-bottom:12px">新增人数</h2>
+              <div style="height:140px"><canvas id="chart-new-clients"></canvas></div>
+            </div>
+            <div class="card" data-chart-id="chart-messages">
               <h2 style="font-size:14px;font-weight:600;color:#fff;margin-bottom:12px">问题数</h2>
               <div style="height:140px"><canvas id="chart-messages"></canvas></div>
             </div>
@@ -373,6 +383,7 @@
         currentPage = 1
         populateIpFilter(allSessions)
         renderTable(allSessions)
+        lastTrendData = { dailyTrend: data.dailyTrend, clientDaySeen: data.clientDaySeen, sessionDaySeen: data.sessionDaySeen }
         renderChart(data.dailyTrend, data.clientDaySeen, data.sessionDaySeen)
       } catch (err) {
         document.getElementById('stats-error').textContent = '网络错误: ' + err.message
@@ -455,9 +466,10 @@
       const sessionSeenByGroup = {}
       for (const d of filtered) {
         const aggKey = getAggregationKey(d.day, range)
-        if (!groups[aggKey]) groups[aggKey] = { messagesSent: 0, newSessions: 0 }
+        if (!groups[aggKey]) groups[aggKey] = { messagesSent: 0, newSessions: 0, newClients: 0 }
         groups[aggKey].messagesSent += (d.messagesSent || 0)
         groups[aggKey].newSessions += d.newSessions
+        groups[aggKey].newClients += (d.newClients || 0)
         const dayClients = Object.keys(clientDaySeen).filter(k => k.endsWith(':' + d.day))
         if (!clientSeenByGroup[aggKey]) clientSeenByGroup[aggKey] = new Set()
         for (const ck of dayClients) { clientSeenByGroup[aggKey].add(ck.split(':')[0]) }
@@ -471,22 +483,85 @@
         activeClients: allKeys.map(k => clientSeenByGroup[k] ? clientSeenByGroup[k].size : 0),
         activeSessions: allKeys.map(k => sessionSeenByGroup[k] ? sessionSeenByGroup[k].size : 0),
         newSessions: allKeys.map(k => groups[k].newSessions),
+        newClients: allKeys.map(k => groups[k].newClients || 0),
         messagesSent: allKeys.map(k => groups[k].messagesSent),
       }
     }
 
     const chartConfigs = [
-      { id: 'chart-active-clients', label: '在线人数', color: '#3b82f6', bgColor: 'rgba(59,130,246,0.1)' },
-      { id: 'chart-active-sessions', label: '在线会话', color: '#22c55e', bgColor: 'rgba(34,197,94,0.1)' },
-      { id: 'chart-new-sessions', label: '新建会话', color: '#a855f7', bgColor: 'rgba(168,85,247,0.1)' },
-      { id: 'chart-messages', label: '问题数', color: '#ec4899', bgColor: 'rgba(236,72,153,0.1)' },
+      { id: 'chart-active-clients', label: '在线人数', color: '#3b82f6', bgColor: 'rgba(59,130,246,0.1)', visible: true },
+      { id: 'chart-active-sessions', label: '在线会话', color: '#22c55e', bgColor: 'rgba(34,197,94,0.1)', visible: true },
+      { id: 'chart-new-sessions', label: '新建会话', color: '#a855f7', bgColor: 'rgba(168,85,247,0.1)', visible: true },
+      { id: 'chart-new-clients', label: '新增人数', color: '#f59e0b', bgColor: 'rgba(245,158,11,0.1)', visible: false },
+      { id: 'chart-messages', label: '问题数', color: '#ec4899', bgColor: 'rgba(236,72,153,0.1)', visible: true },
     ]
 
+    function loadChartVisibility() {
+      try {
+        const saved = JSON.parse(localStorage.getItem('chartVisibility') || '{}')
+        for (const cfg of chartConfigs) {
+          if (saved[cfg.id] !== undefined) cfg.visible = saved[cfg.id]
+        }
+      } catch {}
+    }
+
+    function saveChartVisibility() {
+      const saved = {}
+      for (const cfg of chartConfigs) saved[cfg.id] = cfg.visible
+      localStorage.setItem('chartVisibility', JSON.stringify(saved))
+    }
+
+    function renderChartMenu() {
+      const menu = document.getElementById('chart-menu')
+      menu.innerHTML = chartConfigs.map(cfg => `
+        <label style="display:flex;align-items:center;gap:8px;padding:4px 0;cursor:pointer;font-size:12px;color:#e5e5e5">
+          <input type="checkbox" ${cfg.visible ? 'checked' : ''} onchange="toggleChart('${cfg.id}')" style="accent-color:#2563eb">
+          ${cfg.label}
+        </label>
+      `).join('')
+    }
+
+    function toggleChartMenu() {
+      const menu = document.getElementById('chart-menu')
+      menu.style.display = menu.style.display === 'none' ? 'block' : 'none'
+    }
+
+    document.addEventListener('click', (e) => {
+      const menu = document.getElementById('chart-menu')
+      if (menu && menu.style.display !== 'none' && !e.target.closest('#chart-menu') && !e.target.closest('button')) return
+      if (menu && menu.style.display !== 'none' && !e.target.closest('.range-btn') && !e.target.closest('#chart-menu')) {
+        menu.style.display = 'none'
+      }
+    })
+
+    function toggleChart(id) {
+      const cfg = chartConfigs.find(c => c.id === id)
+      if (!cfg) return
+      cfg.visible = !cfg.visible
+      saveChartVisibility()
+      applyChartVisibility()
+      if (cfg.visible && charts[id]) {
+        charts[id].destroy()
+        delete charts[id]
+      }
+      if (lastTrendData) renderChart(lastTrendData.dailyTrend, lastTrendData.clientDaySeen, lastTrendData.sessionDaySeen)
+    }
+
+    function applyChartVisibility() {
+      for (const cfg of chartConfigs) {
+        const card = document.querySelector(`[data-chart-id="${cfg.id}"]`)
+        if (card) card.style.display = cfg.visible ? '' : 'none'
+      }
+    }
+
+    let lastTrendData = null
+
     function renderChart(dailyTrend, clientDaySeen, sessionDaySeen) {
-      const { labels, activeClients, activeSessions, newSessions, messagesSent } = aggregateTrend(dailyTrend, clientDaySeen, sessionDaySeen, currentRange)
-      const dataMap = [activeClients, activeSessions, newSessions, messagesSent]
+      const { labels, activeClients, activeSessions, newSessions, newClients, messagesSent } = aggregateTrend(dailyTrend, clientDaySeen, sessionDaySeen, currentRange)
+      const dataMap = [activeClients, activeSessions, newSessions, newClients, messagesSent]
       for (let i = 0; i < chartConfigs.length; i++) {
         const cfg = chartConfigs[i]
+        if (!cfg.visible) continue
         const ctx = document.getElementById(cfg.id).getContext('2d')
         if (charts[cfg.id]) charts[cfg.id].destroy()
         charts[cfg.id] = new Chart(ctx, {
@@ -525,6 +600,9 @@
       fetchStats()
     }
 
+    loadChartVisibility()
+    renderChartMenu()
+    applyChartVisibility()
     loadConfig()
     refreshTimer = setInterval(() => { if (authed && currentTab === 'stats') fetchStats() }, 30000)
   </script>

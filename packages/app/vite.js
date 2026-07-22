@@ -513,15 +513,7 @@ const defaults = { heartbeats: {}, totalClientsEver: 0, totalSessionsEverCreated
       let statsData = { ...defaults }
 
       const refreshTotalClients = () => {
-        try {
-          const result = execSync(`opencode db "select distinct directory from session"`, { encoding: "utf8", timeout: 10000 })
-          const ips = new Set()
-          for (const line of result.trim().split('\n')) {
-            const match = line.trim().match(/(\d+_\d+_\d+_\d+)/)
-            if (match) ips.add(match[1])
-          }
-          if (ips.size > 0) statsData.totalClientsEver = ips.size
-        } catch {}
+        statsData.totalClientsEver = Object.keys(statsData.heartbeats).length
       }
 
       const saveStats = () => {
@@ -605,7 +597,7 @@ const defaults = { heartbeats: {}, totalClientsEver: 0, totalSessionsEverCreated
 
       const ensureDayStats = (dayKey) => {
         if (!statsData.dailyStats[dayKey]) {
-          statsData.dailyStats[dayKey] = { activeClients: 0, activeSessions: 0, processingSessions: 0, newSessions: 0, messagesSent: 0 }
+statsData.dailyStats[dayKey] = { activeClients: 0, activeSessions: 0, processingSessions: 0, newSessions: 0, newClients: 0, messagesSent: 0 }
         } else if (!statsData.dailyStats[dayKey].messagesSent) {
           statsData.dailyStats[dayKey].messagesSent = 0
         }
@@ -678,7 +670,6 @@ const defaults = { heartbeats: {}, totalClientsEver: 0, totalSessionsEverCreated
             if (!clientIP) { res.statusCode = 400; res.end(JSON.stringify({ error: "Missing clientIP" })); return }
 
             if (!statsData.heartbeats[clientIP]) {
-              statsData.totalClientsEver++
               statsData.heartbeats[clientIP] = { lastSeen: timestamp, sessions: {} }
             }
 
@@ -733,8 +724,10 @@ const defaults = { heartbeats: {}, totalClientsEver: 0, totalSessionsEverCreated
             if (!clientIP || !sessionID) { res.statusCode = 400; res.end(JSON.stringify({ error: "Missing clientIP or sessionID" })); return }
 
             if (!statsData.heartbeats[clientIP]) {
-              statsData.totalClientsEver++
               statsData.heartbeats[clientIP] = { lastSeen: timestamp, sessions: {} }
+              const dayKey = getDayKey(timestamp)
+              ensureDayStats(dayKey)
+              statsData.dailyStats[dayKey].newClients++
             }
             if (!statsData.heartbeats[clientIP].sessions[sessionID]) {
               statsData.heartbeats[clientIP].sessions[sessionID] = { status: "idle", lastSeen: timestamp }
