@@ -53,6 +53,8 @@ const webHost = envVars.WEB_HOST || "0.0.0.0"
 const webPort = envVars.WEB_PORT || "3000"
 const webUrl = `http://${webHost}:${webPort}`
 
+const getTzTime = () => new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false })
+
 const args = process.argv.slice(2)
 
 let mode = "inactive" // default mode
@@ -143,7 +145,7 @@ if (days === null && mode !== "orphans") {
 }
 
 if (!existsSync(dbPath)) {
-  console.error(`Database not found: ${dbPath}`)
+  console.error(`[${getTzTime()}] Database not found: ${dbPath}`)
   process.exit(1)
 }
 
@@ -168,9 +170,9 @@ if (mode === "inactive") {
   if (cleanAll) {
     // For --all mode: delete ALL unarchived sessions regardless of activity
     // Only keep the latest one per directory (even if it's inactive)
-    console.log(`Cleaning up ALL unarchived sessions (ignoring activity threshold)`)
-    console.log(`Note: Keeping only the latest session per directory, others will be deleted`)
-    console.log(`Warning: This will delete active sessions too! Use --days N to preserve active sessions.`)
+    console.log(`[${getTzTime()}] Cleaning up ALL unarchived sessions (ignoring activity threshold)`)
+    console.log(`[${getTzTime()}] Note: Keeping only the latest session per directory, others will be deleted`)
+    console.log(`[${getTzTime()}] Warning: This will delete active sessions too! Use --days N to preserve active sessions.`)
     
     sessions = db.query(`
       SELECT id, directory, title, time_updated 
@@ -178,9 +180,9 @@ if (mode === "inactive") {
       WHERE time_archived IS NULL
     `).all().filter(s => !keepSet.has(s.id))
   } else {
-    console.log(`Cleaning up inactive sessions (not archived, not updated in ${days} days)`)
-    console.log(`Threshold: ${new Date(threshold).toISOString()}`)
-    console.log(`Note: Keeping the latest session per directory even if inactive`)
+    console.log(`[${getTzTime()}] Cleaning up inactive sessions (not archived, not updated in ${days} days)`)
+    console.log(`[${getTzTime()}] Threshold: ${new Date(threshold).toISOString()}`)
+    console.log(`[${getTzTime()}] Note: Keeping the latest session per directory even if inactive`)
     
     // Delete inactive sessions except the latest one per directory
     sessions = db.query(`
@@ -196,10 +198,10 @@ if (mode === "inactive") {
       FROM session 
       WHERE time_archived IS NOT NULL
     `).all()
-    console.log(`Cleaning up ALL archived sessions`)
+    console.log(`[${getTzTime()}] Cleaning up ALL archived sessions`)
   } else {
-    console.log(`Cleaning up archived sessions (archived more than ${days} days ago)`)
-    console.log(`Threshold: ${new Date(threshold).toISOString()}`)
+    console.log(`[${getTzTime()}] Cleaning up archived sessions (archived more than ${days} days ago)`)
+    console.log(`[${getTzTime()}] Threshold: ${new Date(threshold).toISOString()}`)
     
     sessions = db.query(`
       SELECT id, directory, title, time_archived 
@@ -208,18 +210,18 @@ if (mode === "inactive") {
     `).all(threshold)
   }
 } else if (mode === "orphans") {
-  console.log(`Cleaning up orphan upload directories`)
+  console.log(`[${getTzTime()}] Cleaning up orphan upload directories`)
   
   const baseDir = process.env.VITE_OPENCODE_DEFAULT_DIR
   if (!baseDir) {
-    console.error("VITE_OPENCODE_DEFAULT_DIR not configured")
-    console.error("Set it in .env file or export as environment variable")
+    console.error(`[${getTzTime()}] VITE_OPENCODE_DEFAULT_DIR not configured`)
+    console.error(`[${getTzTime()}] Set it in .env file or export as environment variable`)
     process.exit(1)
   }
   
   if (!existsSync(baseDir)) {
-    console.log(`Base directory not found: ${baseDir}`)
-    console.log("No orphan directories to cleanup")
+    console.log(`[${getTzTime()}] Base directory not found: ${baseDir}`)
+    console.log(`[${getTzTime()}] No orphan directories to cleanup`)
     db.close()
     process.exit(0)
   }
@@ -230,12 +232,12 @@ if (mode === "inactive") {
     .map(dirent => join(baseDir, dirent.name))
   
   if (clientDirs.length === 0) {
-    console.log(`No client directories found under: ${baseDir}`)
+    console.log(`[${getTzTime()}] No client directories found under: ${baseDir}`)
     db.close()
     process.exit(0)
   }
   
-  console.log(`Found ${clientDirs.length} client directories under: ${baseDir}`)
+  console.log(`[${getTzTime()}] Found ${clientDirs.length} client directories under: ${baseDir}`)
   
   // Get all session IDs from database
   const dbSessionIds = db.query(`SELECT id FROM session`).all().map(row => row.id)
@@ -268,20 +270,20 @@ if (mode === "inactive") {
     }
   }
   
-  console.log(`Found ${totalOrphans} orphan directories across all clients`)
+  console.log(`[${getTzTime()}] Found ${totalOrphans} orphan directories across all clients`)
   
   if (totalOrphans === 0) {
-    console.log("No orphan directories to cleanup")
+    console.log(`[${getTzTime()}] No orphan directories to cleanup`)
     db.close()
     process.exit(0)
   }
   
   if (dryRun) {
-    console.log("\nOrphan directories that would be deleted:")
+    console.log(`[${getTzTime()}] \nOrphan directories that would be deleted:`)
     for (const orphan of orphanList) {
-      console.log(`  - ${orphan.sessionId}: ${orphan.path} (client: ${orphan.clientDir})`)
+      console.log(`[${getTzTime()}]   - ${orphan.sessionId}: ${orphan.path} (client: ${orphan.clientDir})`)
     }
-    console.log(`\nTotal: ${totalOrphans} orphan directories`)
+    console.log(`[${getTzTime()}] \nTotal: ${totalOrphans} orphan directories`)
     db.close()
     process.exit(0)
   }
@@ -294,40 +296,40 @@ if (mode === "inactive") {
     try {
       rmSync(orphan.path, { recursive: true, force: true })
       deleted++
-      console.log(`Deleted orphan directory: ${orphan.sessionId} (${orphan.path})`)
+      console.log(`[${getTzTime()}] Deleted orphan directory: ${orphan.sessionId} (${orphan.path})`)
     } catch (error) {
       failed++
-      console.error(`Failed to delete ${orphan.sessionId}: ${error.message}`)
+      console.error(`[${getTzTime()}] Failed to delete ${orphan.sessionId}: ${error.message}`)
     }
   }
   
-  console.log(`\nCleanup completed: ${deleted} deleted, ${failed} failed`)
+  console.log(`[${getTzTime()}] \nCleanup completed: ${deleted} deleted, ${failed} failed`)
   db.close()
   process.exit(0)
 }
 
-console.log(`Found ${sessions.length} sessions to delete`)
+console.log(`[${getTzTime()}] Found ${sessions.length} sessions to delete`)
 
 if (sessions.length === 0) {
-  console.log("No sessions to cleanup")
+  console.log(`[${getTzTime()}] No sessions to cleanup`)
   db.close()
   process.exit(0)
 }
 
-console.log(`Uploads directory: uses session.directory + /uploads`)
+console.log(`[${getTzTime()}] Uploads directory: uses session.directory + /uploads`)
 
 if (dryRun) {
-  console.log("\nSessions that would be deleted:")
+  console.log(`[${getTzTime()}] \nSessions that would be deleted:`)
   for (const session of sessions) {
     const timeField = mode === "inactive" ? session.time_updated : session.time_archived
     const timeLabel = mode === "inactive" ? "last updated" : "archived"
     const uploadPath = join(session.directory, "uploads", session.id)
     const hasUploads = existsSync(uploadPath)
     console.log(
-      `  - ${session.id}: "${session.title}" (${timeLabel}: ${new Date(timeField).toISOString()}, dir: ${session.directory})${hasUploads ? ` [uploads: ${uploadPath}]` : ""}`,
+      `[${getTzTime()}]   - ${session.id}: "${session.title}" (${timeLabel}: ${new Date(timeField).toISOString()}, dir: ${session.directory})${hasUploads ? ` [uploads: ${uploadPath}]` : ""}`,
     )
   }
-  console.log(`\nTotal: ${sessions.length} sessions`)
+  console.log(`[${getTzTime()}] \nTotal: ${sessions.length} sessions`)
   db.close()
   process.exit(0)
 }
@@ -346,7 +348,7 @@ for (const session of sessions) {
     if (!res.ok) {
       const body = await res.text()
       failed++
-      console.error(`Failed to delete ${session.id}: API returned ${res.status} ${body}`)
+      console.error(`[${getTzTime()}] Failed to delete ${session.id}: API returned ${res.status} ${body}`)
       continue
     }
     
@@ -359,34 +361,34 @@ for (const session of sessions) {
     const uploadPath = join(session.directory, "uploads", session.id)
     if (existsSync(uploadPath)) {
       rmSync(uploadPath, { recursive: true, force: true })
-      console.log(`Deleted uploads: ${uploadPath}`)
+      console.log(`[${getTzTime()}] Deleted uploads: ${uploadPath}`)
     }
     
     deleted++
     console.log(
-      `Deleted: ${session.id} "${session.title}" (${timeLabel}: ${new Date(timeField).toISOString()}, dir: ${session.directory})`,
+      `[${getTzTime()}] Deleted: ${session.id} "${session.title}" (${timeLabel}: ${new Date(timeField).toISOString()}, dir: ${session.directory})`,
     )
   } catch (error) {
     failed++
-    console.error(`Failed to delete ${session.id}: ${error.message}`)
+    console.error(`[${getTzTime()}] Failed to delete ${session.id}: ${error.message}`)
   }
 }
 
-console.log(`\nCleanup completed: ${deleted} deleted, ${failed} failed`)
+console.log(`[${getTzTime()}] \nCleanup completed: ${deleted} deleted, ${failed} failed`)
 
 if (deleted > 0 && !dryRun) {
-  console.log("\nRunning VACUUM to reclaim disk space...")
+  console.log(`[${getTzTime()}] \nRunning VACUUM to reclaim disk space...`)
   try {
     db.exec("VACUUM;")
-    console.log("VACUUM completed")
+    console.log(`[${getTzTime()}] VACUUM completed`)
   } catch (error) {
-    console.error(`VACUUM failed: ${error.message}`)
+    console.error(`[${getTzTime()}] VACUUM failed: ${error.message}`)
   }
   try {
     db.exec("PRAGMA wal_checkpoint(TRUNCATE);")
-    console.log("WAL checkpoint completed")
+    console.log(`[${getTzTime()}] WAL checkpoint completed`)
   } catch (error) {
-    console.error(`WAL checkpoint failed: ${error.message}`)
+    console.error(`[${getTzTime()}] WAL checkpoint failed: ${error.message}`)
   }
 }
 

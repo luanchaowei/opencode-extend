@@ -226,7 +226,7 @@ export default [
             clearTimeout(timeoutId)
           })
           req.on('error', (err) => {
-            console.error("[upload] req error:", err.message)
+            console.error(`[${getTzTime()}] upload req error: ${err.message}`)
             clientAborted = true
             clearTimeout(timeoutId)
           })
@@ -352,7 +352,7 @@ export default [
             res.setHeader("Content-Type", "application/json")
             res.end(JSON.stringify({ success: true, path: fullPath }))
           } catch (error) {
-            console.error("[upload] error:", error.message)
+            console.error(`[${getTzTime()}] upload error: ${error.message}`)
             clearTimeout(timeoutId)
             if (clientAborted) return
             if (tmpPath) {
@@ -509,6 +509,8 @@ export default [
       const statsPath = join(statsDir, "stats.json")
       const adminToken = process.env.VITE_STATS_ADMIN_TOKEN || ""
 
+      const getTzTime = () => new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false })
+
 const defaults = { heartbeats: {}, totalClientsEver: 0, totalSessionsEverCreated: 0, totalMessagesEver: 0, dailyStats: {}, clientDaySeen: {}, sessionDaySeen: {} }
       let statsData = { ...defaults }
 
@@ -525,7 +527,7 @@ const defaults = { heartbeats: {}, totalClientsEver: 0, totalSessionsEverCreated
           writeFileSync(tmpPath, JSON.stringify(statsData, null, 2), "utf8")
           renameSync(tmpPath, statsPath)
         } catch (err) {
-          console.error("[stats] saveStats: FAILED:", err)
+          console.error(`[${getTzTime()}] saveStats: FAILED: ${err}`)
         }
       }
 
@@ -568,23 +570,23 @@ const defaults = { heartbeats: {}, totalClientsEver: 0, totalSessionsEverCreated
               delete statsData.sessionHourSeen
             }
           } catch (err) {
-            console.error("[stats] loadStats: FAILED to parse stats.json:", err.message)
+            console.error(`[${getTzTime()}] loadStats: FAILED to parse stats.json: ${err.message}`)
             try {
               const raw = readFileSync(statsPath, "utf8")
               const partial = raw.slice(0, raw.lastIndexOf("}") + 1) + "}"
               const recovered = JSON.parse(partial)
               statsData = { ...defaults, ...recovered }
-              console.error("[stats] loadStats: partially recovered")
+              console.error(`[${getTzTime()}] loadStats: partially recovered`)
               saveStats()
             } catch {
-              console.error("[stats] loadStats: recovery failed, starting with defaults")
+              console.error(`[${getTzTime()}] loadStats: recovery failed, starting with defaults`)
               try { copyFileSync(statsPath, statsPath + ".bak") } catch {}
               statsData = { ...defaults }
               saveStats()
             }
           }
         } else {
-          console.log("[stats] loadStats: file not found, starting with defaults")
+          console.log(`[${getTzTime()}] loadStats: file not found, starting with defaults`)
           statsData = { ...defaults }
           saveStats()
         }

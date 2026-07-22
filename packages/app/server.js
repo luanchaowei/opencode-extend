@@ -114,7 +114,7 @@ const saveStats = () => {
     writeFileSync(tmpPath, JSON.stringify(statsData, null, 2), "utf8")
     renameSync(tmpPath, statsPath)
   } catch (err) {
-    console.error("[stats] saveStats: FAILED:", err)
+    console.error(`[${getTzTime()}] saveStats: FAILED: ${err}`)
   }
 }
 
@@ -454,7 +454,7 @@ async function handleAPI(req, server) {
             const headerEnd = data.indexOf(Buffer.from('\r\n\r\n'))
             if (headerEnd !== -1) {
               const header = data.slice(0, headerEnd).toString()
-              console.log(`[upload] header parsed: ${header.replace(/\r\n/g, '|')}`)
+              console.log(`[${getTzTime()}] upload header parsed: ${header.replace(/\r\n/g, '|')}`)
               data = data.slice(headerEnd + 4)
               if (header.includes('name="file"')) {
                 tmpPath = join(directory, `.upload_tmp_${Date.now()}`)
