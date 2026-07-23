@@ -472,8 +472,7 @@
 
     document.addEventListener('click', (e) => {
       const menu = document.getElementById('chart-menu')
-      if (menu && menu.style.display !== 'none' && !e.target.closest('#chart-menu') && !e.target.closest('button')) return
-      if (menu && menu.style.display !== 'none' && !e.target.closest('.range-btn') && !e.target.closest('#chart-menu')) {
+      if (menu && menu.style.display !== 'none' && !e.target.closest('#chart-menu') && !e.target.closest('.range-btn')) {
         menu.style.display = 'none'
       }
     })
