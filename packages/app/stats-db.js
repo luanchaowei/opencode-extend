@@ -16,7 +16,6 @@ export function createStatsDb(Database, dbPath, statsJsonPath) {
   const rawDb = new Database(dbPath)
 
   const hasTransaction = typeof rawDb.transaction === "function"
-  const hasPrepare = typeof rawDb.prepare === "function"
   const hasQuery = typeof rawDb.query === "function"
 
   const db = {
@@ -62,7 +61,6 @@ export function createStatsDb(Database, dbPath, statsJsonPath) {
       day_key             TEXT PRIMARY KEY,
       active_clients      INTEGER DEFAULT 0,
       active_sessions     INTEGER DEFAULT 0,
-      processing_sessions INTEGER DEFAULT 0,
       new_sessions        INTEGER DEFAULT 0,
       new_clients         INTEGER DEFAULT 0,
       messages_sent       INTEGER DEFAULT 0
@@ -95,8 +93,8 @@ export function createStatsDb(Database, dbPath, statsJsonPath) {
   }
 
   function migrateFromJson(jsonPath) {
-    const count = db.query("SELECT COUNT(*) as c FROM counters").get().c
-    if (count > 2) return
+    const hbCount = db.query("SELECT COUNT(*) as c FROM heartbeats").get().c
+    if (hbCount > 0) return
     if (!existsSync(jsonPath)) return
 
     let data
@@ -116,11 +114,10 @@ export function createStatsDb(Database, dbPath, statsJsonPath) {
         }
       }
       for (const [day, val] of Object.entries(data.dailyStats || {})) {
-        db.query("INSERT OR REPLACE INTO daily_stats VALUES (?,?,?,?,?,?,?)").run(
+        db.query("INSERT OR REPLACE INTO daily_stats VALUES (?,?,?,?,?,?)").run(
           day,
           val.activeClients || 0,
           val.activeSessions || 0,
-          val.processingSessions || 0,
           val.newSessions || 0,
           val.newClients || 0,
           val.messagesSent || 0,
@@ -180,11 +177,11 @@ export function createStatsDb(Database, dbPath, statsJsonPath) {
       }
 
       for (const s of sessions || []) {
-        db.query("INSERT OR REPLACE INTO heartbeat_sessions VALUES (?, ?, ?, ?)").run(
-          clientIP,
-          s.sessionID,
+        db.query("UPDATE heartbeat_sessions SET status = ?, last_seen = ? WHERE client_ip = ? AND session_id = ?").run(
           s.status,
           timestamp,
+          clientIP,
+          s.sessionID,
         )
       }
 
@@ -201,9 +198,6 @@ export function createStatsDb(Database, dbPath, statsJsonPath) {
         if (!sds) {
           db.query("INSERT INTO session_day_seen VALUES (?, ?)").run(s.sessionID, dayKey)
           db.query("UPDATE daily_stats SET active_sessions = active_sessions + 1 WHERE day_key = ?").run(dayKey)
-          if (s.status === "busy" || s.status === "retry") {
-            db.query("UPDATE daily_stats SET processing_sessions = processing_sessions + 1 WHERE day_key = ?").run(dayKey)
-          }
         }
       }
     })
@@ -252,10 +246,9 @@ export function createStatsDb(Database, dbPath, statsJsonPath) {
     const hbRows = db.query("SELECT client_ip, last_seen FROM heartbeats WHERE last_seen >= ?").all(tenMinAgo)
     const sessionRows = db
       .query(
-        `SELECT hs.client_ip, hs.session_id, hs.status, hs.last_seen
-         FROM heartbeat_sessions hs
-         JOIN heartbeats h ON hs.client_ip = h.client_ip
-         WHERE hs.last_seen >= ?`,
+        `SELECT client_ip, session_id, status, last_seen
+         FROM heartbeat_sessions
+         WHERE last_seen >= ?`,
       )
       .all(tenMinAgo)
 
