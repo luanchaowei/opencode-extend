@@ -60,9 +60,6 @@ const args = process.argv.slice(2)
 let mode = "inactive" // default mode
 let days = null // will be set based on mode
 let dbPath = join(homedir(), ".local/share/opencode/opencode.db")
-let uploadsDir = process.env.VITE_OPENCODE_DEFAULT_DIR 
-  ? join(process.env.VITE_OPENCODE_DEFAULT_DIR, "uploads")
-  : join(homedir(), ".local/share/opencode/uploads")
 let dryRun = false
 let cleanAll = false
 

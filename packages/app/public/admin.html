@@ -165,7 +165,7 @@
               </div>
             </div>
             <table>
-              <thead><tr><th>SessionID</th><th>客户端IP</th><th>最后心跳时间</th><th>状态</th></tr></thead>
+              <thead><tr><th>SessionID</th><th>客户端IP</th><th>最后心跳时间</th><th>状态</th><th>操作</th></tr></thead>
               <tbody id="sessions-table"></tbody>
             </table>
             <div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px" id="pagination-container">
@@ -396,7 +396,7 @@
       const tbody = document.getElementById('sessions-table')
       const paginationContainer = document.getElementById('pagination-container')
       if (!sessions || sessions.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#888">暂无在线会话</td></tr>'
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#888">暂无在线会话</td></tr>'
         paginationContainer.style.display = 'none'
         return
       }
@@ -405,7 +405,7 @@
       const start = (currentPage - 1) * pageSize
       const end = Math.min(start + pageSize, sessions.length)
       const pageData = sessions.slice(start, end)
-      tbody.innerHTML = pageData.map(s => `<tr><td>${s.sessionID}</td><td>${s.clientIP}</td><td>${s.lastSeen}</td><td>${statusLabel(s.status)}</td></tr>`).join('')
+      tbody.innerHTML = pageData.map(s => `<tr><td>${s.sessionID}</td><td>${s.clientIP}</td><td>${s.lastSeen}</td><td>${statusLabel(s.status)}</td><td><a href="/${btoa(s.directory).replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "")}/session/${s.sessionID}" target="_blank" style="color:#2563eb;font-size:12px;text-decoration:none">跳转</a></td></tr>`).join('')
       if (totalPages > 1) {
         paginationContainer.style.display = 'flex'
         document.getElementById('pagination-info').textContent = `第 ${currentPage}/${totalPages} 页，共 ${sessions.length} 条`

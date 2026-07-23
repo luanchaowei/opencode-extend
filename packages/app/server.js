@@ -522,6 +522,10 @@ async function handleAPI(req, server) {
     }
 
     const { onlineClients, onlineSessions, processingSessions, currentSessions } = statsDb.getOnlineStats(tenMinAgo)
+    const baseDir = envVars.VITE_OPENCODE_DEFAULT_DIR || process.cwd()
+    for (const s of currentSessions) {
+      s.directory = `${baseDir}/${s.clientIP}`
+    }
     const counters = statsDb.getCounters()
     const range = url.searchParams.get("range") || "7d"
     const trend = statsDb.getAggregatedTrend(range)
