@@ -37,23 +37,42 @@ export function CaseLibraryDialog() {
     })
   })
 
+  const processImagePaths = (text: string, currentFile: string): string => {
+    const dir = currentFile.includes("/") ? currentFile.substring(0, currentFile.lastIndexOf("/")) : ""
+    return text.replace(/!\[([^\]]*)\]\(([^)\s]+)(?:\s+"[^)]*")?\)/g, (match, alt, src) => {
+      if (src.startsWith("http") || src.startsWith("data:") || src.startsWith("/")) return match
+      const resolved = dir
+        ? `${dir}/${src}`.split("/").reduce((acc: string[], p) => {
+            if (p === "..") acc.pop()
+            else if (p !== "." && p !== "") acc.push(p)
+            return acc
+          }, []).join("/")
+        : src
+      return `![${alt}](/api/case-library/asset?path=${encodeURIComponent(resolved)})`
+    })
+  }
+
   const [content] = createResource(selectedFile, async (filePath) => {
-    if (!filePath) return { text: "", isMarkdown: false }
+    if (!filePath) return { text: "", isMarkdown: false, isImage: false }
     try {
       const res = await fetch(`/api/case-library/read?path=${encodeURIComponent(filePath)}`)
-      if (!res.ok) return { text: "", isMarkdown: false }
+      if (!res.ok) return { text: "", isMarkdown: false, isImage: false }
       const data = await res.json()
+      if (data.encoding === "base64" && data.mimeType) {
+        return { text: `data:${data.mimeType};base64,${data.content}`, isMarkdown: false, isImage: true }
+      }
       const text = data.content || ""
       const isMarkdown = filePath.toLowerCase().endsWith(".md")
 
       if (isMarkdown) {
-        const processedText = await processMermaidBlocks(text)
-        return { text: processedText, isMarkdown }
+        const withImages = processImagePaths(text, filePath)
+        const processedText = await processMermaidBlocks(withImages)
+        return { text: processedText, isMarkdown, isImage: false }
       }
 
-      return { text, isMarkdown: false }
+      return { text, isMarkdown: false, isImage: false }
     } catch {
-      return { text: "", isMarkdown: false }
+      return { text: "", isMarkdown: false, isImage: false }
     }
   })
 
@@ -342,6 +361,11 @@ export function CaseLibraryDialog() {
                 />
                 <span class="text-12-medium text-text-base">{selectedFile()}</span>
               </div>
+              <Show when={content()?.isImage}>
+                <div class="flex items-center justify-center flex-1 min-h-0 overflow-auto p-4">
+                  <img src={content()?.text} class="max-w-full max-h-full rounded" />
+                </div>
+              </Show>
               <Show when={content()?.isMarkdown}>
                 <div class="flex gap-0 flex-1 min-h-0">
                   <div
@@ -357,7 +381,7 @@ export function CaseLibraryDialog() {
                   <MarkdownTOC containerRef={wrapperRef} />
                 </div>
               </Show>
-              <Show when={!content()?.isMarkdown}>
+              <Show when={!content()?.isMarkdown && !content()?.isImage}>
                 <pre class="text-12-regular whitespace-pre-wrap bg-surface-panel p-3 rounded border border-border-weak-base overflow-auto flex-1 min-h-0">
                   {content()?.text}
                 </pre>

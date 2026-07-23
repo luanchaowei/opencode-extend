@@ -1,5 +1,5 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync, unlinkSync, statSync, readdirSync, rmdirSync, realpathSync, renameSync, copyFileSync } from "node:fs"
-import { dirname, join } from "node:path"
+import { dirname, join, extname } from "node:path"
 import { execSync } from "node:child_process"
 import { fileURLToPath } from "url"
 import { createStatsDb } from "./stats-db.js"
@@ -203,8 +203,32 @@ async function handleAPI(req, server) {
       if (!filePath) return jsonResponse({ error: "Missing path" }, 400)
       const fullPath = join(caseLibraryDir, filePath)
       if (!existsSync(fullPath)) return jsonResponse({ error: "File not found" }, 404)
+      const imageExts = { ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".gif": "image/gif", ".webp": "image/webp", ".svg": "image/svg+xml", ".bmp": "image/bmp", ".ico": "image/x-icon" }
+      const ext = extname(filePath).toLowerCase()
+      if (imageExts[ext]) {
+        const buf = readFileSync(fullPath)
+        return jsonResponse({ content: buf.toString("base64"), encoding: "base64", mimeType: imageExts[ext] })
+      }
       const content = readFileSync(fullPath, "utf-8")
       return jsonResponse({ content })
+    } catch (error) {
+      return jsonResponse({ error: error.message }, 500)
+    }
+  }
+
+  if (url.pathname.startsWith("/api/case-library/asset") && method === "GET") {
+    try {
+      const caseLibraryDir = process.env.VITE_CASE_LIBRARY_DIR || ""
+      if (!caseLibraryDir) return jsonResponse({ error: "Case library not configured" }, 400)
+      const filePath = url.searchParams.get("path")
+      if (!filePath) return jsonResponse({ error: "Missing path" }, 400)
+      const fullPath = join(caseLibraryDir, filePath)
+      if (!existsSync(fullPath)) return jsonResponse({ error: "File not found" }, 404)
+      const mimeMap = { ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".gif": "image/gif", ".webp": "image/webp", ".svg": "image/svg+xml", ".bmp": "image/bmp", ".ico": "image/x-icon" }
+      const ext = extname(filePath).toLowerCase()
+      const mimeType = mimeMap[ext] || "application/octet-stream"
+      const buf = readFileSync(fullPath)
+      return new Response(buf, { headers: { "Content-Type": mimeType, "Cache-Control": "public, max-age=3600" } })
     } catch (error) {
       return jsonResponse({ error: error.message }, 500)
     }

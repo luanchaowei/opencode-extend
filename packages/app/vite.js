@@ -1,5 +1,5 @@
 import { readFileSync, writeFileSync, createWriteStream, mkdirSync, existsSync, unlinkSync, statSync, readdirSync, rmdirSync, realpathSync, renameSync, copyFileSync } from "node:fs"
-import { dirname, join } from "node:path"
+import { dirname, join, extname } from "node:path"
 import { execSync } from "node:child_process"
 import solidPlugin from "vite-plugin-solid"
 import tailwindcss from "@tailwindcss/vite"
@@ -178,7 +178,7 @@ export default [
               res.end(JSON.stringify({ error: "Case library not configured" }))
               return
             }
-            
+
             const urlObj = new URL(req.url, `http://${req.headers.host}`)
             const filePath = urlObj.searchParams.get("path")
             if (!filePath) {
@@ -186,16 +186,55 @@ export default [
               res.end(JSON.stringify({ error: "Missing path" }))
               return
             }
-            
+
             const fullPath = join(caseLibraryDir, filePath)
             if (!existsSync(fullPath)) {
               res.statusCode = 404
               res.end(JSON.stringify({ error: "File not found" }))
               return
             }
-            
+
+            const imageExts = { ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".gif": "image/gif", ".webp": "image/webp", ".svg": "image/svg+xml", ".bmp": "image/bmp", ".ico": "image/x-icon" }
+            const ext = extname(filePath).toLowerCase()
+            if (imageExts[ext]) {
+              const buf = readFileSync(fullPath)
+              res.end(JSON.stringify({ content: buf.toString("base64"), encoding: "base64", mimeType: imageExts[ext] }))
+              return
+            }
             const content = readFileSync(fullPath, "utf-8")
             res.end(JSON.stringify({ content }))
+          } catch (error) {
+            res.statusCode = 500
+            res.end(JSON.stringify({ error: error.message }))
+          }
+        } else if (req.url?.startsWith("/api/case-library/asset") && req.method === "GET") {
+          try {
+            const caseLibraryDir = process.env.VITE_CASE_LIBRARY_DIR || ""
+            if (!caseLibraryDir) {
+              res.statusCode = 400
+              res.end(JSON.stringify({ error: "Case library not configured" }))
+              return
+            }
+            const urlObj = new URL(req.url, `http://${req.headers.host}`)
+            const filePath = urlObj.searchParams.get("path")
+            if (!filePath) {
+              res.statusCode = 400
+              res.end(JSON.stringify({ error: "Missing path" }))
+              return
+            }
+            const fullPath = join(caseLibraryDir, filePath)
+            if (!existsSync(fullPath)) {
+              res.statusCode = 404
+              res.end(JSON.stringify({ error: "File not found" }))
+              return
+            }
+            const mimeMap = { ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".gif": "image/gif", ".webp": "image/webp", ".svg": "image/svg+xml", ".bmp": "image/bmp", ".ico": "image/x-icon" }
+            const ext = extname(filePath).toLowerCase()
+            const mimeType = mimeMap[ext] || "application/octet-stream"
+            const buf = readFileSync(fullPath)
+            res.setHeader("Content-Type", mimeType)
+            res.setHeader("Cache-Control", "public, max-age=3600")
+            res.end(buf)
           } catch (error) {
             res.statusCode = 500
             res.end(JSON.stringify({ error: error.message }))
