@@ -363,7 +363,7 @@
     async function fetchStats() {
       if (!authed || !token) return
       try {
-        const resp = await fetch('/api/stats?token=' + encodeURIComponent(token))
+        const resp = await fetch('/api/stats?token=' + encodeURIComponent(token) + '&range=' + currentRange)
         const data = await resp.json()
         if (!resp.ok) {
           document.getElementById('stats-error').textContent = data.error || '请求失败'
@@ -383,8 +383,8 @@
         currentPage = 1
         populateIpFilter(allSessions)
         renderTable(allSessions)
-        lastTrendData = { dailyTrend: data.dailyTrend, clientDaySeen: data.clientDaySeen, sessionDaySeen: data.sessionDaySeen }
-        renderChart(data.dailyTrend, data.clientDaySeen, data.sessionDaySeen)
+        lastTrendData = data.trend
+        renderChart(data.trend)
       } catch (err) {
         document.getElementById('stats-error').textContent = '网络错误: ' + err.message
         document.getElementById('stats-error').style.display = 'block'
@@ -431,62 +431,6 @@
     function filterTable() { currentPage = 1; renderTable(getFilteredSessions()) }
     function prevPage() { if (currentPage > 1) { currentPage--; renderTable(getFilteredSessions()) } }
     function nextPage() { const filtered = getFilteredSessions(); const totalPages = Math.ceil(filtered.length / pageSize); if (currentPage < totalPages) { currentPage++; renderTable(filtered) } }
-
-    function getRangeMs(range) {
-      if (range === '7d') return 7 * 86400000
-      if (range === '1m') return 30 * 86400000
-      if (range === '1q') return 90 * 86400000
-      if (range === '1y') return 365 * 86400000
-      return 7 * 86400000
-    }
-
-    function getAggregationKey(dayKey, range) {
-      const [y, m, d] = dayKey.split('-')
-      if (range === '7d' || range === '1m') return dayKey
-      if (range === '1q') {
-        const date = new Date(Number(y), Number(m) - 1, Number(d))
-        const start = new Date(date.getFullYear(), 0, 1)
-        const diff = date.getTime() - start.getTime() + (start.getDay() === 0 ? 0 : (8 - start.getDay()) * 86400000)
-        const weekNum = Math.ceil(diff / 86400000 / 7)
-        return `${y}-W${String(weekNum).padStart(2, '0')}`
-      }
-      if (range === '1y') return `${y}-${m}`
-      return dayKey
-    }
-
-    function formatDayKey(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}` }
-
-    function aggregateTrend(dailyTrend, clientDaySeen, sessionDaySeen, range) {
-      const rangeMs = getRangeMs(range)
-      const now = new Date()
-      const rangeStartKey = formatDayKey(new Date(now.getTime() - rangeMs))
-      const filtered = dailyTrend.filter(d => d.day >= rangeStartKey)
-      const groups = {}
-      const clientSeenByGroup = {}
-      const sessionSeenByGroup = {}
-      for (const d of filtered) {
-        const aggKey = getAggregationKey(d.day, range)
-        if (!groups[aggKey]) groups[aggKey] = { messagesSent: 0, newSessions: 0, newClients: 0 }
-        groups[aggKey].messagesSent += (d.messagesSent || 0)
-        groups[aggKey].newSessions += d.newSessions
-        groups[aggKey].newClients += (d.newClients || 0)
-        const dayClients = Object.keys(clientDaySeen).filter(k => k.endsWith(':' + d.day))
-        if (!clientSeenByGroup[aggKey]) clientSeenByGroup[aggKey] = new Set()
-        for (const ck of dayClients) { clientSeenByGroup[aggKey].add(ck.split(':')[0]) }
-        const daySessions = Object.keys(sessionDaySeen).filter(k => k.endsWith(':' + d.day))
-        if (!sessionSeenByGroup[aggKey]) sessionSeenByGroup[aggKey] = new Set()
-        for (const sk of daySessions) { sessionSeenByGroup[aggKey].add(sk.split(':')[0]) }
-      }
-      const allKeys = Object.keys(groups).sort()
-      return {
-        labels: allKeys,
-        activeClients: allKeys.map(k => clientSeenByGroup[k] ? clientSeenByGroup[k].size : 0),
-        activeSessions: allKeys.map(k => sessionSeenByGroup[k] ? sessionSeenByGroup[k].size : 0),
-        newSessions: allKeys.map(k => groups[k].newSessions),
-        newClients: allKeys.map(k => groups[k].newClients || 0),
-        messagesSent: allKeys.map(k => groups[k].messagesSent),
-      }
-    }
 
     const chartConfigs = [
       { id: 'chart-active-clients', label: '在线人数', color: '#3b82f6', bgColor: 'rgba(59,130,246,0.1)', visible: true },
@@ -544,7 +488,7 @@
         charts[id].destroy()
         delete charts[id]
       }
-      if (lastTrendData) renderChart(lastTrendData.dailyTrend, lastTrendData.clientDaySeen, lastTrendData.sessionDaySeen)
+      if (lastTrendData) renderChart(lastTrendData)
     }
 
     function applyChartVisibility() {
@@ -556,9 +500,15 @@
 
     let lastTrendData = null
 
-    function renderChart(dailyTrend, clientDaySeen, sessionDaySeen) {
-      const { labels, activeClients, activeSessions, newSessions, newClients, messagesSent } = aggregateTrend(dailyTrend, clientDaySeen, sessionDaySeen, currentRange)
-      const dataMap = [activeClients, activeSessions, newSessions, newClients, messagesSent]
+    function renderChart(trend) {
+      const labels = trend.map(t => t.label)
+      const dataMap = [
+        trend.map(t => t.active_clients),
+        trend.map(t => t.active_sessions),
+        trend.map(t => t.new_sessions),
+        trend.map(t => t.new_clients),
+        trend.map(t => t.messages_sent),
+      ]
       for (let i = 0; i < chartConfigs.length; i++) {
         const cfg = chartConfigs[i]
         if (!cfg.visible) continue

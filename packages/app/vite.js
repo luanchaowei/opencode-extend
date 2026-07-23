@@ -504,155 +504,31 @@ export default [
   solidPlugin(),
   {
     name: "opencode-desktop:stats-api",
-    configureServer(server) {
+    async configureServer(server) {
+      const { DatabaseSync: Database } = await import("node:sqlite")
+      const { createStatsDb } = await import("./stats-db.js")
       const statsDir = process.env.VITE_STATS_DATA_PATH || dirname(fileURLToPath(import.meta.url))
       const statsPath = join(statsDir, "stats.json")
+      const dbPath = join(statsDir, "stats.db")
       const adminToken = process.env.VITE_STATS_ADMIN_TOKEN || ""
 
       const getTzTime = () => new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false })
 
-const defaults = { heartbeats: {}, totalClientsEver: 0, totalSessionsEverCreated: 0, totalMessagesEver: 0, dailyStats: {}, clientDaySeen: {}, sessionDaySeen: {} }
-      let statsData = { ...defaults }
-
-      const refreshTotalClients = () => {
-        statsData.totalClientsEver = Object.keys(statsData.heartbeats).length
-      }
-
-      const saveStats = () => {
-        refreshTotalClients()
-        try {
-          const dir = dirname(statsPath)
-          if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
-          const tmpPath = statsPath + ".tmp"
-          writeFileSync(tmpPath, JSON.stringify(statsData, null, 2), "utf8")
-          renameSync(tmpPath, statsPath)
-        } catch (err) {
-          console.error(`[${getTzTime()}] saveStats: FAILED: ${err}`)
-        }
-      }
-
-      const loadStats = () => {
-        if (existsSync(statsPath)) {
-          try {
-            const raw = readFileSync(statsPath, "utf8")
-            const loaded = JSON.parse(raw)
-            statsData = { ...defaults, ...loaded }
-            if (!statsData.totalSessionsEverCreated && statsData.totalSessionsCreated) statsData.totalSessionsEverCreated = statsData.totalSessionsCreated
-            if (!statsData.clientDaySeen) statsData.clientDaySeen = {}
-            if (!statsData.sessionDaySeen) statsData.sessionDaySeen = {}
-            if (statsData.hourlyStats && Object.keys(statsData.hourlyStats).length > 0) {
-              for (const [hourKey, val] of Object.entries(statsData.hourlyStats)) {
-                const dayKey = hourKey.split('T')[0]
-                if (!statsData.dailyStats[dayKey]) statsData.dailyStats[dayKey] = { activeClients: 0, activeSessions: 0, processingSessions: 0, newSessions: 0, messagesSent: 0 }
-                statsData.dailyStats[dayKey].activeClients += val.activeClients || 0
-                statsData.dailyStats[dayKey].activeSessions += val.activeSessions || 0
-                statsData.dailyStats[dayKey].processingSessions += val.processingSessions || 0
-                statsData.dailyStats[dayKey].newSessions += val.newSessions || 0
-                statsData.dailyStats[dayKey].messagesSent += (val.messagesSent || 0)
-              }
-              delete statsData.hourlyStats
-            }
-            if (statsData.clientHourSeen && Object.keys(statsData.clientHourSeen).length > 0) {
-              for (const k of Object.keys(statsData.clientHourSeen)) {
-                const ip = k.split(':')[0]
-                const dayKey = k.split(':')[1].split('T')[0]
-                statsData.clientDaySeen[ip + ':' + dayKey] = true
-              }
-              delete statsData.clientHourSeen
-            }
-            if (statsData.sessionHourSeen && Object.keys(statsData.sessionHourSeen).length > 0) {
-              for (const k of Object.keys(statsData.sessionHourSeen)) {
-                const parts = k.split(':')
-                const sid = parts[0]
-                const dayKey = parts[1].split('T')[0]
-                statsData.sessionDaySeen[sid + ':' + dayKey] = true
-              }
-              delete statsData.sessionHourSeen
-            }
-          } catch (err) {
-            console.error(`[${getTzTime()}] loadStats: FAILED to parse stats.json: ${err.message}`)
-            try {
-              const raw = readFileSync(statsPath, "utf8")
-              const partial = raw.slice(0, raw.lastIndexOf("}") + 1) + "}"
-              const recovered = JSON.parse(partial)
-              statsData = { ...defaults, ...recovered }
-              console.error(`[${getTzTime()}] loadStats: partially recovered`)
-              saveStats()
-            } catch {
-              console.error(`[${getTzTime()}] loadStats: recovery failed, starting with defaults`)
-              try { copyFileSync(statsPath, statsPath + ".bak") } catch {}
-              statsData = { ...defaults }
-              saveStats()
-            }
-          }
-        } else {
-          console.log(`[${getTzTime()}] loadStats: file not found, starting with defaults`)
-          statsData = { ...defaults }
-          saveStats()
-        }
-      }
+      const statsDb = createStatsDb(Database, dbPath, statsPath)
 
       const getDayKey = (ts) => {
         const d = new Date(ts)
         return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
       }
 
-      const ensureDayStats = (dayKey) => {
-        if (!statsData.dailyStats[dayKey]) {
-statsData.dailyStats[dayKey] = { activeClients: 0, activeSessions: 0, processingSessions: 0, newSessions: 0, newClients: 0, messagesSent: 0 }
-        } else if (!statsData.dailyStats[dayKey].messagesSent) {
-          statsData.dailyStats[dayKey].messagesSent = 0
-        }
-      }
-
-      const parseDayKey = (dayKey) => {
-        const [y, m, d] = dayKey.split("-")
-        return new Date(Number(y), Number(m) - 1, Number(d)).getTime()
-      }
-
-      const cleanupOldStats = () => {
-        const oneYearAgo = Date.now() - 365 * 24 * 3600000
-        const removedKeys = []
-        for (const key of Object.keys(statsData.dailyStats)) {
-          const dayTs = parseDayKey(key)
-          if (dayTs < oneYearAgo) {
-            removedKeys.push(key)
-            delete statsData.dailyStats[key]
-          }
-        }
-        for (const k of Object.keys(statsData.clientDaySeen)) {
-          const dayKey = k.split(":").pop()
-          if (removedKeys.includes(dayKey)) delete statsData.clientDaySeen[k]
-        }
-        for (const k of Object.keys(statsData.sessionDaySeen)) {
-          const dayKey = k.split(":").pop()
-          if (removedKeys.includes(dayKey)) delete statsData.sessionDaySeen[k]
-        }
-      }
-
-      loadStats()
-      cleanupOldStats()
-      saveStats()
-
-      let statsDirty = false
-      let statsDirtyTimer = null
-      const markDirty = () => {
-        statsDirty = true
-        if (!statsDirtyTimer) {
-          statsDirtyTimer = setTimeout(() => {
-            if (statsDirty) { saveStats(); statsDirty = false }
-            statsDirtyTimer = null
-          }, 60000)
-        }
-      }
-      const saveInterval = setInterval(() => { if (statsDirty) { saveStats(); statsDirty = false } }, 300000)
-      const cleanupInterval = setInterval(cleanupOldStats, 86400000)
+      statsDb.cleanupOldStats(getDayKey(Date.now() - 365 * 86400000))
+      const cleanupInterval = setInterval(() => {
+        statsDb.cleanupOldStats(getDayKey(Date.now() - 365 * 86400000))
+      }, 86400000)
 
       const gracefulShutdown = () => {
-        clearInterval(saveInterval)
         clearInterval(cleanupInterval)
-        if (statsDirtyTimer) clearTimeout(statsDirtyTimer)
-        saveStats()
+        statsDb.close()
         process.exit(0)
       }
       process.on("SIGINT", gracefulShutdown)
@@ -670,50 +546,7 @@ statsData.dailyStats[dayKey] = { activeClients: 0, activeSessions: 0, processing
             const body = JSON.parse(await readBody())
             const { clientIP, sessions, timestamp } = body
             if (!clientIP) { res.statusCode = 400; res.end(JSON.stringify({ error: "Missing clientIP" })); return }
-
-            if (!statsData.heartbeats[clientIP]) {
-              statsData.heartbeats[clientIP] = { lastSeen: timestamp, sessions: {} }
-              const dayKey = getDayKey(timestamp)
-              ensureDayStats(dayKey)
-              statsData.dailyStats[dayKey].newClients++
-            }
-
-            statsData.heartbeats[clientIP].lastSeen = timestamp
-            const reportedSessionIDs = new Set((sessions || []).map(s => s.sessionID))
-            for (const sid of Object.keys(statsData.heartbeats[clientIP].sessions || {})) {
-              if (!reportedSessionIDs.has(sid) && (statsData.heartbeats[clientIP].sessions[sid].status === "busy" || statsData.heartbeats[clientIP].sessions[sid].status === "retry")) {
-                statsData.heartbeats[clientIP].sessions[sid].status = "idle"
-              }
-            }
-            if (sessions && Array.isArray(sessions)) {
-              for (const s of sessions) {
-                if (statsData.heartbeats[clientIP].sessions[s.sessionID]) {
-                  statsData.heartbeats[clientIP].sessions[s.sessionID].status = s.status
-                  statsData.heartbeats[clientIP].sessions[s.sessionID].lastSeen = timestamp
-                }
-              }
-            }
-
-            const dayKey = getDayKey(timestamp)
-            ensureDayStats(dayKey)
-            const clientDayKey = `${clientIP}:${dayKey}`
-            if (!statsData.clientDaySeen[clientDayKey]) {
-              statsData.clientDaySeen[clientDayKey] = true
-              statsData.dailyStats[dayKey].activeClients++
-            }
-            if (sessions && Array.isArray(sessions)) {
-              for (const s of sessions) {
-                if (!statsData.heartbeats[clientIP].sessions[s.sessionID]) continue
-                const sessionDayKey = `${s.sessionID}:${dayKey}`
-                if (!statsData.sessionDaySeen[sessionDayKey]) {
-                  statsData.sessionDaySeen[sessionDayKey] = true
-                  statsData.dailyStats[dayKey].activeSessions++
-                  if (s.status === "busy" || s.status === "retry") statsData.dailyStats[dayKey].processingSessions++
-                }
-              }
-            }
-
-            markDirty()
+            statsDb.heartbeat(clientIP, sessions, timestamp)
             res.setHeader("Content-Type", "application/json")
             res.end(JSON.stringify({ ok: true }))
           } catch (err) {
@@ -727,22 +560,7 @@ statsData.dailyStats[dayKey] = { activeClients: 0, activeSessions: 0, processing
             const body = JSON.parse(await readBody())
             const { clientIP, sessionID, timestamp } = body
             if (!clientIP || !sessionID) { res.statusCode = 400; res.end(JSON.stringify({ error: "Missing clientIP or sessionID" })); return }
-
-            if (!statsData.heartbeats[clientIP]) {
-              statsData.heartbeats[clientIP] = { lastSeen: timestamp, sessions: {} }
-              const dayKey = getDayKey(timestamp)
-              ensureDayStats(dayKey)
-              statsData.dailyStats[dayKey].newClients++
-            }
-            if (!statsData.heartbeats[clientIP].sessions[sessionID]) {
-              statsData.heartbeats[clientIP].sessions[sessionID] = { status: "idle", lastSeen: timestamp }
-              statsData.totalSessionsEverCreated++
-              const dayKey = getDayKey(timestamp)
-              ensureDayStats(dayKey)
-              statsData.dailyStats[dayKey].newSessions++
-            }
-
-            markDirty()
+            statsDb.sessionCreate(clientIP, sessionID, timestamp)
             res.setHeader("Content-Type", "application/json")
             res.end(JSON.stringify({ ok: true }))
           } catch (err) {
@@ -756,14 +574,7 @@ statsData.dailyStats[dayKey] = { activeClients: 0, activeSessions: 0, processing
             const body = JSON.parse(await readBody())
             const { sessionID } = body
             if (!sessionID) { res.statusCode = 400; res.end(JSON.stringify({ error: "Missing sessionID" })); return }
-
-            for (const ip of Object.keys(statsData.heartbeats)) {
-              if (statsData.heartbeats[ip].sessions?.[sessionID]) {
-                delete statsData.heartbeats[ip].sessions[sessionID]
-              }
-            }
-
-            markDirty()
+            statsDb.sessionDelete(sessionID)
             res.setHeader("Content-Type", "application/json")
             res.end(JSON.stringify({ ok: true }))
           } catch (err) {
@@ -777,13 +588,7 @@ statsData.dailyStats[dayKey] = { activeClients: 0, activeSessions: 0, processing
             const body = JSON.parse(await readBody())
             const { sessionID, timestamp } = body
             if (!sessionID) { res.statusCode = 400; res.end(JSON.stringify({ error: "Missing sessionID" })); return }
-
-            statsData.totalMessagesEver++
-            const dayKey = getDayKey(timestamp)
-            ensureDayStats(dayKey)
-            statsData.dailyStats[dayKey].messagesSent++
-
-            markDirty()
+            statsDb.messageSend(timestamp)
             res.setHeader("Content-Type", "application/json")
             res.end(JSON.stringify({ ok: true }))
           } catch (err) {
@@ -805,52 +610,25 @@ statsData.dailyStats[dayKey] = { activeClients: 0, activeSessions: 0, processing
           const now = Date.now()
           const tenMinAgo = now - 600000
 
-          let onlineClients = 0
-          let onlineSessions = 0
-          let processingSessions = 0
-          const currentSessions = []
-
-          for (const [ip, hb] of Object.entries(statsData.heartbeats)) {
-            if (hb.lastSeen >= tenMinAgo) onlineClients++
-            for (const [sid, s] of Object.entries(hb.sessions || {})) {
-              if (s.lastSeen >= tenMinAgo) {
-                onlineSessions++
-                if (s.status === "busy" || s.status === "retry") processingSessions++
-                currentSessions.push({
-                  sessionID: sid,
-                  clientIP: ip,
-                  lastSeen: (() => { const d = new Date(s.lastSeen); const pad = (n) => String(n).padStart(2, "0"); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`; })(),
-                  status: s.status,
-                })
-              }
-            }
-          }
+          const { onlineClients, onlineSessions, processingSessions, currentSessions } = statsDb.getOnlineStats(tenMinAgo)
+          const counters = statsDb.getCounters()
+          const range = url.searchParams.get("range") || "7d"
+          const trend = statsDb.getAggregatedTrend(range)
 
           currentSessions.sort((a, b) => b.lastSeen.localeCompare(a.lastSeen))
-
-          const yearlyDaysAgo = new Date(now - 365 * 86400000)
-          const dailyTrend = Object.entries(statsData.dailyStats)
-            .filter(([key]) => {
-              const d = parseDayKey(key)
-              return d >= yearlyDaysAgo.getTime()
-            })
-            .sort(([a], [b]) => a.localeCompare(b))
-            .map(([key, val]) => ({ day: key, ...val }))
 
           res.setHeader("Content-Type", "application/json")
           res.end(JSON.stringify({
             summary: {
-              totalClientsEver: statsData.totalClientsEver,
+              totalClientsEver: counters.totalClientsEver,
               onlineClients,
-              totalSessionsEverCreated: statsData.totalSessionsEverCreated,
-              totalMessagesEver: statsData.totalMessagesEver,
+              totalSessionsEverCreated: counters.totalSessionsEverCreated,
+              totalMessagesEver: counters.totalMessagesEver,
               onlineSessions,
               processingSessions,
             },
             currentSessions,
-            dailyTrend,
-            clientDaySeen: statsData.clientDaySeen,
-            sessionDaySeen: statsData.sessionDaySeen,
+            trend,
           }))
           return
         }
