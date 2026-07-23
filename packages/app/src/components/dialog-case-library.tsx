@@ -176,7 +176,11 @@ export function CaseLibraryDialog() {
     if (!href) return
 
     const isExternal = href.startsWith("http://") || href.startsWith("https://") || href.startsWith("//") || href.startsWith("mailto:")
-    if (isExternal) return
+    if (isExternal) {
+      e.preventDefault()
+      window.open(href, "_blank", "noopener,noreferrer")
+      return
+    }
 
     if (href.startsWith("#")) return
 
