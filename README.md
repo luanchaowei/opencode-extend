@@ -69,6 +69,12 @@ VITE_CASE_LIBRARY_DIR=/path/to/cases   # 知识库目录
 VITE_HELP_DOC_URL=https://docs.example.com # 帮助文档 URL
 VITE_ANNOUNCEMENT_TEXT="..."           # 公告文案
 VITE_DOWNLOAD_CUTOFF_TEXT=""            # 下载截断标记
+
+# 系统参数
+VITE_FILE_TREE_POLL_INTERVAL=5000      # 文件树自动刷新间隔（毫秒），默认 5000
+VITE_HEARTBEAT_INTERVAL=60000          # 客户端心跳上报间隔（毫秒），默认 60000
+VITE_DISK_USAGE_THRESHOLD=90           # 磁盘使用率阈值（%），超过则禁止上传，默认 90
+
 # 统计功能
 VITE_STATS_ADMIN_TOKEN=token          # 管理面板访问令牌
 VITE_STATS_DATA_PATH=/path/to/stats   # 统计数据存储路径
@@ -76,13 +82,25 @@ VITE_STATS_DATA_PATH=/path/to/stats   # 统计数据存储路径
 
 ## 启动自定义界面
 
-先启动服务端（IP 和端口需与 .env 对齐）：
+### 启动后端服务
 
 ```bash
-opencode serve --port 4096 --hostname 172.17.0.1 --cors http://172.17.0.1:3000
+# 启动后端（自动读取 .env 中的地址和端口，添加 --cors 参数）
+bash server.sh start
+
+# 停止后端
+bash server.sh stop
+
+# 重启后端
+bash server.sh restart
+
+# 查看后端运行状态
+bash server.sh status
 ```
 
-再启动前端，支持两种模式：
+### 启动前端服务
+
+支持两种模式：
 
 ```bash
 # 开发模式（Vite dev server，支持 HMR 热更新）
@@ -157,8 +175,9 @@ opencode-extend/
 │   ├── sdk/      # SDK
 │   └── core/     # 工具库
 ├── .env          # 环境配置
-├── restart.sh    # 启动脚本（bash restart.sh [dev|prod] [--build]）
-├── stop.sh       # 停止脚本
+├── restart.sh    # 前端启动脚本（bash restart.sh [dev|prod] [--build]）
+├── stop.sh       # 前端停止脚本
+├── server.sh     # 后端服务管理脚本（start/stop/restart/status）
 ├── monitor.sh    # 进程监控脚本（定时检测并自动拉起）
 └── package.json
 ```
