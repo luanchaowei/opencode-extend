@@ -276,11 +276,11 @@ if (mode === "inactive") {
   }
   
   if (dryRun) {
-    console.log(`[${getTzTime()}] \nOrphan directories that would be deleted:`)
+    console.log(`[${getTzTime()}] Orphan directories that would be deleted:`)
     for (const orphan of orphanList) {
       console.log(`[${getTzTime()}]   - ${orphan.sessionId}: ${orphan.path} (client: ${orphan.clientDir})`)
     }
-    console.log(`[${getTzTime()}] \nTotal: ${totalOrphans} orphan directories`)
+    console.log(`[${getTzTime()}] Total: ${totalOrphans} orphan directories`)
     db.close()
     process.exit(0)
   }
@@ -300,7 +300,7 @@ if (mode === "inactive") {
     }
   }
   
-  console.log(`[${getTzTime()}] \nCleanup completed: ${deleted} deleted, ${failed} failed`)
+  console.log(`[${getTzTime()}] Cleanup completed: ${deleted} deleted, ${failed} failed`)
   db.close()
   process.exit(0)
 }
@@ -316,7 +316,7 @@ if (sessions.length === 0) {
 console.log(`[${getTzTime()}] Uploads directory: uses session.directory + /uploads`)
 
 if (dryRun) {
-  console.log(`[${getTzTime()}] \nSessions that would be deleted:`)
+  console.log(`[${getTzTime()}] Sessions that would be deleted:`)
   for (const session of sessions) {
     const timeField = mode === "inactive" ? session.time_updated : session.time_archived
     const timeLabel = mode === "inactive" ? "last updated" : "archived"
@@ -326,7 +326,7 @@ if (dryRun) {
       `[${getTzTime()}]   - ${session.id}: "${session.title}" (${timeLabel}: ${new Date(timeField).toISOString()}, dir: ${session.directory})${hasUploads ? ` [uploads: ${uploadPath}]` : ""}`,
     )
   }
-  console.log(`[${getTzTime()}] \nTotal: ${sessions.length} sessions`)
+  console.log(`[${getTzTime()}] Total: ${sessions.length} sessions`)
   db.close()
   process.exit(0)
 }
@@ -371,10 +371,10 @@ for (const session of sessions) {
   }
 }
 
-console.log(`[${getTzTime()}] \nCleanup completed: ${deleted} deleted, ${failed} failed`)
+console.log(`[${getTzTime()}] Cleanup completed: ${deleted} deleted, ${failed} failed`)
 
 if (deleted > 0 && !dryRun) {
-  console.log(`[${getTzTime()}] \nRunning VACUUM to reclaim disk space...`)
+  console.log(`[${getTzTime()}] Running VACUUM to reclaim disk space...`)
   try {
     db.exec("VACUUM;")
     console.log(`[${getTzTime()}] VACUUM completed`)
