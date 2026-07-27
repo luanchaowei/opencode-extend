@@ -627,7 +627,12 @@ export default [
 
         function getDiskDevice(filesystem) {
           if (!filesystem || filesystem === "none" || filesystem.startsWith("tmpfs") || filesystem.startsWith("devtmpfs")) return null
-          const dev = filesystem.replace("/dev/", "")
+          let devPath = filesystem
+          try {
+            const resolved = realpathSync(devPath)
+            if (resolved) devPath = resolved
+          } catch {}
+          const dev = devPath.replace("/dev/", "")
           for (const name of [dev, dev.replace(/p?\d+$/, "")]) {
             if (name && existsSync(`/sys/block/${name}`)) return name
           }

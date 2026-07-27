@@ -715,7 +715,12 @@ async function collectMonitorData(serverPort) {
 
   function getDiskDevice(filesystem) {
     if (!filesystem || filesystem === "none" || filesystem.startsWith("tmpfs") || filesystem.startsWith("devtmpfs")) return null
-    const dev = filesystem.replace("/dev/", "")
+    let devPath = filesystem
+    try {
+      const resolved = realpathSync(devPath)
+      if (resolved) devPath = resolved
+    } catch {}
+    const dev = devPath.replace("/dev/", "")
     for (const name of [dev, dev.replace(/p?\d+$/, "")]) {
       if (name && existsSync(`/sys/block/${name}`)) return name
     }
@@ -735,7 +740,7 @@ async function collectMonitorData(serverPort) {
     try { return readFileSync(`/proc/${pid}/cmdline`, "utf8").replace(/\0/g, " ").trim() } catch { return "" }
   }
 
-  const backendPids = findPids(`opencode serve.*--port ${serverPort}`)
+  const backendPids = findPids(`cannbot serve.*--port ${serverPort}`)
   const frontendPids = findPids("bun.*packages/app")
 
   const t1 = {
