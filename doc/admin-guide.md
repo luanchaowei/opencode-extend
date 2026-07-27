@@ -104,6 +104,7 @@ http://<WEB_HOST>:<WEB_PORT>/admin.html?token=<VITE_STATS_ADMIN_TOKEN>
 - **后端进程**：通过 `pgrep -f "opencode serve.*--port <端口>"` 查找
 - **前端进程**：通过 `pgrep -f "bun.*packages/app"` 查找
 - 进程未找到时显示"未找到进程"
+- CPU 和内存占用率超过 50% 显示黄色，超过 80% 显示红色
 
 ### 系统资源
 
@@ -112,6 +113,8 @@ http://<WEB_HOST>:<WEB_PORT>/admin.html?token=<VITE_STATS_ADMIN_TOKEN>
 | CPU 使用率 | 1 秒采样内 /proc/stat 的 idle 与 total 差值计算 |
 | 内存使用率 | 总内存减去可用内存（MemAvailable），单位 MB |
 | 系统负载 | /proc/loadavg 的 1 分钟 / 5 分钟 / 15 分钟平均负载 |
+
+- CPU 和内存使用率超过 50% 显示黄色，超过 80% 显示红色
 
 ### 磁盘使用
 
@@ -123,6 +126,8 @@ http://<WEB_HOST>:<WEB_PORT>/admin.html?token=<VITE_STATS_ADMIN_TOKEN>
 | 总容量 | 磁盘总大小 |
 | 已用 / 可用 | 已使用和剩余空间 |
 | 使用率 | 已用空间占总容量的百分比 |
+
+- 使用率超过 70% 显示黄色，超过 90% 显示红色
 
 ### 磁盘 IO
 
