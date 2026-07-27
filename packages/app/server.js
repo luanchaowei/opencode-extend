@@ -568,6 +568,20 @@ async function handleAPI(req, server) {
     })
   }
 
+  if (url.pathname.startsWith("/api/system/monitor") && method === "GET") {
+    if (!adminToken) return jsonResponse({ error: "VITE_STATS_ADMIN_TOKEN not configured" }, 403)
+    const token = url.searchParams.get("token")
+    if (token !== adminToken) return jsonResponse({ error: "Invalid token" }, 403)
+
+    try {
+      const serverPort = envVars.VITE_OPENCODE_SERVER_PORT || "4096"
+      const result = await collectMonitorData(serverPort)
+      return jsonResponse(result)
+    } catch (err) {
+      return jsonResponse({ error: err.message }, 500)
+    }
+  }
+
   if (url.pathname.startsWith("/api/config/runtime") && method === "GET") {
     if (!adminToken) return jsonResponse({ error: "VITE_STATS_ADMIN_TOKEN not configured" }, 403)
     const token = url.searchParams.get("token")
@@ -582,6 +596,7 @@ async function handleAPI(req, server) {
       heartbeatInterval: process.env.VITE_HEARTBEAT_INTERVAL || "60000",
       diskUsageThreshold: process.env.VITE_DISK_USAGE_THRESHOLD || "90",
       caseLibraryDir: process.env.VITE_CASE_LIBRARY_DIR || "",
+      monitorDiskMounts: process.env.VITE_MONITOR_DISK_MOUNTS || "/",
     })
   }
 
@@ -601,6 +616,7 @@ async function handleAPI(req, server) {
         heartbeatInterval: "VITE_HEARTBEAT_INTERVAL",
         diskUsageThreshold: "VITE_DISK_USAGE_THRESHOLD",
         caseLibraryDir: "VITE_CASE_LIBRARY_DIR",
+        monitorDiskMounts: "VITE_MONITOR_DISK_MOUNTS",
       }
       for (const [key, envKey] of Object.entries(envMap)) {
         if (body[key] !== undefined) process.env[envKey] = String(body[key])
@@ -624,6 +640,184 @@ async function handleAPI(req, server) {
   }
 
   return null
+}
+
+async function collectMonitorData(serverPort) {
+  const CLOCK_HZ = 100
+  const mounts = (process.env.VITE_MONITOR_DISK_MOUNTS || "/").split(",").map(m => m.trim()).filter(Boolean)
+
+  function findPids(pattern) {
+    try {
+      const out = execSync(`pgrep -f "${pattern}"`, { encoding: "utf8", timeout: 3000 })
+      return out.trim().split("\n").map(Number).filter(Boolean)
+    } catch { return [] }
+  }
+
+  function readProcStat(pid) {
+    try {
+      const stat = readFileSync(`/proc/${pid}/stat`, "utf8").trim().split(" ")
+      const status = readFileSync(`/proc/${pid}/status`, "utf8")
+      const io = existsSync(`/proc/${pid}/io`) ? readFileSync(`/proc/${pid}/io`, "utf8") : ""
+      const rss = parseInt(status.match(/VmRSS:\s+(\d+)/)?.[1] || "0")
+      const memPercent = parseFloat(status.match(/VmRSS:\s+(\d+)/) ? (rss / (readFileSync("/proc/meminfo", "utf8").match(/MemTotal:\s+(\d+)/)?.[1] || 1) * 100).toFixed(1) : "0")
+      const threads = parseInt(status.match(/Threads:\s+(\d+)/)?.[1] || "0")
+      const utime = parseInt(stat[13])
+      const stime = parseInt(stat[14])
+      const starttime = parseInt(stat[21])
+      const comm = stat[1].replace(/[()]/g, "")
+      const ioMatch = (key) => parseInt(io.match(new RegExp(`${key}:\\s+(\\d+)`))?.[1] || "0")
+      const bootTime = parseInt(readFileSync("/proc/stat", "utf8").match(/btime\s+(\d+)/)?.[1] || "0")
+      const uptimeSec = Math.floor(Date.now() / 1000) - bootTime - Math.floor(starttime / CLOCK_HZ)
+      return { pid, comm, utime, stime, rss, memPercent, threads, uptimeSec, ioRead: ioMatch("read_bytes"), ioWrite: ioMatch("write_bytes") }
+    } catch { return null }
+  }
+
+  function readSystemStat() {
+    try {
+      const line = readFileSync("/proc/stat", "utf8").split("\n")[0].trim().split(/\s+/)
+      const idle = parseInt(line[4])
+      const total = line.slice(1).reduce((a, b) => a + parseInt(b), 0)
+      return { idle, total }
+    } catch { return { idle: 0, total: 0 } }
+  }
+
+  function readDiskStats() {
+    try {
+      const lines = readFileSync("/proc/diskstats", "utf8").trim().split("\n")
+      const result = {}
+      for (const line of lines) {
+        const parts = line.trim().split(/\s+/)
+        if (parts.length < 14) continue
+        const name = parts[2]
+        const readSectors = parseInt(parts[5])
+        const writeSectors = parseInt(parts[9])
+        const readsCompleted = parseInt(parts[3])
+        const writesCompleted = parseInt(parts[7])
+        const timeReadingMs = parseInt(parts[6])
+        const timeWritingMs = parseInt(parts[10])
+        const timeIosMs = parseInt(parts[12])
+        result[name] = { readSectors, writeSectors, readsCompleted, writesCompleted, timeReadingMs, timeWritingMs, timeIosMs }
+      }
+      return result
+    } catch { return {} }
+  }
+
+  function getDiskUsage(mount) {
+    try {
+      const out = execSync(`df -h "${mount}"`, { encoding: "utf8", timeout: 3000 })
+      const lines = out.trim().split("\n")
+      if (lines.length < 2) return null
+      const parts = lines[1].trim().split(/\s+/)
+      if (parts.length < 6) return null
+      return { filesystem: parts[0], size: parts[1], used: parts[2], avail: parts[3], usePercent: parseInt(parts[4]), mount: parts[5] }
+    } catch { return null }
+    }
+
+  function getDiskDevice(filesystem) {
+    if (!filesystem || filesystem === "none" || filesystem.startsWith("tmpfs") || filesystem.startsWith("devtmpfs")) return null
+    const dev = filesystem.replace("/dev/", "")
+    for (const name of [dev, dev.replace(/p?\d+$/, "")]) {
+      if (name && existsSync(`/sys/block/${name}`)) return name
+    }
+    return dev || null
+  }
+
+  function formatUptime(sec) {
+    const d = Math.floor(sec / 86400)
+    const h = Math.floor((sec % 86400) / 3600)
+    const m = Math.floor((sec % 3600) / 60)
+    if (d > 0) return `${d}天${h}小时`
+    if (h > 0) return `${h}小时${m}分钟`
+    return `${m}分钟`
+  }
+
+  function getCmdline(pid) {
+    try { return readFileSync(`/proc/${pid}/cmdline`, "utf8").replace(/\0/g, " ").trim() } catch { return "" }
+  }
+
+  const backendPids = findPids(`opencode serve.*--port ${serverPort}`)
+  const frontendPids = findPids("bun.*packages/app")
+
+  const t1 = {
+    backend: backendPids.map(p => readProcStat(p)).filter(Boolean),
+    frontend: frontendPids.map(p => readProcStat(p)).filter(Boolean),
+    system: readSystemStat(),
+    disks: readDiskStats(),
+  }
+
+  await new Promise(r => setTimeout(r, 1000))
+
+  const t2 = {
+    backend: backendPids.map(p => readProcStat(p)).filter(Boolean),
+    frontend: frontendPids.map(p => readProcStat(p)).filter(Boolean),
+    system: readSystemStat(),
+    disks: readDiskStats(),
+  }
+
+  function buildProcess(t1p, t2p) {
+    if (!t1p || !t2p || t1p.length === 0) return null
+    const p1 = t1p[0], p2 = t2p[0]
+    const cpu = ((p2.utime + p2.stime - p1.utime - p1.stime) / CLOCK_HZ) * 100
+    const ioReadKBps = Math.max(0, (p2.ioRead - p1.ioRead) / 1024)
+    const ioWriteKBps = Math.max(0, (p2.ioWrite - p1.ioWrite) / 1024)
+    return {
+      pid: p2.pid,
+      name: p2.comm,
+      cmd: getCmdline(p2.pid),
+      cpu: cpu.toFixed(1),
+      memRSS: p2.rss,
+      memPercent: p2.memPercent,
+      threads: p2.threads,
+      uptime: formatUptime(p2.uptimeSec),
+      ioReadKBps: ioReadKBps.toFixed(1),
+      ioWriteKBps: ioWriteKBps.toFixed(1),
+    }
+  }
+
+  const sysCpu = t2.system.total - t1.system.total > 0
+    ? ((1 - (t2.system.idle - t1.system.idle) / (t2.system.total - t1.system.total)) * 100).toFixed(1)
+    : "0"
+
+  const meminfo = readFileSync("/proc/meminfo", "utf8")
+  const memTotalKB = parseInt(meminfo.match(/MemTotal:\s+(\d+)/)?.[1] || "0")
+  const memAvailableKB = parseInt(meminfo.match(/MemAvailable:\s+(\d+)/)?.[1] || "0")
+  const memUsedKB = memTotalKB - memAvailableKB
+
+  const loadavg = readFileSync("/proc/loadavg", "utf8").trim().split(" ").slice(0, 3).map(Number)
+
+  const disks = mounts.map(m => getDiskUsage(m)).filter(Boolean)
+  const diskIO = disks.map(d => {
+    const dev = getDiskDevice(d.filesystem)
+    if (!dev) return { device: d.filesystem, readKBps: "-", writeKBps: "-", readAwaitMs: "-", writeAwaitMs: "-", readUtilPercent: "-", writeUtilPercent: "-" }
+    const s1 = t1.disks[dev]
+    const s2 = t2.disks[dev]
+    if (!s1 || !s2) return { device: dev, readKBps: "-", writeKBps: "-", readAwaitMs: "-", writeAwaitMs: "-", readUtilPercent: "-", writeUtilPercent: "-" }
+    const readKBps = Math.max(0, (s2.readSectors - s1.readSectors) * 512 / 1024)
+    const writeKBps = Math.max(0, (s2.writeSectors - s1.writeSectors) * 512 / 1024)
+    const readsDiff = s2.readsCompleted - s1.readsCompleted
+    const writesDiff = s2.writesCompleted - s1.writesCompleted
+    const readAwaitMs = readsDiff > 0 ? ((s2.timeReadingMs - s1.timeReadingMs) / readsDiff).toFixed(1) : "0.0"
+    const writeAwaitMs = writesDiff > 0 ? ((s2.timeWritingMs - s1.timeWritingMs) / writesDiff).toFixed(1) : "0.0"
+    const readUtilPercent = Math.min(100, (s2.timeReadingMs - s1.timeReadingMs) / 10).toFixed(1)
+    const writeUtilPercent = Math.min(100, (s2.timeWritingMs - s1.timeWritingMs) / 10).toFixed(1)
+    return { device: dev, readKBps: readKBps.toFixed(1), writeKBps: writeKBps.toFixed(1), readAwaitMs, writeAwaitMs, readUtilPercent, writeUtilPercent }
+  })
+
+  return {
+    processes: {
+      backend: buildProcess(t1.backend, t2.backend),
+      frontend: buildProcess(t1.frontend, t2.frontend),
+    },
+    disks,
+    diskIO,
+    system: {
+      cpuPercent: parseFloat(sysCpu),
+      memTotal: Math.floor(memTotalKB / 1024),
+      memUsed: Math.floor(memUsedKB / 1024),
+      memPercent: memTotalKB > 0 ? parseFloat((memUsedKB / memTotalKB * 100).toFixed(1)) : 0,
+      loadAvg: loadavg,
+    },
+  }
 }
 
 function getTzTime() {

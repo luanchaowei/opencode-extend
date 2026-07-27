@@ -77,6 +77,7 @@
     <nav class="sidebar">
       <div class="sidebar-brand">管理面板</div>
       <div class="sidebar-item active" onclick="switchTab('stats')">使用统计</div>
+      <div class="sidebar-item" onclick="switchTab('monitor')">系统监控</div>
       <div class="sidebar-item" onclick="switchTab('settings')">系统设置</div>
     </nav>
     <div class="content">
@@ -141,13 +142,13 @@
               <h2 style="font-size:14px;font-weight:600;color:#fff;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between">在线会话<span id="chart-active-sessions-stats" style="font-size:11px;font-weight:500;color:#4ade80"></span></h2>
               <div style="height:140px"><canvas id="chart-active-sessions"></canvas></div>
             </div>
-            <div class="card" data-chart-id="chart-new-sessions">
-              <h2 style="font-size:14px;font-weight:600;color:#fff;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between">新建会话<span id="chart-new-sessions-stats" style="font-size:11px;font-weight:500;color:#c084fc"></span></h2>
-              <div style="height:140px"><canvas id="chart-new-sessions"></canvas></div>
-            </div>
             <div class="card" data-chart-id="chart-new-clients">
               <h2 style="font-size:14px;font-weight:600;color:#fff;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between">新增人数<span id="chart-new-clients-stats" style="font-size:11px;font-weight:500;color:#fbbf24"></span></h2>
               <div style="height:140px"><canvas id="chart-new-clients"></canvas></div>
+            </div>
+            <div class="card" data-chart-id="chart-new-sessions">
+              <h2 style="font-size:14px;font-weight:600;color:#fff;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between">新建会话<span id="chart-new-sessions-stats" style="font-size:11px;font-weight:500;color:#c084fc"></span></h2>
+              <div style="height:140px"><canvas id="chart-new-sessions"></canvas></div>
             </div>
             <div class="card" data-chart-id="chart-messages">
               <h2 style="font-size:14px;font-weight:600;color:#fff;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between">问题数<span id="chart-messages-stats" style="font-size:11px;font-weight:500;color:#f472b6"></span></h2>
@@ -175,6 +176,39 @@
                 <button class="range-btn" id="next-btn" onclick="nextPage()">下一页</button>
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="tab-monitor" style="display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
+          <h1 class="page-title">系统监控</h1>
+          <button class="refresh-btn" onclick="fetchMonitor()">手动刷新</button>
+        </div>
+        <div id="monitor-content">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px">
+            <div class="card">
+              <h2 style="font-size:14px;font-weight:600;color:#fff;margin-bottom:12px">后端进程</h2>
+              <div id="monitor-backend"></div>
+            </div>
+            <div class="card">
+              <h2 style="font-size:14px;font-weight:600;color:#fff;margin-bottom:12px">前端进程</h2>
+              <div id="monitor-frontend"></div>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px">
+            <div class="card">
+              <h2 style="font-size:14px;font-weight:600;color:#fff;margin-bottom:12px">系统资源</h2>
+              <div id="monitor-system"></div>
+            </div>
+            <div class="card">
+              <h2 style="font-size:14px;font-weight:600;color:#fff;margin-bottom:12px">磁盘 IO</h2>
+              <div id="monitor-diskio"></div>
+            </div>
+          </div>
+          <div class="card">
+            <h2 style="font-size:14px;font-weight:600;color:#fff;margin-bottom:12px">磁盘使用</h2>
+            <div id="monitor-disks"></div>
           </div>
         </div>
       </div>
@@ -233,6 +267,11 @@
                 <input id="diskUsageThreshold" type="number" placeholder="90" min="1" max="99">
                 <div class="hint">超过此阈值时禁止上传文件，默认90%</div>
               </div>
+              <div class="field">
+                <label>监控磁盘挂载点</label>
+                <input id="monitorDiskMounts" type="text" placeholder="/,/run,/dev/shm">
+                <div class="hint">系统监控页面展示的磁盘挂载点，逗号分隔，默认 /</div>
+              </div>
             </div>
           </div>
           <button id="save-btn" class="save-btn" onclick="save()">保存配置</button>
@@ -263,12 +302,16 @@
 
     function switchTab(tab) {
       currentTab = tab
+      const tabNames = { stats: '使用统计', monitor: '系统监控', settings: '系统设置' }
       document.querySelectorAll('.sidebar-item').forEach(el => {
-        el.classList.toggle('active', el.textContent === (tab === 'stats' ? '使用统计' : '系统设置'))
+        el.classList.toggle('active', el.textContent === tabNames[tab])
       })
       document.getElementById('tab-stats').style.display = tab === 'stats' ? 'block' : 'none'
+      document.getElementById('tab-monitor').style.display = tab === 'monitor' ? 'block' : 'none'
       document.getElementById('tab-settings').style.display = tab === 'settings' ? 'block' : 'none'
-      if (tab === 'stats') fetchStats()
+      if (tab === 'stats') { fetchStats(); stopMonitor() }
+      if (tab === 'monitor') { startMonitor() }
+      if (tab === 'settings') { stopMonitor() }
     }
 
     function showMsg(text, type) {
@@ -296,6 +339,7 @@
           document.getElementById('heartbeatInterval').value = data.heartbeatInterval || '60000'
           document.getElementById('diskUsageThreshold').value = data.diskUsageThreshold || '90'
           document.getElementById('caseLibraryDir').value = data.caseLibraryDir || ''
+          document.getElementById('monitorDiskMounts').value = data.monitorDiskMounts || '/'
           showPanel('main')
           fetchStats()
         } else {
@@ -327,6 +371,7 @@
             heartbeatInterval: document.getElementById('heartbeatInterval').value,
             diskUsageThreshold: document.getElementById('diskUsageThreshold').value,
             caseLibraryDir: document.getElementById('caseLibraryDir').value,
+            monitorDiskMounts: document.getElementById('monitorDiskMounts').value,
           })
         })
         if (resp.ok) {
@@ -435,8 +480,8 @@
     const chartConfigs = [
       { id: 'chart-active-clients', label: '在线人数', color: '#3b82f6', bgColor: 'rgba(59,130,246,0.1)', visible: true },
       { id: 'chart-active-sessions', label: '在线会话', color: '#22c55e', bgColor: 'rgba(34,197,94,0.1)', visible: true },
+      { id: 'chart-new-clients', label: '新增人数', color: '#f59e0b', bgColor: 'rgba(245,158,11,0.1)', visible: true },
       { id: 'chart-new-sessions', label: '新建会话', color: '#a855f7', bgColor: 'rgba(168,85,247,0.1)', visible: true },
-      { id: 'chart-new-clients', label: '新增人数', color: '#f59e0b', bgColor: 'rgba(245,158,11,0.1)', visible: false },
       { id: 'chart-messages', label: '问题数', color: '#ec4899', bgColor: 'rgba(236,72,153,0.1)', visible: true },
     ]
 
@@ -504,8 +549,8 @@
       const dataMap = [
         trend.map(t => t.active_clients),
         trend.map(t => t.active_sessions),
-        trend.map(t => t.new_sessions),
         trend.map(t => t.new_clients),
+        trend.map(t => t.new_sessions),
         trend.map(t => t.messages_sent),
       ]
       for (let i = 0; i < chartConfigs.length; i++) {
@@ -553,6 +598,123 @@
       currentRange = range
       document.querySelectorAll('[data-range]').forEach(btn => btn.classList.toggle('active', btn.dataset.range === range))
       fetchStats()
+    }
+
+    let monitorTimer = null
+
+    function startMonitor() {
+      fetchMonitor()
+      monitorTimer = setInterval(fetchMonitor, 30000)
+    }
+
+    function stopMonitor() {
+      if (monitorTimer) clearInterval(monitorTimer)
+      monitorTimer = null
+    }
+
+    function fmtBytes(kb) {
+      if (kb >= 1048576) return (kb / 1048576).toFixed(1) + ' GB'
+      if (kb >= 1024) return (kb / 1024).toFixed(1) + ' MB'
+      return kb + ' KB'
+    }
+
+    function progressBar(percent, color) {
+      const p = Math.min(100, Math.max(0, percent))
+      return `<div style="background:#2a2a2a;border-radius:4px;height:8px;overflow:hidden;margin-top:4px"><div style="width:${p}%;height:100%;background:${color};border-radius:4px;transition:width 0.3s"></div></div>`
+    }
+
+    function renderProcess(proc, label) {
+      if (!proc) return '<div style="color:#888;font-size:13px;padding:8px 0">未找到进程</div>'
+      const cpuColor = proc.cpu > 80 ? '#f87171' : proc.cpu > 50 ? '#fbbf24' : '#4ade80'
+      const memColor = proc.memPercent > 80 ? '#f87171' : proc.memPercent > 50 ? '#fbbf24' : '#4ade80'
+      return `
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;justify-content:space-between;font-size:12px">
+            <span style="color:#888">PID</span><span style="color:#e5e5e5">${proc.pid}</span>
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:#888">CPU</span><span style="color:${cpuColor}">${proc.cpu}%</span></div>
+            ${progressBar(proc.cpu, cpuColor)}
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:#888">内存</span><span style="color:${memColor}">${fmtBytes(proc.memRSS)} (${proc.memPercent}%)</span></div>
+            ${progressBar(proc.memPercent, memColor)}
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:#888">线程数</span><span style="color:#e5e5e5">${proc.threads}</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:#888">运行时间</span><span style="color:#e5e5e5">${proc.uptime}</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:#888">读 IO</span><span style="color:#e5e5e5">${proc.ioReadKBps} KB/s</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:#888">写 IO</span><span style="color:#e5e5e5">${proc.ioWriteKBps} KB/s</span></div>
+          <div style="font-size:11px;color:#666;word-break:break-all;max-height:40px;overflow:hidden">${proc.cmd}</div>
+        </div>
+      `
+    }
+
+    async function fetchMonitor() {
+      if (!authed || !token) return
+      try {
+        const resp = await fetch('/api/system/monitor?token=' + encodeURIComponent(token))
+        const data = await resp.json()
+        if (!resp.ok) return
+
+        document.getElementById('monitor-backend').innerHTML = renderProcess(data.processes.backend, '后端进程')
+        document.getElementById('monitor-frontend').innerHTML = renderProcess(data.processes.frontend, '前端进程')
+
+        const sys = data.system
+        const sysCpuColor = sys.cpuPercent > 80 ? '#f87171' : sys.cpuPercent > 50 ? '#fbbf24' : '#4ade80'
+        const sysMemColor = sys.memPercent > 80 ? '#f87171' : sys.memPercent > 50 ? '#fbbf24' : '#4ade80'
+        document.getElementById('monitor-system').innerHTML = `
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div>
+              <div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:#888">CPU 使用率</span><span style="color:${sysCpuColor}">${sys.cpuPercent}%</span></div>
+              ${progressBar(sys.cpuPercent, sysCpuColor)}
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:#888">内存</span><span style="color:${sysMemColor}">${sys.memUsed} MB / ${sys.memTotal} MB (${sys.memPercent}%)</span></div>
+              ${progressBar(sys.memPercent, sysMemColor)}
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:#888">系统负载</span><span style="color:#e5e5e5">${sys.loadAvg.join(' / ')}</span></div>
+          </div>
+        `
+
+        const diskIOHtml = (data.diskIO || []).map(d => {
+          const rUtilNum = parseFloat(d.readUtilPercent)
+          const rUtilColor = isNaN(rUtilNum) ? '#666' : rUtilNum > 80 ? '#f87171' : rUtilNum > 50 ? '#fbbf24' : '#4ade80'
+          const wUtilNum = parseFloat(d.writeUtilPercent)
+          const wUtilColor = isNaN(wUtilNum) ? '#666' : wUtilNum > 80 ? '#f87171' : wUtilNum > 50 ? '#fbbf24' : '#4ade80'
+          const rAwaitNum = parseFloat(d.readAwaitMs)
+          const rAwaitColor = isNaN(rAwaitNum) ? '#666' : rAwaitNum > 50 ? '#f87171' : rAwaitNum > 20 ? '#fbbf24' : '#4ade80'
+          const wAwaitNum = parseFloat(d.writeAwaitMs)
+          const wAwaitColor = isNaN(wAwaitNum) ? '#666' : wAwaitNum > 50 ? '#f87171' : wAwaitNum > 20 ? '#fbbf24' : '#4ade80'
+          return `
+          <div style="display:flex;align-items:center;justify-content:space-between;font-size:12px;padding:6px 0;border-bottom:1px solid #1a1a1a;gap:8px">
+            <span style="color:#888;min-width:70px">${d.device}</span>
+            <span style="color:#e5e5e5">读 <b style="color:#fff">${d.readKBps}</b> KB/s</span>
+            <span style="color:${rAwaitColor}">读等 <b>${d.readAwaitMs}</b> ms</span>
+            <span style="color:${rUtilColor}">读利用 <b>${d.readUtilPercent}</b>%</span>
+            <span style="color:#e5e5e5">写 <b style="color:#fff">${d.writeKBps}</b> KB/s</span>
+            <span style="color:${wAwaitColor}">写等 <b>${d.writeAwaitMs}</b> ms</span>
+            <span style="color:${wUtilColor}">写利用 <b>${d.writeUtilPercent}</b>%</span>
+          </div>
+        `}).join('')
+        document.getElementById('monitor-diskio').innerHTML = diskIOHtml || '<div style="color:#888;font-size:13px">无数据</div>'
+
+        const disksHtml = (data.disks || []).map(d => {
+          const color = d.usePercent > 90 ? '#f87171' : d.usePercent > 70 ? '#fbbf24' : '#4ade80'
+          return `
+            <div style="margin-bottom:12px">
+              <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:2px">
+                <span style="color:#888">${d.mount}</span>
+                <span style="color:${color}">${d.used} / ${d.size} (${d.usePercent}%)</span>
+              </div>
+              ${progressBar(d.usePercent, color)}
+              <div style="font-size:11px;color:#666;margin-top:2px">${d.filesystem} · 可用 ${d.avail}</div>
+            </div>
+          `
+        }).join('')
+        document.getElementById('monitor-disks').innerHTML = disksHtml || '<div style="color:#888;font-size:13px">无数据</div>'
+      } catch (err) {
+        document.getElementById('monitor-content').innerHTML = '<div style="color:#f87171;font-size:13px">获取监控数据失败: ' + err.message + '</div>'
+      }
     }
 
     loadChartVisibility()
