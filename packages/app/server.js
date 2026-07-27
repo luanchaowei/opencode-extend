@@ -740,7 +740,7 @@ async function collectMonitorData(serverPort) {
     try { return readFileSync(`/proc/${pid}/cmdline`, "utf8").replace(/\0/g, " ").trim() } catch { return "" }
   }
 
-  const backendPids = findPids(`cannbot serve.*--port ${serverPort}`)
+  const backendPids = findPids(`opencode serve.*--port ${serverPort}`)
   const frontendPids = findPids("bun.*packages/app")
 
   const t1 = {
