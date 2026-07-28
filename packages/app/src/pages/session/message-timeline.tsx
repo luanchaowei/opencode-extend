@@ -813,7 +813,7 @@ return language.t("common.requestFailed")
                                   <DropdownMenu.ItemLabel>{language.t("common.rename")}</DropdownMenu.ItemLabel>
                                 </DropdownMenu.Item>
                                 <DropdownMenu.Item
-                                  onSelect={async () => {
+                                  onSelect={() => {
                                     const model = local.model.current()
                                     if (!model) {
                                       showToast({
@@ -823,11 +823,11 @@ return language.t("common.requestFailed")
                                       })
                                       return
                                     }
-                                    await sdk.client.session.summarize({
+                                    sdk.client.session.summarize({
                                       sessionID: id,
                                       modelID: model.id,
                                       providerID: model.provider.id,
-                                    })
+                                    }).catch(() => {})
                                   }}
                                 >
                                   <DropdownMenu.ItemLabel>{language.t("command.session.compact")}</DropdownMenu.ItemLabel>
