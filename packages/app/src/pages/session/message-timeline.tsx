@@ -27,6 +27,7 @@ import { useGlobalSDK } from "@/context/global-sdk"
 import { usePlatform } from "@/context/platform"
 import { useSettings } from "@/context/settings"
 import { useSDK } from "@/context/sdk"
+import { useLocal } from "@/context/local"
 import { useSync } from "@/context/sync"
 import { messageAgentColor } from "@/utils/agent"
 import { sessionTitle } from "@/utils/session-title"
@@ -233,6 +234,7 @@ export function MessageTimeline(props: {
   const navigate = useNavigate()
   const globalSDK = useGlobalSDK()
   const sdk = useSDK()
+  const local = useLocal()
   const sync = useSync()
   const settings = useSettings()
   const dialog = useDialog()
@@ -786,7 +788,7 @@ return language.t("common.requestFailed")
                               class="size-6 rounded-md data-[expanded]:bg-surface-base-active"
                               aria-label={language.t("common.moreOptions")}
                               aria-expanded={title.menuOpen}
-                              disabled={!isOwnProject() || isLastSession()}
+                              disabled={!isOwnProject()}
                               ref={(el: HTMLButtonElement) => {
                                 more = el
                               }}
@@ -809,6 +811,26 @@ return language.t("common.requestFailed")
                                   }}
                                 >
                                   <DropdownMenu.ItemLabel>{language.t("common.rename")}</DropdownMenu.ItemLabel>
+                                </DropdownMenu.Item>
+                                <DropdownMenu.Item
+                                  onSelect={async () => {
+                                    const model = local.model.current()
+                                    if (!model) {
+                                      showToast({
+                                        variant: "error",
+                                        title: language.t("command.session.compact"),
+                                        description: language.t("toast.model.required"),
+                                      })
+                                      return
+                                    }
+                                    await sdk.client.session.summarize({
+                                      sessionID: id,
+                                      modelID: model.id,
+                                      providerID: model.provider.id,
+                                    })
+                                  }}
+                                >
+                                  <DropdownMenu.ItemLabel>{language.t("command.session.compact")}</DropdownMenu.ItemLabel>
                                 </DropdownMenu.Item>
                                 <DropdownMenu.Separator />
                                 <DropdownMenu.Item
