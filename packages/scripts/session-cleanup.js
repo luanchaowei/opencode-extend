@@ -88,16 +88,13 @@ Usage: bun session-cleanup.js [options]
 Modes:
   --inactive          Clean inactive sessions (not archived, not updated in N days)
                         This is the DEFAULT mode if no mode is specified.
-                        Always keeps the latest session per directory even if inactive.
-  --archived          Clean archived sessions (archived more than N days ago)
+  --archived          Clean ALL archived sessions
   --orphans           Clean orphan upload directories (session no longer exists in database)
                         Scans uploads directory and removes directories for deleted sessions.
 
 Options:
-  --days <number>     Days threshold (default: 14 for inactive, 7 for archived)
-  --all               Clean ALL matching sessions (ignores time threshold)
-                        WARNING for --inactive --all: This will delete ALL unarchived sessions
-                        except the latest one per directory, including active sessions!
+  --days <number>     Days threshold for inactive mode (default: 14)
+  --all               Clean ALL unarchived sessions (ignores time threshold, inactive mode only)
   --db <path>         Database path (default: ~/.local/share/opencode/opencode.db)
   --dry-run           Show what would be deleted without actually deleting
   --help              Show help
@@ -114,11 +111,11 @@ Examples:
   # Clean sessions not updated in 30 days
   bun session-cleanup.js --days 30
 
-  # Clean ALL inactive sessions (ignores time)
+  # Clean ALL unarchived sessions (ignores time)
   bun session-cleanup.js --all
 
-  # Clean archived sessions older than 7 days
-  bun session-cleanup.js --archived --days 7
+  # Clean all archived sessions
+  bun session-cleanup.js --archived
   
   # Clean orphan upload directories
   bun session-cleanup.js --orphans
@@ -128,17 +125,14 @@ Examples:
 
   # Preview what would be deleted
   bun session-cleanup.js --dry-run
-
-  # Clean archived sessions older than 7 days (preview)
-  bun session-cleanup.js --archived --days 7 --dry-run
 `)
     process.exit(0)
   }
 }
 
-// Set default days based on mode (orphans doesn't need days)
-if (days === null && mode !== "orphans") {
-  days = mode === "inactive" ? 14 : 7
+// Set default days for inactive mode
+if (days === null && mode === "inactive") {
+  days = 14
 }
 
 if (!existsSync(dbPath)) {
@@ -149,63 +143,35 @@ if (!existsSync(dbPath)) {
 const db = new Database(dbPath)
 
 let sessions
-const threshold = cleanAll ? 0 : Date.now() - days * 24 * 60 * 60 * 1000
 
 if (mode === "inactive") {
-  // Get the most recent unarchived session for each directory (to keep at least 1)
-  // Using ROW_NUMBER() window function to find the latest session per directory
-  const keepIds = db.query(`
-    SELECT id FROM (
-      SELECT id, ROW_NUMBER() OVER (PARTITION BY directory ORDER BY time_updated DESC) as rn
-      FROM session
-      WHERE time_archived IS NULL
-    ) WHERE rn = 1
-  `).all().map(row => row.id)
-  
-  const keepSet = new Set(keepIds)
-  
   if (cleanAll) {
-    // For --all mode: delete ALL unarchived sessions regardless of activity
-    // Only keep the latest one per directory (even if it's inactive)
     console.log(`[${getTzTime()}] Cleaning up ALL unarchived sessions (ignoring activity threshold)`)
-    console.log(`[${getTzTime()}] Note: Keeping only the latest session per directory, others will be deleted`)
     console.log(`[${getTzTime()}] Warning: This will delete active sessions too! Use --days N to preserve active sessions.`)
     
     sessions = db.query(`
       SELECT id, directory, title, time_updated 
       FROM session 
       WHERE time_archived IS NULL
-    `).all().filter(s => !keepSet.has(s.id))
+    `).all()
   } else {
+    const threshold = Date.now() - days * 24 * 60 * 60 * 1000
     console.log(`[${getTzTime()}] Cleaning up inactive sessions (not archived, not updated in ${days} days)`)
     console.log(`[${getTzTime()}] Threshold: ${new Date(threshold).toISOString()}`)
-    console.log(`[${getTzTime()}] Note: Keeping the latest session per directory even if inactive`)
     
-    // Delete inactive sessions except the latest one per directory
     sessions = db.query(`
       SELECT id, directory, title, time_updated 
       FROM session 
       WHERE time_archived IS NULL AND time_updated < ? and directory like '%ge_agent%'
-    `).all(threshold).filter(s => !keepSet.has(s.id))
-  }
-} else if (mode === "archived") {
-  if (cleanAll) {
-    sessions = db.query(`
-      SELECT id, directory, title, time_archived 
-      FROM session 
-      WHERE time_archived IS NOT NULL
-    `).all()
-    console.log(`[${getTzTime()}] Cleaning up ALL archived sessions`)
-  } else {
-    console.log(`[${getTzTime()}] Cleaning up archived sessions (archived more than ${days} days ago)`)
-    console.log(`[${getTzTime()}] Threshold: ${new Date(threshold).toISOString()}`)
-    
-    sessions = db.query(`
-      SELECT id, directory, title, time_archived 
-      FROM session 
-      WHERE time_archived IS NOT NULL AND time_archived < ?
     `).all(threshold)
   }
+} else if (mode === "archived") {
+  sessions = db.query(`
+    SELECT id, directory, title, time_archived 
+    FROM session 
+    WHERE time_archived IS NOT NULL
+  `).all()
+  console.log(`[${getTzTime()}] Cleaning up ALL archived sessions`)
 } else if (mode === "orphans") {
   console.log(`[${getTzTime()}] Cleaning up orphan upload directories`)
   
