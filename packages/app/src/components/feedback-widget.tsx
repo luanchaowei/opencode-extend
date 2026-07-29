@@ -11,25 +11,27 @@ export function FeedbackWidget() {
   const language = useLanguage()
   const device = useDevice()
   const dialog = useDialog()
-  const [positionY, setPositionY] = createSignal(Math.max(0, Math.floor((window.innerHeight - 300) / 2)))
+  const [positionY, setPositionY] = createSignal(200)
   const [isDragging, setIsDragging] = createSignal(false)
   const [dragOffsetY, setDragOffsetY] = createSignal(0)
-  
+  let widgetHeight = 168
+
   let widgetRef: HTMLDivElement | undefined
 
   const handleMouseDown = (e: MouseEvent) => {
     if (!widgetRef) return
     setIsDragging(true)
     const rect = widgetRef.getBoundingClientRect()
+    widgetHeight = rect.height
     setDragOffsetY(e.clientY - rect.top)
     e.preventDefault()
   }
 
   const handleMouseMove = (e: MouseEvent) => {
     if (!isDragging()) return
-    const newY = e.clientY - dragOffsetY()
-    const maxY = window.innerHeight - 80
-    setPositionY(Math.max(0, Math.min(newY, maxY)))
+    const newTop = e.clientY - dragOffsetY()
+    const newBottom = window.innerHeight - newTop - widgetHeight
+    setPositionY(Math.max(0, Math.min(newBottom, window.innerHeight - 80)))
   }
 
   const handleMouseUp = () => {
@@ -51,7 +53,7 @@ export function FeedbackWidget() {
       ref={widgetRef}
       class="fixed right-4 z-50 flex flex-col gap-3 cursor-move select-none"
       style={{
-        top: `${positionY()}px`,
+        bottom: `${positionY()}px`,
       }}
       onMouseDown={handleMouseDown}
     >

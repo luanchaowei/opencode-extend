@@ -15,7 +15,7 @@ import { createPathHelpers } from "./file/path"
 
 const AVATAR_COLOR_KEYS = ["pink", "mint", "orange", "purple", "cyan", "lime"] as const
 const DEFAULT_SIDEBAR_WIDTH = 344
-const DEFAULT_FILE_TREE_WIDTH = 250
+const DEFAULT_FILE_TREE_WIDTH = 400
 const DEFAULT_SESSION_WIDTH = 600
 export type AvatarColorKey = (typeof AVATAR_COLOR_KEYS)[number]
 
