@@ -14,7 +14,7 @@ export function FeedbackWidget() {
   const [positionY, setPositionY] = createSignal(200)
   const [isDragging, setIsDragging] = createSignal(false)
   const [dragOffsetY, setDragOffsetY] = createSignal(0)
-  const [collapsed, setCollapsed] = createSignal(true)
+  const [collapsed, setCollapsed] = createSignal(false)
   const [hovered, setHovered] = createSignal(false)
   let widgetHeight = 168
 
@@ -51,7 +51,7 @@ export function FeedbackWidget() {
     window.addEventListener("feedback-widget-expand", expandWidget)
     try {
       const saved = localStorage.getItem("feedbackCollapsed")
-      if (saved === "false") setCollapsed(false)
+      if (saved === "true") setCollapsed(true)
     } catch {}
   })
 
