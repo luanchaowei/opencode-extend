@@ -844,6 +844,8 @@ export const dict = {
   "common.key.pageDown": "Page Down",
   "common.key.insert": "Insert",
   "common.unknown": "未知",
+  "common.expand": "展开",
+  "common.collapse": "收起",
   "error.page.circular": "[循环]",
   "error.globalSDK.noServerAvailable": "无可用服务器",
   "error.globalSDK.serverNotAvailable": "服务器不可用",

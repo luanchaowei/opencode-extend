@@ -666,6 +666,8 @@ export const dict = {
   "common.key.pageDown": "Page Down",
   "common.key.insert": "Insert",
   "common.unknown": "unknown",
+  "common.expand": "Expand",
+  "common.collapse": "Collapse",
 
   "common.time.justNow": "Just now",
   "common.time.minutesAgo.short": "{{count}}m ago",

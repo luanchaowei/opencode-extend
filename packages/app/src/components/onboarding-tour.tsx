@@ -81,6 +81,9 @@ export function OnboardingTour() {
       selector: ".fixed.right-4",
       titleKey: "onboarding.feedback.title",
       descKey: "onboarding.feedback.description",
+      beforeStep: () => {
+        window.dispatchEvent(new CustomEvent("feedback-widget-expand"))
+      },
     },
     {
       selector: null,
@@ -149,6 +152,7 @@ export function OnboardingTour() {
       const fileTreeWasOpen = layout.fileTree.opened()
       step.beforeStep()
       if (step.selector === "#side-panel" && !fileTreeWasOpen) needWait = true
+      if (step.selector === ".fixed.right-4") needWait = true
     }
     if (needWait) {
       await new Promise((r) => setTimeout(r, 350))
