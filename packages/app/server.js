@@ -742,7 +742,7 @@ async function collectMonitorData(serverPort, env) {
     return `${m}分钟`
   }
 
-  function getCmdline(pid) {k
+  function getCmdline(pid) {
     try { return readFileSync(`/proc/${pid}/cmdline`, "utf8").replace(/\0/g, " ").trim() } catch { return "" }
   }
 
