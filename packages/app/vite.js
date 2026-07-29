@@ -553,9 +553,11 @@ export default [
 
       const getTzTime = () => new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false })
 
-      async function collectMonitorData(serverPort) {
+      async function collectMonitorData(serverPort, env) {
         const CLOCK_HZ = 100
-        const mounts = (process.env.VITE_MONITOR_DISK_MOUNTS || "/").split(",").map(m => m.trim()).filter(Boolean)
+        const mounts = (env.VITE_MONITOR_DISK_MOUNTS || "/").split(",").map(m => m.trim()).filter(Boolean)
+        const backendPattern = env.VITE_MONITOR_BACKEND_PATTERN || `opencode serve.*--port ${serverPort}`
+        const frontendPattern = env.VITE_MONITOR_FRONTEND_PATTERN || "bun.*packages/app"
 
         function findPids(pattern) {
           try {
@@ -652,8 +654,8 @@ export default [
           try { return readFileSync(`/proc/${pid}/cmdline`, "utf8").replace(/\0/g, " ").trim() } catch { return "" }
         }
 
-        const backendPids = findPids(`opencode serve.*--port ${serverPort}`)
-        const frontendPids = findPids("bun.*packages/app")
+        const backendPids = findPids(backendPattern)
+        const frontendPids = findPids(frontendPattern)
 
         const t1 = {
           backend: backendPids.map(p => readProcStat(p)).filter(Boolean),
@@ -871,7 +873,7 @@ export default [
               return
             }
             const serverPort = process.env.VITE_OPENCODE_SERVER_PORT || "4096"
-            const result = await collectMonitorData(serverPort)
+            const result = await collectMonitorData(serverPort, process.env)
             res.setHeader("Content-Type", "application/json")
             res.end(JSON.stringify(result))
           } catch (error) {
@@ -919,6 +921,8 @@ export default [
               diskUsageThreshold: process.env.VITE_DISK_USAGE_THRESHOLD || "90",
               caseLibraryDir: process.env.VITE_CASE_LIBRARY_DIR || "",
               monitorDiskMounts: process.env.VITE_MONITOR_DISK_MOUNTS || "/",
+              monitorBackendPattern: process.env.VITE_MONITOR_BACKEND_PATTERN || "",
+              monitorFrontendPattern: process.env.VITE_MONITOR_FRONTEND_PATTERN || "",
             }))
           } catch (error) {
             res.statusCode = 500
@@ -950,6 +954,8 @@ export default [
               diskUsageThreshold: "VITE_DISK_USAGE_THRESHOLD",
               caseLibraryDir: "VITE_CASE_LIBRARY_DIR",
               monitorDiskMounts: "VITE_MONITOR_DISK_MOUNTS",
+              monitorBackendPattern: "VITE_MONITOR_BACKEND_PATTERN",
+              monitorFrontendPattern: "VITE_MONITOR_FRONTEND_PATTERN",
             }
             for (const [key, envKey] of Object.entries(envMap)) {
               if (body[key] !== undefined) {

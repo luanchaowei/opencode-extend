@@ -272,6 +272,16 @@
                 <input id="monitorDiskMounts" type="text" placeholder="/,/run,/dev/shm">
                 <div class="hint">系统监控页面展示的磁盘挂载点，逗号分隔，默认 /</div>
               </div>
+              <div class="field">
+                <label>后端进程匹配规则</label>
+                <input id="monitorBackendPattern" type="text" placeholder="opencode serve.*--port 4096">
+                <div class="hint">pgrep 匹配后端进程的模式，为空时默认 opencode serve.*--port 端口</div>
+              </div>
+              <div class="field">
+                <label>前端进程匹配规则</label>
+                <input id="monitorFrontendPattern" type="text" placeholder="bun.*packages/app">
+                <div class="hint">pgrep 匹配前端进程的模式，为空时默认 bun.*packages/app</div>
+              </div>
             </div>
           </div>
           <button id="save-btn" class="save-btn" onclick="save()">保存配置</button>
@@ -340,6 +350,8 @@
           document.getElementById('diskUsageThreshold').value = data.diskUsageThreshold || '90'
           document.getElementById('caseLibraryDir').value = data.caseLibraryDir || ''
           document.getElementById('monitorDiskMounts').value = data.monitorDiskMounts || '/'
+          document.getElementById('monitorBackendPattern').value = data.monitorBackendPattern || ''
+          document.getElementById('monitorFrontendPattern').value = data.monitorFrontendPattern || ''
           showPanel('main')
           fetchStats()
         } else {
@@ -372,6 +384,8 @@
             diskUsageThreshold: document.getElementById('diskUsageThreshold').value,
             caseLibraryDir: document.getElementById('caseLibraryDir').value,
             monitorDiskMounts: document.getElementById('monitorDiskMounts').value,
+            monitorBackendPattern: document.getElementById('monitorBackendPattern').value,
+            monitorFrontendPattern: document.getElementById('monitorFrontendPattern').value,
           })
         })
         if (resp.ok) {
