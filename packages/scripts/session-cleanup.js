@@ -157,7 +157,7 @@ if (mode === "inactive") {
   } else {
     const threshold = Date.now() - days * 24 * 60 * 60 * 1000
     console.log(`[${getTzTime()}] Cleaning up inactive sessions (not archived, not updated in ${days} days)`)
-    console.log(`[${getTzTime()}] Threshold: ${new Date(threshold).toISOString()}`)
+    console.log(`[${getTzTime()}] Threshold: ${new Date(threshold).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false })}`)
     
     sessions = db.query(`
       SELECT id, directory, title, time_updated 
@@ -289,7 +289,7 @@ if (dryRun) {
     const uploadPath = join(session.directory, "uploads", session.id)
     const hasUploads = existsSync(uploadPath)
     console.log(
-      `[${getTzTime()}]   - ${session.id}: "${session.title}" (${timeLabel}: ${new Date(timeField).toISOString()}, dir: ${session.directory})${hasUploads ? ` [uploads: ${uploadPath}]` : ""}`,
+      `[${getTzTime()}]   - ${session.id}: "${session.title}" (${timeLabel}: ${new Date(timeField).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false })}, dir: ${session.directory})${hasUploads ? ` [uploads: ${uploadPath}]` : ""}`,
     )
   }
   console.log(`[${getTzTime()}] Total: ${sessions.length} sessions`)
@@ -329,7 +329,7 @@ for (const session of sessions) {
     
     deleted++
     console.log(
-      `[${getTzTime()}] Deleted: ${session.id} "${session.title}" (${timeLabel}: ${new Date(timeField).toISOString()}, dir: ${session.directory})`,
+      `[${getTzTime()}] Deleted: ${session.id} "${session.title}" (${timeLabel}: ${new Date(timeField).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false })}, dir: ${session.directory})`,
     )
   } catch (error) {
     failed++
