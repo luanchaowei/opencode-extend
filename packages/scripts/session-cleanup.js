@@ -63,6 +63,8 @@ let dbPath = join(homedir(), ".local/share/opencode/opencode.db")
 let dryRun = false
 let cleanAll = false
 
+const validOptions = new Set(["--inactive", "--archived", "--orphans", "--days", "--db", "--dry-run", "--all", "--help"])
+
 for (let i = 0; i < args.length; i++) {
   if (args[i] === "--inactive") {
     mode = "inactive"
@@ -72,9 +74,17 @@ for (let i = 0; i < args.length; i++) {
     mode = "orphans"
   } else if (args[i] === "--days") {
     const daysArg = parseInt(args[++i])
-    days = daysArg >= 0 ? daysArg : null
+    if (isNaN(daysArg) || daysArg < 0) {
+      console.error(`Invalid value for --days: ${args[i]}`)
+      process.exit(1)
+    }
+    days = daysArg
   } else if (args[i] === "--db") {
     dbPath = args[++i]
+    if (!dbPath) {
+      console.error(`--db requires a path argument`)
+      process.exit(1)
+    }
   } else if (args[i] === "--dry-run") {
     dryRun = true
   } else if (args[i] === "--all") {
@@ -127,6 +137,14 @@ Examples:
   bun session-cleanup.js --dry-run
 `)
     process.exit(0)
+  } else if (args[i].startsWith("-")) {
+    console.error(`Unknown option: ${args[i]}`)
+    console.error(`Run 'bun session-cleanup.js --help' for usage.`)
+    process.exit(1)
+  } else {
+    console.error(`Unknown argument: ${args[i]}`)
+    console.error(`Run 'bun session-cleanup.js --help' for usage.`)
+    process.exit(1)
   }
 }
 

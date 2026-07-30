@@ -36,15 +36,52 @@ if (!existsSync(dbPath)) {
   process.exit(1)
 }
 
-const sql = process.argv.slice(2).join(" ")
-if (!sql) {
-  console.log(`Usage: bun scripts/query-stats.js <sql>`)
+const args = process.argv.slice(2)
+
+if (args.includes("--help") || args.includes("-h")) {
+  console.log(`Usage: bun scripts/query-stats.js [options] <sql>`)
+  console.log(`       bun scripts/query-stats.js --help`)
+  console.log()
+  console.log(`Query the stats database in read-only mode.`)
+  console.log()
+  console.log(`Options:`)
+  console.log(`  --sql <sql>    SQL statement (alternative to positional argument)`)
+  console.log(`  --help, -h     Show this help`)
+  console.log()
   console.log(`  DB:  ${dbPath}`)
+  console.log()
   console.log(`Examples:`)
   console.log(`  bun scripts/query-stats.js "SELECT * FROM heartbeats"`)
-  console.log(`  bun scripts/query-stats.js "SELECT * FROM daily_stats ORDER BY day_key DESC LIMIT 5"`)
+  console.log(`  bun scripts/query-stats.js --sql "SELECT * FROM daily_stats ORDER BY day_key DESC LIMIT 5"`)
   console.log(`  bun scripts/query-stats.js "SELECT * FROM counters"`)
+  console.log(`  bun scripts/query-stats.js "SELECT COUNT(*) FROM session_day_seen"`)
   process.exit(0)
+}
+
+let sql = ""
+
+for (let i = 0; i < args.length; i++) {
+  if (args[i] === "--sql") {
+    sql = args[++i] || ""
+    if (!sql) {
+      console.error(`--sql requires a SQL argument`)
+      process.exit(1)
+    }
+  } else if (args[i] === "--help" || args[i] === "-h") {
+    continue
+  } else if (args[i].startsWith("-")) {
+    console.error(`Unknown option: ${args[i]}`)
+    console.error(`Run 'bun scripts/query-stats.js --help' for usage.`)
+    process.exit(1)
+  } else {
+    sql = sql ? sql + " " + args[i] : args[i]
+  }
+}
+
+if (!sql) {
+  console.error(`Error: SQL statement required`)
+  console.error(`Run 'bun scripts/query-stats.js --help' for usage.`)
+  process.exit(1)
 }
 
 const db = new Database(dbPath, { readonly: true })

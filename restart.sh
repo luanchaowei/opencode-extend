@@ -19,6 +19,11 @@ for arg in "$@"; do
     MODE="$arg"
   elif [ "$arg" = "--build" ]; then
     BUILD=true
+  else
+    echo "无效参数: $arg"
+    echo "用法: bash restart.sh [dev|prod] [--build]"
+    echo "运行 'bash restart.sh --help' 查看帮助"
+    exit 1
   fi
 done
 
