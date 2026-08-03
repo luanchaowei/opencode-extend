@@ -196,8 +196,7 @@ const FileTreeNode = (
         <span
           classList={{
             "flex-1 min-w-0 text-12-medium whitespace-nowrap truncate": true,
-            "text-text-weaker": local.node.ignored,
-            "text-text-weak": !local.node.ignored && !active(),
+            "text-text-weak": !active(),
           }}
           style={active() ? color() : undefined}
           title={local.node.name}
@@ -629,14 +628,6 @@ export default function FileTree(props: {
                 >
                   <div class="w-4 shrink-0" />
                   <Switch>
-                    <Match when={node.ignored}>
-                      <FileIcon
-                        node={node}
-                        class="size-4 filetree-icon filetree-icon--mono"
-                        style="color: var(--icon-weak-base)"
-                        mono
-                      />
-                    </Match>
                     <Match when={active()}>
                       <FileIcon
                         node={node}
@@ -645,7 +636,7 @@ export default function FileTree(props: {
                         mono
                       />
                     </Match>
-                    <Match when={!node.ignored}>
+                    <Match when={true}>
                       <span class="filetree-iconpair size-4">
                         <FileIcon
                           node={node}
