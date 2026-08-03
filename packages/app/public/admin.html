@@ -117,7 +117,7 @@
             <div class="stat-card stat-card-amber">
               <span class="help-icon">ⓘ<span class="help-tooltip">客户端发送给AI的消息总数</span></span>
               <div class="card-value card-value-amber" id="total-messages">0</div>
-              <div class="card-label">总问题</div>
+              <div class="card-label">总消息数</div>
             </div>
           </div>
 
@@ -151,7 +151,7 @@
               <div style="height:140px"><canvas id="chart-new-sessions"></canvas></div>
             </div>
             <div class="card" data-chart-id="chart-messages">
-              <h2 style="font-size:14px;font-weight:600;color:#fff;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between">问题数<span id="chart-messages-stats" style="font-size:11px;font-weight:500;color:#f472b6"></span></h2>
+              <h2 style="font-size:14px;font-weight:600;color:#fff;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between">消息数量<span id="chart-messages-stats" style="font-size:11px;font-weight:500;color:#f472b6"></span></h2>
               <div style="height:140px"><canvas id="chart-messages"></canvas></div>
             </div>
           </div>
@@ -496,7 +496,7 @@
       { id: 'chart-active-sessions', label: '在线会话', color: '#22c55e', bgColor: 'rgba(34,197,94,0.1)', visible: true },
       { id: 'chart-new-clients', label: '新增人数', color: '#f59e0b', bgColor: 'rgba(245,158,11,0.1)', visible: true },
       { id: 'chart-new-sessions', label: '新建会话', color: '#a855f7', bgColor: 'rgba(168,85,247,0.1)', visible: true },
-      { id: 'chart-messages', label: '问题数', color: '#ec4899', bgColor: 'rgba(236,72,153,0.1)', visible: true },
+      { id: 'chart-messages', label: '消息数量', color: '#ec4899', bgColor: 'rgba(236,72,153,0.1)', visible: true },
     ]
 
     function loadChartVisibility() {
