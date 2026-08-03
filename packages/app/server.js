@@ -552,7 +552,10 @@ async function handleAPI(req, server) {
     }
     const counters = statsDb.getCounters()
     const range = url.searchParams.get("range") || "7d"
-    const trend = statsDb.getAggregatedTrend(range)
+    const granularity = url.searchParams.get("granularity") || "day"
+    const startDate = url.searchParams.get("start") || ""
+    const endDate = url.searchParams.get("end") || ""
+    const trend = statsDb.getAggregatedTrend(range, granularity, startDate, endDate)
 
     return jsonResponse({
       summary: {

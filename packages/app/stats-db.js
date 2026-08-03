@@ -283,17 +283,36 @@ export function createStatsDb(Database, dbPath, statsJsonPath) {
     return { totalClientsEver, totalSessionsEverCreated, totalMessagesEver }
   }
 
-  function getAggregatedTrend(range) {
-    const days = { "7d": 7, "1m": 30, "1q": 90, "1y": 365 }[range] || 7
-    const cutoff = getDayKey(Date.now() - days * 86400000)
+  function getAggregatedTrend(range, granularity, startDate, endDate) {
+    let cutoff, whereClause, params, aggExpr
 
-    let aggExpr
-    if (range === "7d" || range === "1m") {
-      aggExpr = "day_key"
-    } else if (range === "1q") {
-      aggExpr = "strftime('%Y-W%W', day_key)"
+    if (range === "custom" && startDate) {
+      cutoff = startDate
+      whereClause = "day_key >= ?"
+      params = [cutoff]
+      if (endDate) {
+        whereClause += " AND day_key <= ?"
+        params.push(endDate)
+      }
+      if (granularity === "month") {
+        aggExpr = "substr(day_key, 1, 7)"
+      } else if (granularity === "week") {
+        aggExpr = "strftime('%Y-W%W', day_key)"
+      } else {
+        aggExpr = "day_key"
+      }
     } else {
-      aggExpr = "substr(day_key, 1, 7)"
+      const days = { "7d": 7, "1m": 30, "1q": 90, "1y": 365 }[range] || 7
+      cutoff = getDayKey(Date.now() - days * 86400000)
+      whereClause = "day_key >= ?"
+      params = [cutoff]
+      if (range === "7d" || range === "1m") {
+        aggExpr = "day_key"
+      } else if (range === "1q") {
+        aggExpr = "strftime('%Y-W%W', day_key)"
+      } else {
+        aggExpr = "substr(day_key, 1, 7)"
+      }
     }
 
     const rows = db
@@ -303,17 +322,17 @@ export function createStatsDb(Database, dbPath, statsJsonPath) {
              SUM(new_sessions) as new_sessions,
              COALESCE(SUM(new_clients), 0) as new_clients,
              COALESCE(SUM(messages_sent), 0) as messages_sent
-           FROM daily_stats WHERE day_key >= ? GROUP BY agg_key
+           FROM daily_stats WHERE ${whereClause} GROUP BY agg_key
          ),
          cds AS (
            SELECT ${aggExpr} as agg_key,
              COUNT(DISTINCT client_ip) as active_clients
-           FROM client_day_seen WHERE day_key >= ? GROUP BY agg_key
+           FROM client_day_seen WHERE ${whereClause} GROUP BY agg_key
          ),
          sds AS (
            SELECT ${aggExpr} as agg_key,
              COUNT(DISTINCT session_id) as active_sessions
-           FROM session_day_seen WHERE day_key >= ? GROUP BY agg_key
+           FROM session_day_seen WHERE ${whereClause} GROUP BY agg_key
          )
          SELECT
            ds.agg_key as label,
@@ -327,7 +346,7 @@ export function createStatsDb(Database, dbPath, statsJsonPath) {
          LEFT JOIN sds ON ds.agg_key = sds.agg_key
          ORDER BY ds.agg_key`,
       )
-      .all(cutoff, cutoff, cutoff)
+      .all(...params, ...params, ...params)
 
     return rows
   }
