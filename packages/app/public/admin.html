@@ -70,17 +70,27 @@
   </style>
 </head>
 <body>
-  <div id="no-token" class="no-token" style="display:none">缺少 token 参数，请通过 URL 传入: /admin.html?token=xxx</div>
-  <div id="loading" class="loading" style="display:none">验证中...</div>
-  <div id="denied" class="denied" style="display:none">无权限访问，token 验证失败</div>
+  <div id="no-token" class="no-token" style="display:none"></div>
+  <div id="loading" class="loading" style="display:none">加载中...</div>
+  <div id="denied" class="denied" style="display:none">无权限访问</div>
   <div id="main" class="layout" style="display:none">
     <nav class="sidebar">
       <div class="sidebar-brand">管理面板</div>
-      <div class="sidebar-item active" onclick="switchTab('stats')">使用统计</div>
-      <div class="sidebar-item" onclick="switchTab('monitor')">系统监控</div>
-      <div class="sidebar-item" onclick="switchTab('settings')">系统设置</div>
+      <div id="nav-stats" class="sidebar-item active" onclick="switchTab('stats')">使用统计</div>
+      <div id="nav-monitor" class="sidebar-item" onclick="switchTab('monitor')">系统监控</div>
+      <div id="nav-settings" class="sidebar-item" onclick="switchTab('settings')">系统设置</div>
+      <div id="nav-users" class="sidebar-item" onclick="switchTab('users')" style="display:none">用户管理</div>
     </nav>
     <div class="content">
+      <div style="display:flex;align-items:center;justify-content:flex-end;padding:8px 24px 8px 0;gap:12px">
+        <div style="position:relative">
+          <span id="admin-user-btn" style="font-size:13px;color:#e5e5e5;cursor:pointer" onclick="toggleAdminUserMenu()">-</span>
+          <div id="admin-user-menu" style="display:none;position:absolute;top:calc(100% + 4px);right:0;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:6px;padding:4px 0;z-index:300;min-width:120px;box-shadow:0 4px 12px rgba(0,0,0,0.4)">
+            <div style="padding:6px 12px;font-size:12px;color:#888;cursor:default;border-bottom:1px solid #2a2a2a;margin-bottom:4px" id="admin-user-role">-</div>
+            <div style="padding:6px 12px;font-size:12px;color:#f87171;cursor:pointer" onclick="logout()" onmouseover="this.style.background='#dc262620'" onmouseout="this.style.background=''">退出</div>
+          </div>
+        </div>
+      </div>
       <div id="tab-stats" style="display:block">
         <div id="stats-error" style="display:none" class="card error-msg"></div>
         <div id="stats-content" style="display:none">
@@ -235,6 +245,19 @@
         </div>
       </div>
 
+      <div id="tab-users" style="display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
+          <h1 class="page-title">用户管理</h1>
+          <button class="range-btn active" onclick="openUserDialog()">+ 新增用户</button>
+        </div>
+        <div class="card">
+          <table>
+            <thead><tr><th>用户名</th><th>角色</th><th>创建时间</th><th>操作</th></tr></thead>
+            <tbody id="users-table"></tbody>
+          </table>
+        </div>
+      </div>
+
       <div id="tab-settings" style="display:none">
         <div class="page-title">系统设置</div>
         <div style="">
@@ -313,9 +336,47 @@
     </div>
   </div>
 
+  <div id="user-dialog-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:300;align-items:center;justify-content:center">
+    <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:12px;padding:24px;width:100%;max-width:400px;box-shadow:0 8px 32px rgba(0,0,0,0.4)">
+      <h2 id="user-dialog-title" style="font-size:16px;font-weight:600;color:#fff;margin-bottom:20px">新增用户</h2>
+      <div id="user-dialog-msg" class="msg" style="margin-bottom:12px"></div>
+      <div class="field" style="margin-bottom:16px">
+        <label>用户名</label>
+        <input id="dialog-username" type="text" placeholder="用户名" style="width:100%;background:#0a0a0a;border:1px solid #2a2a2a;border-radius:6px;padding:8px 12px;font-size:13px;color:#e5e5e5;box-sizing:border-box">
+      </div>
+      <div class="field" style="margin-bottom:16px">
+        <label>密码</label>
+        <input id="dialog-password" type="password" placeholder="至少8位，含3种字符类型" style="width:100%;background:#0a0a0a;border:1px solid #2a2a2a;border-radius:6px;padding:8px 12px;font-size:13px;color:#e5e5e5;box-sizing:border-box">
+        <div class="hint">数字/大写/小写/特殊字符中的3种，修改时留空表示不修改</div>
+      </div>
+      <div class="field" style="margin-bottom:20px">
+        <label>角色</label>
+        <select id="dialog-role" class="range-btn" style="width:100%">
+          <option value="user">普通用户</option>
+          <option value="admin">管理员</option>
+        </select>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:8px">
+        <button class="range-btn" onclick="closeUserDialog()">取消</button>
+        <button class="range-btn active" id="user-dialog-submit" onclick="submitUserDialog()">确定</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="confirm-dialog-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:300;align-items:center;justify-content:center">
+    <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:12px;padding:24px;width:100%;max-width:340px;box-shadow:0 8px 32px rgba(0,0,0,0.4)">
+      <h2 id="confirm-dialog-title" style="font-size:15px;font-weight:600;color:#fff;margin-bottom:8px">确认删除</h2>
+      <p id="confirm-dialog-msg" style="font-size:13px;color:#888;margin-bottom:20px"></p>
+      <div style="display:flex;justify-content:flex-end;gap:8px">
+        <button class="range-btn" onclick="closeConfirmDialog()">取消</button>
+        <button class="range-btn" style="background:#dc2626;color:#fff;border-color:#dc2626" id="confirm-dialog-ok">确定</button>
+      </div>
+    </div>
+  </div>
+
   <script>
-    const token = new URLSearchParams(window.location.search).get('token')
     let authed = false
+    let currentUser = null
     let currentRange = '7d'
     let charts = {}
     let refreshTimer = null
@@ -328,22 +389,40 @@
       document.getElementById('no-token').style.display = 'none'
       document.getElementById('loading').style.display = 'none'
       document.getElementById('denied').style.display = 'none'
-      document.getElementById('main').style.display = 'none'
-      document.getElementById(id).style.display = id === 'main' ? 'flex' : ''
+      document.getElementById('main').style.display = id === 'main' ? 'flex' : ''
     }
+
+    function toggleAdminUserMenu() {
+      const menu = document.getElementById('admin-user-menu')
+      menu.style.display = menu.style.display === 'none' ? 'block' : 'none'
+    }
+
+    document.addEventListener('click', (e) => {
+      const menu = document.getElementById('admin-user-menu')
+      const btn = document.getElementById('admin-user-btn')
+      if (menu && menu.style.display !== 'none' && !e.target.closest('#admin-user-menu') && !e.target.closest('#admin-user-btn')) {
+        menu.style.display = 'none'
+      }
+    })
 
     function switchTab(tab) {
       currentTab = tab
-      const tabNames = { stats: '使用统计', monitor: '系统监控', settings: '系统设置' }
+      const tabNames = { stats: '使用统计', monitor: '系统监控', settings: '系统设置', users: '用户管理' }
       document.querySelectorAll('.sidebar-item').forEach(el => {
         el.classList.toggle('active', el.textContent === tabNames[tab])
       })
       document.getElementById('tab-stats').style.display = tab === 'stats' ? 'block' : 'none'
       document.getElementById('tab-monitor').style.display = tab === 'monitor' ? 'block' : 'none'
       document.getElementById('tab-settings').style.display = tab === 'settings' ? 'block' : 'none'
+      document.getElementById('tab-users').style.display = tab === 'users' ? 'block' : 'none'
       if (tab === 'stats') { fetchStats(); stopMonitor() }
       if (tab === 'monitor') { startMonitor() }
       if (tab === 'settings') { stopMonitor() }
+      if (tab === 'users') { stopMonitor(); fetchUsers() }
+    }
+
+    function logout() {
+      fetch('/api/logout', { method: 'POST' }).finally(() => { window.location.href = '/login' })
     }
 
     function showMsg(text, type) {
@@ -355,10 +434,22 @@
     }
 
     async function loadConfig() {
-      if (!token) { showPanel('no-token'); return }
       showPanel('loading')
       try {
-        const resp = await fetch('/api/config/runtime?token=' + encodeURIComponent(token))
+        const meResp = await fetch('/api/auth/me')
+        if (!meResp.ok) { window.location.href = '/login'; return }
+        currentUser = await meResp.json()
+        if (currentUser.username) {
+          document.getElementById('admin-user-btn').textContent = currentUser.username
+          const roleLabel = currentUser.role === 'super_admin' ? '超级管理员' : currentUser.role === 'admin' ? '管理员' : '普通用户'
+          document.getElementById('admin-user-role').textContent = roleLabel
+        } else {
+          document.getElementById('admin-user-btn').style.display = 'none'
+        }
+        if (currentUser.role === 'super_admin') {
+          document.getElementById('nav-users').style.display = 'block'
+        }
+        const resp = await fetch('/api/config/runtime')
         if (resp.ok) {
           authed = true
           const data = await resp.json()
@@ -392,7 +483,7 @@
       btn.disabled = true
       btn.textContent = '保存中...'
       try {
-        const resp = await fetch('/api/config/runtime?token=' + encodeURIComponent(token), {
+        const resp = await fetch('/api/config/runtime', {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -470,9 +561,9 @@
     })
 
     async function fetchStats() {
-      if (!authed || !token) return
+      if (!authed) return
       try {
-        let url = '/api/stats?token=' + encodeURIComponent(token) + '&range=' + currentRange
+        let url = '/api/stats?range=' + currentRange
         if (currentRange === 'custom' && customRange) {
           url += '&start=' + customRange.start + '&end=' + customRange.end + '&granularity=' + customRange.granularity
         }
@@ -719,9 +810,9 @@
     }
 
     async function fetchMonitor() {
-      if (!authed || !token) return
+      if (!authed) return
       try {
-        const resp = await fetch('/api/system/monitor?token=' + encodeURIComponent(token))
+        const resp = await fetch('/api/system/monitor')
         const data = await resp.json()
         if (!resp.ok) return
 
@@ -784,6 +875,108 @@
       } catch (err) {
         document.getElementById('monitor-content').innerHTML = '<div style="color:#f87171;font-size:13px">获取监控数据失败: ' + err.message + '</div>'
       }
+    }
+
+    async function fetchUsers() {
+      try {
+        const resp = await fetch('/api/users')
+        if (!resp.ok) return
+        const data = await resp.json()
+        usersCache = data.users || []
+        const tbody = document.getElementById('users-table')
+        tbody.innerHTML = (data.users || []).map(u => {
+          const roleLabel = u.role === 'super_admin' ? '超级管理员' : u.role === 'admin' ? '管理员' : '普通用户'
+          const d = new Date(u.created_at)
+          const pad = (n) => String(n).padStart(2, '0')
+          const dateStr = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+          let actions = '-'
+          if (u.role !== 'super_admin') {
+            actions = `<button class="range-btn" onclick="openUserDialog(${u.id})">修改</button> <button class="range-btn" onclick="deleteUser(${u.id})">删除</button>`
+          }
+          return `<tr><td>${u.username}</td><td>${roleLabel}</td><td>${dateStr}</td><td>${actions}</td></tr>`
+        }).join('')
+      } catch {}
+    }
+
+    let usersCache = []
+    let editingUserId = null
+
+    function openUserDialog(id) {
+      editingUserId = id || null
+      const user = id ? usersCache.find(u => u.id === id) : null
+      document.getElementById('user-dialog-title').textContent = id ? '修改用户' : '新增用户'
+      document.getElementById('dialog-username').value = user ? user.username : ''
+      document.getElementById('dialog-password').value = ''
+      document.getElementById('dialog-role').value = user ? user.role : 'user'
+      document.getElementById('dialog-username').disabled = !!id
+      const overlay = document.getElementById('user-dialog-overlay')
+      overlay.style.display = 'flex'
+      if (!id) document.getElementById('dialog-username').focus()
+    }
+
+    function closeUserDialog() {
+      document.getElementById('user-dialog-overlay').style.display = 'none'
+      editingUserId = null
+    }
+
+    async function submitUserDialog() {
+      const username = document.getElementById('dialog-username').value.trim()
+      const password = document.getElementById('dialog-password').value
+      const role = document.getElementById('dialog-role').value
+      const msgEl = document.getElementById('user-dialog-msg')
+      msgEl.style.display = 'none'
+
+      if (editingUserId) {
+        const body = {}
+        if (password) body.password = password
+        body.role = role
+        try {
+          const resp = await fetch('/api/users/' + editingUserId, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+          const data = await resp.json()
+          if (resp.ok) { closeUserDialog(); fetchUsers() }
+          else { msgEl.textContent = data.error || '修改失败'; msgEl.className = 'msg msg-error'; msgEl.style.display = 'block' }
+        } catch { msgEl.textContent = '网络错误'; msgEl.className = 'msg msg-error'; msgEl.style.display = 'block' }
+      } else {
+        if (!username || !password) { msgEl.textContent = '请填写用户名和密码'; msgEl.className = 'msg msg-error'; msgEl.style.display = 'block'; return }
+        try {
+          const resp = await fetch('/api/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password, role }) })
+          const data = await resp.json()
+          if (resp.ok) { closeUserDialog(); fetchUsers() }
+          else { msgEl.textContent = data.error || '创建失败'; msgEl.className = 'msg msg-error'; msgEl.style.display = 'block' }
+        } catch { msgEl.textContent = '网络错误'; msgEl.className = 'msg msg-error'; msgEl.style.display = 'block' }
+      }
+    }
+
+    let confirmCallback = null
+
+    function openConfirmDialog(title, msg, callback) {
+      document.getElementById('confirm-dialog-title').textContent = title
+      document.getElementById('confirm-dialog-msg').textContent = msg
+      confirmCallback = callback
+      const okBtn = document.getElementById('confirm-dialog-ok')
+      okBtn.onclick = () => {
+        const cb = confirmCallback
+        closeConfirmDialog()
+        if (cb) cb()
+      }
+      document.getElementById('confirm-dialog-overlay').style.display = 'flex'
+    }
+
+    function closeConfirmDialog() {
+      document.getElementById('confirm-dialog-overlay').style.display = 'none'
+      confirmCallback = null
+    }
+
+    async function deleteUser(id) {
+      const user = usersCache.find(u => u.id === id)
+      const name = user ? user.username : ''
+      openConfirmDialog('确认删除', `确定删除用户「${name}」吗？此操作不可撤销。`, async () => {
+        try {
+          const resp = await fetch('/api/users/' + id, { method: 'DELETE' })
+          if (resp.ok) { fetchUsers() }
+          else { const data = await resp.json(); alert(data.error || '删除失败') }
+        } catch { alert('网络错误') }
+      })
     }
 
     loadChartVisibility()

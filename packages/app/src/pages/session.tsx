@@ -378,6 +378,7 @@ export default function Page() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ clientIP: ip, sessions, timestamp: Date.now() }),
       })
+      if (res.status === 401) { window.location.href = "/login"; return }
       const data = await res.json()
       if (device.isOwnProject(sdk.directory) && data.buildTime) {
         if (!firstHeartbeat) {
@@ -389,7 +390,8 @@ export default function Page() {
         localStorage.setItem("buildTime", String(data.buildTime))
         firstHeartbeat = false
       }
-    } catch {}
+    } catch {
+    }
   }
 
   let heartbeatInterval: ReturnType<typeof setInterval> | undefined

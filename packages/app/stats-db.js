@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, renameSync } from "node:fs"
 import { dirname } from "node:path"
 import { mkdirSync } from "node:fs"
+import { randomBytes, createHash } from "node:crypto"
 
 const getTzTime = () => new Date().toLocaleString("zh-CN", { timeZone: "Asia/Shanghai", hour12: false })
 
@@ -81,10 +82,22 @@ export function createStatsDb(Database, dbPath, statsJsonPath) {
     CREATE INDEX IF NOT EXISTS idx_cds_day ON client_day_seen(day_key);
     CREATE INDEX IF NOT EXISTS idx_sds_day ON session_day_seen(day_key);
     CREATE INDEX IF NOT EXISTS idx_hb_last ON heartbeats(last_seen);
+    CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      username TEXT UNIQUE NOT NULL,
+      password TEXT NOT NULL,
+      salt TEXT NOT NULL,
+      role TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    );
   `)
 
   db.query("INSERT OR IGNORE INTO counters VALUES ('totalSessionsEverCreated', 0)").run()
   db.query("INSERT OR IGNORE INTO counters VALUES ('totalMessagesEver', 0)").run()
+
+  try { db.exec("ALTER TABLE heartbeats ADD COLUMN user_id INTEGER DEFAULT NULL") } catch {}
+  try { db.exec("ALTER TABLE heartbeat_sessions ADD COLUMN user_id INTEGER DEFAULT NULL") } catch {}
 
   migrateFromJson(statsJsonPath)
 
@@ -382,6 +395,89 @@ export function createStatsDb(Database, dbPath, statsJsonPath) {
     db.query("DELETE FROM daily_stats WHERE day_key < ?").run(cutoffDayKey)
   }
 
+  function hashPassword(password, salt) {
+    return createHash("sha256").update(password + salt).digest("hex")
+  }
+
+  function validatePassword(pwd) {
+    if (!pwd || pwd.length < 8) return false
+    let types = 0
+    if (/[0-9]/.test(pwd)) types++
+    if (/[a-z]/.test(pwd)) types++
+    if (/[A-Z]/.test(pwd)) types++
+    if (/[^a-zA-Z0-9]/.test(pwd)) types++
+    return types >= 3
+  }
+
+  function ensureSuperAdmin(username, password) {
+    const row = db.query("SELECT id, password, salt FROM users WHERE username = ? AND role = 'super_admin'").get(username)
+    const salt = row?.salt || randomBytes(16).toString("hex")
+    const hash = hashPassword(password, salt)
+    if (!row) {
+      db.query("INSERT INTO users (username, password, salt, role, created_at, updated_at) VALUES (?, ?, ?, 'super_admin', ?, ?)").run(
+        username, hash, salt, Date.now(), Date.now()
+      )
+      console.log(`[${getTzTime()}] super_admin '${username}' created`)
+    } else if (row.password !== hash) {
+      db.query("UPDATE users SET password = ?, salt = ?, updated_at = ? WHERE id = ?").run(hash, salt, Date.now(), row.id)
+      console.log(`[${getTzTime()}] super_admin '${username}' password updated`)
+    }
+  }
+
+  function createUser(username, password, role) {
+    if (!username || !password || !role) return { error: "Missing required fields" }
+    if (role !== "admin" && role !== "user") return { error: "Invalid role" }
+    if (!validatePassword(password)) return { error: "Password must be at least 8 chars with 3 of: digits, lowercase, uppercase, special chars" }
+    const existing = db.query("SELECT 1 FROM users WHERE username = ?").get(username)
+    if (existing) return { error: "Username already exists" }
+    const salt = randomBytes(16).toString("hex")
+    const hash = hashPassword(password, salt)
+    const now = Date.now()
+    const result = db.query("INSERT INTO users (username, password, salt, role, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)").run(
+      username, hash, salt, role, now, now
+    )
+    return { id: result.lastInsertRowid, username, role }
+  }
+
+  function deleteUser(id) {
+    const row = db.query("SELECT role FROM users WHERE id = ?").get(id)
+    if (!row) return { error: "User not found" }
+    if (row.role === "super_admin") return { error: "Cannot delete super_admin" }
+    db.query("DELETE FROM users WHERE id = ?").run(id)
+    return { success: true }
+  }
+
+  function listUsers() {
+    return db.query("SELECT id, username, role, created_at, updated_at FROM users ORDER BY created_at ASC").all()
+  }
+
+  function verifyUser(username, password) {
+    const row = db.query("SELECT id, username, role, password, salt FROM users WHERE username = ?").get(username)
+    if (!row) return null
+    const hash = hashPassword(password, row.salt)
+    if (hash !== row.password) return null
+    return { id: row.id, username: row.username, role: row.role }
+  }
+
+  function updateUserPassword(id, password) {
+    if (!validatePassword(password)) return { error: "Password must be at least 8 chars with 3 of: digits, lowercase, uppercase, special chars" }
+    const row = db.query("SELECT role FROM users WHERE id = ?").get(id)
+    if (!row) return { error: "User not found" }
+    const salt = randomBytes(16).toString("hex")
+    const hash = hashPassword(password, salt)
+    db.query("UPDATE users SET password = ?, salt = ?, updated_at = ? WHERE id = ?").run(hash, salt, Date.now(), id)
+    return { success: true }
+  }
+
+  function updateUserRole(id, role) {
+    if (role !== "admin" && role !== "user") return { error: "Invalid role" }
+    const row = db.query("SELECT role FROM users WHERE id = ?").get(id)
+    if (!row) return { error: "User not found" }
+    if (row.role === "super_admin") return { error: "Cannot change super_admin role" }
+    db.query("UPDATE users SET role = ?, updated_at = ? WHERE id = ?").run(role, Date.now(), id)
+    return { success: true }
+  }
+
   function close() {
     rawDb.close()
   }
@@ -398,6 +494,14 @@ export function createStatsDb(Database, dbPath, statsJsonPath) {
     getBusySessions,
     updateSessionStatus,
     cleanupOldStats,
+    ensureSuperAdmin,
+    createUser,
+    deleteUser,
+    listUsers,
+    verifyUser,
+    updateUserPassword,
+    updateUserRole,
+    validatePassword,
     close,
   }
 }

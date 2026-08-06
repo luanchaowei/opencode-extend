@@ -7,21 +7,30 @@ export const { use: useDevice, provider: DeviceProvider } = createSimpleContext(
   init: () => {
     const [deviceInfo] = createResource(async () => {
       try {
-        const response = await fetch('/device/info')
-        if (response.ok) {
-          const { clientIP, contactAdmin, feedbackUrl, caseLibraryDir, helpDocUrl, downloadCutoffText, fileTreePollInterval, heartbeatInterval, diskUsageThreshold } = await response.json()
-           return { clientIP, contactAdmin, feedbackUrl, caseLibraryDir, helpDocUrl, downloadCutoffText, fileTreePollInterval, heartbeatInterval, diskUsageThreshold }
+        const [devResult, authResult] = await Promise.allSettled([
+          fetch('/device/info'),
+          fetch('/api/auth/me'),
+        ])
+        const devResp = devResult.status === 'fulfilled' ? devResult.value : null
+        const authResp = authResult.status === 'fulfilled' ? authResult.value : null
+        let authData: { username: string; role: string } | null = null
+        if (authResp?.ok) authData = await authResp.json()
+        if (devResp?.ok) {
+          const { clientIP, contactAdmin, feedbackUrl, caseLibraryDir, helpDocUrl, downloadCutoffText, fileTreePollInterval, heartbeatInterval, diskUsageThreshold } = await devResp.json()
+           return { clientIP, contactAdmin, feedbackUrl, caseLibraryDir, helpDocUrl, downloadCutoffText, fileTreePollInterval, heartbeatInterval, diskUsageThreshold, username: authData?.username ?? "", role: authData?.role ?? "" }
          }
        } catch (error) {
          console.error('Failed to get device info:', error)
        }
-       return { clientIP: null, contactAdmin: [], feedbackUrl: "", caseLibraryDir: "", helpDocUrl: "", downloadCutoffText: "", fileTreePollInterval: 5000, heartbeatInterval: 60000, diskUsageThreshold: 90 }
+       return { clientIP: null, contactAdmin: [], feedbackUrl: "", caseLibraryDir: "", helpDocUrl: "", downloadCutoffText: "", fileTreePollInterval: 5000, heartbeatInterval: 60000, diskUsageThreshold: 90, username: "", role: "" }
     })
 
     const clientIP = () => deviceInfo()?.clientIP
     const contactAdmin = () => deviceInfo()?.contactAdmin ?? []
     const feedbackUrl = () => deviceInfo()?.feedbackUrl ?? ""
     const caseLibraryDir = () => deviceInfo()?.caseLibraryDir ?? ""
+    const username = () => deviceInfo()?.username ?? ""
+    const role = () => deviceInfo()?.role ?? ""
 
     const helpDocUrl = () => deviceInfo()?.helpDocUrl ?? ""
     const downloadCutoffText = () => deviceInfo()?.downloadCutoffText ?? ""
@@ -48,6 +57,8 @@ export const { use: useDevice, provider: DeviceProvider } = createSimpleContext(
       heartbeatInterval,
       diskUsageThreshold,
       isOwnProject,
+      username,
+      role,
     }
   },
 })

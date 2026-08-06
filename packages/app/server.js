@@ -4,6 +4,7 @@ import { execSync } from "node:child_process"
 import { fileURLToPath } from "url"
 import { createStatsDb } from "./stats-db.js"
 import { Database } from "bun:sqlite"
+import { randomUUID } from "node:crypto"
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const projectRoot = dirname(dirname(__dirname))
@@ -99,9 +100,117 @@ function serveStatic(urlPath) {
 const statsDir = envVars.VITE_STATS_DATA_PATH || __dirname
 const statsPath = join(statsDir, "stats.json")
 const dbPath = join(statsDir, "stats.db")
-const adminToken = envVars.VITE_STATS_ADMIN_TOKEN || ""
 
 const statsDb = createStatsDb(Database, dbPath, statsPath)
+
+const authEnabled = envVars.AUTH_ENABLED === "true"
+
+const adminUsername = envVars.ADMIN_USERNAME || "admin"
+const adminPassword = envVars.ADMIN_PASSWORD || "admin123"
+statsDb.ensureSuperAdmin(adminUsername, adminPassword)
+
+const sessions = new Map()
+const SESSION_DURATION = 30 * 60 * 1000
+
+function createSession(userId, username, role) {
+  const id = randomUUID()
+  sessions.set(id, { userId, username, role, expireAt: Date.now() + SESSION_DURATION })
+  return id
+}
+
+function getSession(req, renew = true) {
+  const cookie = req.headers.get("cookie") || ""
+  const match = cookie.match(/session_id=([^;]+)/)
+  if (!match) return null
+  const session = sessions.get(match[1])
+  if (!session) return null
+  if (Date.now() > session.expireAt) {
+    sessions.delete(match[1])
+    return null
+  }
+  if (renew) session.expireAt = Date.now() + SESSION_DURATION
+  return session
+}
+
+function sessionCookie(sessionId) {
+  return `session_id=${sessionId}; HttpOnly; Path=/; Max-Age=${SESSION_DURATION / 1000}; SameSite=Lax`
+}
+
+function clearSessionCookie() {
+  return `session_id=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax`
+}
+
+function requireAdmin(req) {
+  if (!authEnabled) return true
+  const session = getSession(req)
+  return session !== null && (session.role === "admin" || session.role === "super_admin")
+}
+
+function requireSuperAdmin(req) {
+  if (!authEnabled) return true
+  const session = getSession(req)
+  return session !== null && session.role === "super_admin"
+}
+
+function redirectToLogin() {
+  return new Response(null, { status: 302, headers: { "Location": "/login" } })
+}
+
+const loginPageHtml = `<!DOCTYPE html>
+<html lang="zh-CN" style="color-scheme: light">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>登录 - GE诊断助手</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--background-base, #f8f8f8); color: var(--text-strong, #171717); font-family: system-ui, -apple-system, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+  .login-box { background: var(--background-stronger, #fcfcfc); border: 1px solid var(--border-weak-base, #e5e5e5); border-radius: 12px; padding: 32px; width: 100%; max-width: 360px; box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
+  .login-box h1 { font-size: 18px; font-weight: 600; margin-bottom: 24px; text-align: center; }
+  .field { margin-bottom: 16px; }
+  .field label { display: block; font-size: 12px; color: #888; margin-bottom: 6px; }
+  .field input { width: 100%; background: var(--background-base, #f8f8f8); border: 1px solid var(--border-weak-base, #e5e5e5); border-radius: 8px; padding: 10px 14px; font-size: 14px; color: var(--text-strong, #171717); outline: none; transition: border-color 0.15s; }
+  .field input:focus { border-color: #2563eb; }
+  .login-btn { width: 100%; padding: 10px; background: #2563eb; color: #fff; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; margin-top: 8px; transition: background 0.15s; }
+  .login-btn:hover { background: #1d4ed8; }
+  .login-btn:disabled { background: #93c5fd; cursor: not-allowed; }
+  .error-msg { color: #ef4444; font-size: 12px; margin-top: 12px; text-align: center; display: none; }
+  @media (prefers-color-scheme: dark) {
+    body { background: #101010; color: rgba(255,255,255,0.936); }
+    .login-box { background: #151515; border-color: #282828; }
+    .field input { background: #101010; border-color: #282828; color: rgba(255,255,255,0.936); }
+  }
+</style>
+</head>
+<body>
+<div class="login-box">
+  <h1>GE诊断助手</h1>
+  <form id="login-form">
+    <div class="field"><label>用户名</label><input type="text" id="username" autocomplete="username" autofocus></div>
+    <div class="field"><label>密码</label><input type="password" id="password" autocomplete="current-password"></div>
+    <button type="submit" class="login-btn" id="login-btn">登录</button>
+    <div class="error-msg" id="error-msg"></div>
+  </form>
+</div>
+<script>
+document.getElementById('login-form').addEventListener('submit', async (e) => {
+  e.preventDefault()
+  const btn = document.getElementById('login-btn')
+  const errEl = document.getElementById('error-msg')
+  const username = document.getElementById('username').value
+  const password = document.getElementById('password').value
+  if (!username || !password) { errEl.textContent = '请输入用户名和密码'; errEl.style.display = 'block'; return }
+  btn.disabled = true; btn.textContent = '登录中...'
+  errEl.style.display = 'none'
+  try {
+    const res = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }) })
+    if (res.ok) { window.location.href = '/' }
+    else { const data = await res.json(); errEl.textContent = data.error || '登录失败'; errEl.style.display = 'block' }
+  } catch { errEl.textContent = '网络错误'; errEl.style.display = 'block' }
+  btn.disabled = false; btn.textContent = '登录'
+})
+</script>
+</body>
+</html>`
 
 const getDayKey = (ts) => {
   const d = new Date(ts)
@@ -121,8 +230,8 @@ const gracefulShutdown = () => {
 process.on("SIGINT", gracefulShutdown)
 process.on("SIGTERM", gracefulShutdown)
 
-function jsonResponse(data, status = 200) {
-  return new Response(JSON.stringify(data), { status, headers: { "Content-Type": "application/json" } })
+function jsonResponse(data, status = 200, extraHeaders = {}) {
+  return new Response(JSON.stringify(data), { status, headers: { "Content-Type": "application/json", ...extraHeaders } })
 }
 
 async function readBody(req) {
@@ -133,6 +242,83 @@ async function readBody(req) {
 async function handleAPI(req, server) {
   const url = new URL(req.url, "http://localhost")
   const method = req.method
+
+  if (url.pathname === "/api/login" && method === "POST") {
+    try {
+      const body = JSON.parse(await readBody(req))
+      const { username, password } = body
+      if (!username || !password) return jsonResponse({ error: "请输入用户名和密码" }, 400)
+      const user = statsDb.verifyUser(username, password)
+      if (!user) return jsonResponse({ error: "用户名或密码错误" }, 401)
+      const sessionId = createSession(user.id, user.username, user.role)
+      return jsonResponse({ ok: true, username: user.username, role: user.role }, 200, { "Set-Cookie": sessionCookie(sessionId) })
+    } catch (err) {
+      return jsonResponse({ error: err.message }, 500)
+    }
+  }
+
+  if (url.pathname === "/api/logout" && method === "POST") {
+    const cookie = req.headers.get("cookie") || ""
+    const match = cookie.match(/session_id=([^;]+)/)
+    if (match) sessions.delete(match[1])
+    return jsonResponse({ ok: true }, 200, { "Set-Cookie": clearSessionCookie() })
+  }
+
+  if (url.pathname === "/api/auth/me" && method === "GET") {
+    if (!authEnabled) return jsonResponse({ username: "", role: "" })
+    const session = getSession(req)
+    if (!session) return jsonResponse({ error: "Not authenticated" }, 401)
+    return jsonResponse({ username: session.username, role: session.role, userId: session.userId })
+  }
+
+  if (url.pathname === "/api/users" && method === "GET") {
+    if (!requireSuperAdmin(req)) return jsonResponse({ error: "Forbidden" }, 403)
+    return jsonResponse({ users: statsDb.listUsers() })
+  }
+
+  if (url.pathname === "/api/users" && method === "POST") {
+    if (!requireSuperAdmin(req)) return jsonResponse({ error: "Forbidden" }, 403)
+    try {
+      const body = JSON.parse(await readBody(req))
+      const { username, password, role } = body
+      const result = statsDb.createUser(username, password, role)
+      if (result.error) return jsonResponse({ error: result.error }, 400)
+      return jsonResponse({ ok: true, user: result })
+    } catch (err) {
+      return jsonResponse({ error: err.message }, 500)
+    }
+  }
+
+  if (url.pathname.startsWith("/api/users/") && method === "DELETE") {
+    if (!requireSuperAdmin(req)) return jsonResponse({ error: "Forbidden" }, 403)
+    const id = parseInt(url.pathname.split("/").pop())
+    if (isNaN(id)) return jsonResponse({ error: "Invalid user ID" }, 400)
+    const session = getSession(req)
+    if (session && session.userId === id) return jsonResponse({ error: "Cannot delete yourself" }, 400)
+    const result = statsDb.deleteUser(id)
+    if (result.error) return jsonResponse({ error: result.error }, 400)
+    return jsonResponse({ ok: true })
+  }
+
+  if (url.pathname.startsWith("/api/users/") && method === "PATCH") {
+    if (!requireSuperAdmin(req)) return jsonResponse({ error: "Forbidden" }, 403)
+    const id = parseInt(url.pathname.split("/").pop())
+    if (isNaN(id)) return jsonResponse({ error: "Invalid user ID" }, 400)
+    try {
+      const body = JSON.parse(await readBody(req))
+      if (body.password !== undefined) {
+        const result = statsDb.updateUserPassword(id, body.password)
+        if (result.error) return jsonResponse({ error: result.error }, 400)
+      }
+      if (body.role !== undefined) {
+        const result = statsDb.updateUserRole(id, body.role)
+        if (result.error) return jsonResponse({ error: result.error }, 400)
+      }
+      return jsonResponse({ ok: true })
+    } catch (err) {
+      return jsonResponse({ error: err.message }, 500)
+    }
+  }
 
   if (url.pathname === "/device/info" && method === "GET") {
     const contactAdmin = process.env.VITE_CONTACT_ADMIN || ""
@@ -502,9 +688,7 @@ async function handleAPI(req, server) {
   }
 
   if (url.pathname.startsWith("/api/stats") && method === "GET") {
-    if (!adminToken) return jsonResponse({ error: "VITE_STATS_ADMIN_TOKEN not configured" }, 403)
-    const token = url.searchParams.get("token")
-    if (token !== adminToken) return jsonResponse({ error: "Invalid token" }, 403)
+    if (!requireAdmin(req)) return jsonResponse({ error: "Forbidden" }, 403)
 
     const now = Date.now()
     const tenMinAgo = now - 600000
@@ -572,9 +756,7 @@ async function handleAPI(req, server) {
   }
 
   if (url.pathname.startsWith("/api/system/monitor") && method === "GET") {
-    if (!adminToken) return jsonResponse({ error: "VITE_STATS_ADMIN_TOKEN not configured" }, 403)
-    const token = url.searchParams.get("token")
-    if (token !== adminToken) return jsonResponse({ error: "Invalid token" }, 403)
+    if (!requireAdmin(req)) return jsonResponse({ error: "Forbidden" }, 403)
 
     try {
       const serverPort = envVars.VITE_OPENCODE_SERVER_PORT || "4096"
@@ -586,9 +768,7 @@ async function handleAPI(req, server) {
   }
 
   if (url.pathname.startsWith("/api/config/runtime") && method === "GET") {
-    if (!adminToken) return jsonResponse({ error: "VITE_STATS_ADMIN_TOKEN not configured" }, 403)
-    const token = url.searchParams.get("token")
-    if (token !== adminToken) return jsonResponse({ error: "Invalid token" }, 403)
+    if (!requireAdmin(req)) return jsonResponse({ error: "Forbidden" }, 403)
     return jsonResponse({
       announcementText: process.env.VITE_ANNOUNCEMENT_TEXT || "",
       contactAdmin: process.env.VITE_CONTACT_ADMIN || "",
@@ -606,9 +786,7 @@ async function handleAPI(req, server) {
   }
 
   if (url.pathname.startsWith("/api/config/runtime") && method === "PATCH") {
-    if (!adminToken) return jsonResponse({ error: "VITE_STATS_ADMIN_TOKEN not configured" }, 403)
-    const token = url.searchParams.get("token")
-    if (token !== adminToken) return jsonResponse({ error: "Invalid token" }, 403)
+    if (!requireAdmin(req)) return jsonResponse({ error: "Forbidden" }, 403)
     try {
       const body = JSON.parse(await readBody(req))
       const envMap = {
@@ -841,6 +1019,16 @@ function getTzTime() {
   })
 }
 
+const staticAssetExts = new Set([".js", ".mjs", ".css", ".json", ".png", ".jpg", ".jpeg", ".gif", ".svg", ".ico", ".woff", ".woff2", ".ttf", ".webmanifest", ".map"])
+
+function isStaticAsset(pathname) {
+  if (pathname.startsWith("/assets/")) return true
+  if (pathname.startsWith("/@vite/")) return true
+  if (pathname === "/__vite_ping" || pathname === "/@vite/client") return true
+  if (staticAssetExts.has(extname(pathname))) return true
+  return false
+}
+
 Bun.serve({
   hostname: webHost,
   port: webPort,
@@ -851,6 +1039,26 @@ Bun.serve({
     const start = Date.now()
 
     try {
+      if (url.pathname === "/login" && req.method === "GET") {
+        return new Response(loginPageHtml, { headers: { "Content-Type": "text/html" } })
+      }
+
+      const isPublicApi = url.pathname === "/api/login" || url.pathname === "/api/logout"
+      const noRenewPaths = ["/api/stats/heartbeat"]
+      const shouldRenew = !noRenewPaths.includes(url.pathname)
+      if (authEnabled && !isPublicApi && !isStaticAsset(url.pathname)) {
+        const session = getSession(req, shouldRenew)
+        if (!session) {
+          if (url.pathname.startsWith("/api/") || req.headers.get("accept")?.includes("application/json")) {
+            return jsonResponse({ error: "Not authenticated" }, 401)
+          }
+          return redirectToLogin()
+        }
+        if (url.pathname === "/admin.html" && session.role === "user") {
+          return new Response(null, { status: 302, headers: { "Location": "/" } })
+        }
+      }
+
       const apiRes = await handleAPI(req, server)
       if (apiRes) {
         console.log(`[${getTzTime()}] ${req.method} ${url.pathname} -> middleware ${apiRes.status} ${Date.now() - start}ms`)

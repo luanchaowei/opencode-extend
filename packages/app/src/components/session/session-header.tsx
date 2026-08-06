@@ -399,6 +399,32 @@ export function SessionHeader() {
                     </TooltipKeybind>
                   </Show>
                 </div>
+                <div class="flex items-center gap-2 shrink-0 ml-2">
+                  <Show when={device.username()}>
+                    <DropdownMenu gutter={4} placement="bottom-end">
+                      <DropdownMenu.Trigger
+                        as="button"
+                        variant="ghost"
+                        class="text-12-regular text-text-weak hover:text-text-strong transition-colors px-2 py-1 rounded"
+                      >
+                        {device.username()}
+                      </DropdownMenu.Trigger>
+                      <DropdownMenu.Portal>
+                        <DropdownMenu.Content style={{ "min-width": "120px" }}>
+                          <Show when={device.role() === "admin" || device.role() === "super_admin"}>
+                            <DropdownMenu.Item onSelect={() => window.open("/admin.html", "_blank")}>
+                              <DropdownMenu.ItemLabel class="text-12-regular">管理面板</DropdownMenu.ItemLabel>
+                            </DropdownMenu.Item>
+                            <DropdownMenu.Separator />
+                          </Show>
+                          <DropdownMenu.Item onSelect={() => { fetch("/api/logout", { method: "POST" }).finally(() => { window.location.href = "/login" }) }}>
+                            <DropdownMenu.ItemLabel class="text-12-regular" style={{ color: "#f87171" }}>退出</DropdownMenu.ItemLabel>
+                          </DropdownMenu.Item>
+                        </DropdownMenu.Content>
+                      </DropdownMenu.Portal>
+                    </DropdownMenu>
+                  </Show>
+                </div>
               </div>
             </div>
           </Portal>
