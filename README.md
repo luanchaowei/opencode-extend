@@ -6,6 +6,7 @@ OpenCode 自定义前端，支持按客户端IP进行权限隔离。
 
 - [使用指南](doc/user-guide.md) - 面向终端用户，按模块详细介绍各功能使用方法
 - [运维指南](doc/admin-guide.md) - 面向管理员，统计面板和系统配置说明
+- [编译打包指南](doc/build-guide.md) - 编译为独立可执行文件
 
 ## 环境要求
 
@@ -62,6 +63,11 @@ VITE_OPENCODE_DEFAULT_DIR=/home/user/client # 默认工作目录
 VITE_OPENCODE_SERVER_PASSWORD=""        # 后端认证密码，为空表示不认证
 VITE_OPENCODE_SERVER_USERNAME="opencode" # 后端认证用户名，必须与服务端一致，默认 opencode
 
+# 登录认证
+AUTH_ENABLED=false                      # 是否启用登录，false=不登录直接用
+ADMIN_USERNAME=admin                    # 超级管理员用户名（仅 AUTH_ENABLED=true 时生效）
+ADMIN_PASSWORD=Admin123!                # 超级管理员密码
+
 # 企业功能
 VITE_CONTACT_ADMIN=admin:12345678      # 支撑人员联系方式
 VITE_FEEDBACK_URL=https://example.com/feedback # 问题反馈 URL
@@ -75,9 +81,13 @@ VITE_FILE_TREE_POLL_INTERVAL=5000      # 文件树自动刷新间隔（毫秒）
 VITE_HEARTBEAT_INTERVAL=60000          # 客户端心跳上报间隔（毫秒），默认 60000
 VITE_DISK_USAGE_THRESHOLD=90           # 磁盘使用率阈值（%），超过则禁止上传，默认 90
 
-# 统计功能
-VITE_STATS_ADMIN_TOKEN=token          # 管理面板访问令牌
-VITE_STATS_DATA_PATH=/path/to/stats   # 统计数据存储路径
+# 统计数据
+VITE_STATS_DATA_PATH=/path/to/stats   # 统计数据存储路径（stats.db）
+
+# 系统监控
+VITE_MONITOR_DISK_MOUNTS=/             # 监控的磁盘挂载点，逗号分隔，默认 /
+VITE_MONITOR_BACKEND_PATTERN=          # 后端进程匹配规则，为空默认 opencode serve.*--port 端口
+VITE_MONITOR_FRONTEND_PATTERN=         # 前端进程匹配规则，为空默认 bun.*packages/app
 ```
 
 ## 启动自定义界面
@@ -85,16 +95,9 @@ VITE_STATS_DATA_PATH=/path/to/stats   # 统计数据存储路径
 ### 启动后端服务
 
 ```bash
-# 启动后端（自动读取 .env 中的地址和端口，添加 --cors 参数）
 bash server.sh start
-
-# 停止后端
 bash server.sh stop
-
-# 重启后端
 bash server.sh restart
-
-# 查看后端运行状态
 bash server.sh status
 ```
 
@@ -111,12 +114,7 @@ bash restart.sh prod
 
 # 生产模式 + 构建前端（修改代码后需要重新构建）
 bash restart.sh prod --build
-
-# 查看帮助
-bash restart.sh --help
 ```
-
-> **两种模式区别**：dev 模式用 Vite 开发服务器（`bun dev`），修改源码后浏览器自动刷新；prod 模式先 `vite build` 再用 `server.js` 启动 Bun 生产服务器，适合正式部署。
 
 停止前端：
 
@@ -124,14 +122,20 @@ bash restart.sh --help
 bash stop.sh
 ```
 
-进程监控（定时检测并自动拉起）：
+### 编译为可执行文件
 
 ```bash
-# 添加到 crontab，每分钟检测一次
-* * * * * bash /path/to/opencode-extend/monitor.sh
+bash build.sh
 ```
 
-会话清理（定时清理不活跃会话，释放数据库空间）：
+详见 [编译打包指南](doc/build-guide.md)。
+
+访问地址：
+
+- 前端页面：http://\<WEB_HOST\>:\<WEB_PORT\>
+- 管理面板：http://\<WEB_HOST\>:\<WEB_PORT\>/admin.html
+
+## 会话清理
 
 ```bash
 # 清理 14 天未活跃的会话（默认）
@@ -140,8 +144,8 @@ bun packages/scripts/session-cleanup.js
 # 清理 30 天未活跃的会话
 bun packages/scripts/session-cleanup.js --days 30
 
-# 清理已归档会话
-bun packages/scripts/session-cleanup.js --archived --days 7
+# 清理所有已归档会话
+bun packages/scripts/session-cleanup.js --archived
 
 # 清理孤儿上传目录（session 已删除但上传目录残留）
 bun packages/scripts/session-cleanup.js --orphans
@@ -152,17 +156,9 @@ bun packages/scripts/session-cleanup.js --dry-run
 # 查看帮助
 bun packages/scripts/session-cleanup.js --help
 
-# 建议凌晨定时执行，清理后自动 VACUUM 回收空间
-# 添加到 crontab，每天凌晨 3 点执行
+# 建议凌晨定时执行
 0 3 * * * cd /path/to/opencode-extend && bun packages/scripts/session-cleanup.js --days 14 >> /tmp/session-cleanup.log 2>&1
 ```
-
-> 清理会话后自动执行 `VACUUM` 和 `WAL checkpoint` 回收数据库空间，建议在凌晨低峰期执行。
-
-访问地址：
-
-- 前端页面：http://\<WEB_HOST\>:\<WEB_PORT\>
-- 管理面板：http://\<WEB_HOST\>:\<WEB_PORT\>/admin.html?token=\<VITE_STATS_ADMIN_TOKEN\>
 
 ## 项目结构
 
@@ -174,11 +170,12 @@ opencode-extend/
 │   ├── ui/       # UI 组件
 │   ├── sdk/      # SDK
 │   └── core/     # 工具库
+├── doc/          # 文档
 ├── .env          # 环境配置
 ├── restart.sh    # 前端启动脚本（bash restart.sh [dev|prod] [--build]）
 ├── stop.sh       # 前端停止脚本
 ├── server.sh     # 后端服务管理脚本（start/stop/restart/status）
-├── build.sh      # 把前端包打包成二进制文件
+├── build.sh      # 编译打包脚本
 └── package.json
 ```
 
