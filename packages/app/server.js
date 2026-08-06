@@ -6,8 +6,9 @@ import { createStatsDb } from "./stats-db.js"
 import { Database } from "bun:sqlite"
 import { randomUUID } from "node:crypto"
 
-const __dirname = dirname(fileURLToPath(import.meta.url))
-const projectRoot = dirname(dirname(__dirname))
+const isCompiled = import.meta.dir.startsWith("/$bunfs")
+const __dirname = isCompiled ? dirname(process.execPath) : dirname(fileURLToPath(import.meta.url))
+const projectRoot = isCompiled ? __dirname : dirname(dirname(__dirname))
 const envPath = join(projectRoot, ".env")
 const envVars = {}
 if (existsSync(envPath)) {
@@ -40,7 +41,18 @@ process.env.NO_PROXY = "*"
 console.log(`[${getTzTime()}] NO_PROXY=* (skip proxy for all fetch requests)`)
 const webHost = envVars.WEB_HOST || "0.0.0.0"
 const webPort = parseInt(envVars.WEB_PORT || "3000")
-const distDir = join(__dirname, "dist")
+let embeddedFiles = null
+if (isCompiled) {
+  try {
+    const manifest = await import("./embedded-manifest.js")
+    embeddedFiles = manifest.embeddedFiles
+    console.log(`[${getTzTime()}] Loaded ${Object.keys(embeddedFiles).length} embedded files`)
+  } catch (e) {
+    console.error(`[${getTzTime()}] Failed to load embedded manifest: ${e.message}`)
+  }
+}
+
+const distDir = isCompiled ? null : join(__dirname, "dist")
 
 function getClientIP(req, server) {
   const forwarded = req.headers.get('x-forwarded-for')
@@ -88,11 +100,19 @@ function getExt(filePath) {
 function serveStatic(urlPath) {
   if (urlPath === '/') urlPath = '/index.html'
   if (urlPath.includes('..')) return null
+  const ext = getExt(urlPath)
+  const mime = mimeTypes[ext] || 'application/octet-stream'
+  if (isCompiled && embeddedFiles) {
+    const file = embeddedFiles[urlPath]
+    if (file) {
+      return { content: Buffer.from(file.content, "base64"), mime }
+    }
+    return null
+  }
   const filePath = join(distDir, urlPath)
   if (!filePath.startsWith(distDir)) return null
   if (existsSync(filePath) && statSync(filePath).isFile()) {
-    const ext = getExt(filePath)
-    return { content: readFileSync(filePath), mime: mimeTypes[ext] || 'application/octet-stream' }
+    return { content: readFileSync(filePath), mime }
   }
   return null
 }
@@ -1070,10 +1090,17 @@ Bun.serve({
         return new Response(staticResult.content, { headers: { "Content-Type": staticResult.mime } })
       }
 
-      const indexPath = join(distDir, 'index.html')
-      if (existsSync(indexPath)) {
+      if (isCompiled && embeddedFiles && embeddedFiles["/index.html"]) {
         console.log(`[${getTzTime()}] ${req.method} ${url.pathname} -> spa-fallback ${Date.now() - start}ms`)
-        return new Response(readFileSync(indexPath), { headers: { "Content-Type": "text/html" } })
+        return new Response(Buffer.from(embeddedFiles["/index.html"].content, "base64"), { headers: { "Content-Type": "text/html" } })
+      }
+
+      if (!isCompiled) {
+        const indexPath = join(distDir, 'index.html')
+        if (existsSync(indexPath)) {
+          console.log(`[${getTzTime()}] ${req.method} ${url.pathname} -> spa-fallback ${Date.now() - start}ms`)
+          return new Response(readFileSync(indexPath), { headers: { "Content-Type": "text/html" } })
+        }
       }
 
       console.log(`[${getTzTime()}] ${req.method} ${url.pathname} -> 404 ${Date.now() - start}ms`)

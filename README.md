@@ -178,7 +178,7 @@ opencode-extend/
 ├── restart.sh    # 前端启动脚本（bash restart.sh [dev|prod] [--build]）
 ├── stop.sh       # 前端停止脚本
 ├── server.sh     # 后端服务管理脚本（start/stop/restart/status）
-├── monitor.sh    # 进程监控脚本（定时检测并自动拉起）
+├── build.sh      # 把前端包打包成二进制文件
 └── package.json
 ```
 

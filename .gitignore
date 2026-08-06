@@ -1,28 +1,21 @@
-.DS_Store
+# Dependencies
 node_modules
-.env
-.idea
-.vscode
-.codex
-*~
-playground
-tmp
-dist
-ts-dist
-.turbo
-**/.serena
-.serena/
-result
-refs
-Session.vim
-a.out
-target
-.scripts
-.direnv/
+packages/*/node_modules
 
-# Local dev files
-opencode-dev
-logs/
-*.bun-build
+# Build outputs
+dist
+packages/*/dist
 tsconfig.tsbuildinfo
-bun.lockb
+packages/*/tsconfig.tsbuildinfo
+
+# Environment
+.env
+
+# Compiled binaries
+dist-bin
+
+# Runtime files
+opencode-server.pid
+
+# IDE
+.idea
