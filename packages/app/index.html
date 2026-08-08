@@ -14,6 +14,16 @@
     <meta property="og:image" content="/social-share.png" />
     <meta property="twitter:image" content="/social-share.png" />
     <script id="oc-theme-preload-script" src="/oc-theme-preload.js"></script>
+    <script id="oc-server-config">
+      try {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", "/device/info", false);
+        xhr.send();
+        if (xhr.status === 200) {
+          window.__SERVER_CONFIG__ = JSON.parse(xhr.responseText);
+        }
+      } catch (e) {}
+    </script>
   </head>
   <body class="antialiased overscroll-none text-12-regular overflow-hidden">
     <noscript>You need to enable JavaScript to run this app.</noscript>

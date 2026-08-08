@@ -31,8 +31,31 @@ vim .env
 ./opencode-extend
 ```
 
-也可直接通过命令行传环境变量，不使用 .env 文件：
+也可通过命令行传参，优先级高于 .env：
 
 ```bash
-WEB_HOST=0.0.0.0 WEB_PORT=3000 VITE_OPENCODE_SERVER_HOST=127.0.0.1 ./opencode-extend
+./opencode-extend --host 0.0.0.0 --port 3000 --server-host 127.0.0.1 --server-port 4096 --workspace /home/user/client
 ```
+
+## 命令行参数
+
+```
+./opencode-extend --help
+```
+
+| 参数 | 对应 .env 变量 | 说明 |
+|------|---------------|------|
+| `--host <addr>` | `WEB_HOST` | 前端监听地址 |
+| `--port <port>` | `WEB_PORT` | 前端端口 |
+| `--log <path>` | `LOG_PATH` | 日志文件路径 |
+| `--server-host <addr>` | `VITE_OPENCODE_SERVER_HOST` | opencode 后端地址 |
+| `--server-port <port>` | `VITE_OPENCODE_SERVER_PORT` | opencode 后端端口 |
+| `--server-password <pwd>` | `VITE_OPENCODE_SERVER_PASSWORD` | 后端认证密码 |
+| `--server-username <name>` | `VITE_OPENCODE_SERVER_USERNAME` | 后端认证用户名 |
+| `--workspace <path>` | `VITE_OPENCODE_DEFAULT_DIR` | 用户工作目录 |
+| `--stats-path <path>` | `VITE_STATS_DATA_PATH` | stats.db 存储路径 |
+| `--auth-enabled` | `AUTH_ENABLED` | 启用登录认证 |
+| `--admin-username <name>` | `ADMIN_USERNAME` | 超级管理员用户名 |
+| `--admin-password <pwd>` | `ADMIN_PASSWORD` | 超级管理员密码 |
+
+命令行参数优先级高于 .env。可通过系统设置页面配置的项（公告、支撑人员、知识库、监控等）不需要在此指定。

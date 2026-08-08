@@ -26,50 +26,50 @@ export default function Home() {
   const recent = createMemo(() => {
     return sync.data.project
       .slice()
-      .sort((a, b) => (b.time.updated ?? b.time.updated) - (a.time.updated ?? a.time.updated))
+      .sort((a, b) => (b.time.updated ?? 0) - (a.time.updated ?? 0))
       .slice(0, 5)
   })
-  const defaultDir = import.meta.env.VITE_OPENCODE_DEFAULT_DIR
-  
   createEffect(async () => {
-    if (!defaultDir || !sync.ready) return
-    
+    if (!sync.ready) return
+
     try {
       const response = await fetch('/device/info')
       if (!response.ok) {
         throw new Error('Failed to get device info')
       }
-      const { clientIP } = await response.json()
-      
+      const { clientIP, defaultDir } = await response.json()
+      if (!defaultDir) return
+
       const baseDir = defaultDir.startsWith("~") ? defaultDir.replace("~", sync.data.path.home) : defaultDir
       const deviceDir = `${baseDir}/${clientIP}`
-      
+
       // Create directory if it doesn't exist
       await fetch('/directory/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ path: deviceDir }),
       })
-      
+
       layout.projects.open(deviceDir)
       server.projects.touch(deviceDir)
-      
+
       // Navigate to the project (default session creation will happen in session.tsx)
       navigate(`/${base64Encode(deviceDir)}`, { replace: true })
     } catch (error) {
-      const baseDir = defaultDir.startsWith("~") ? defaultDir.replace("~", sync.data.path.home) : defaultDir
-      
-      // Create directory if it doesn't exist
+      // Fallback to import.meta.env if /device/info fails
+      const fallbackDir = import.meta.env.VITE_OPENCODE_DEFAULT_DIR
+      if (!fallbackDir) return
+      const baseDir = fallbackDir.startsWith("~") ? fallbackDir.replace("~", sync.data.path.home) : fallbackDir
+
       await fetch('/directory/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ path: baseDir }),
       })
-      
+
       layout.projects.open(baseDir)
       server.projects.touch(baseDir)
-      
-      // Navigate to the project (default session creation will happen in session.tsx)
+
       navigate(`/${base64Encode(baseDir)}`, { replace: true })
     }
   })

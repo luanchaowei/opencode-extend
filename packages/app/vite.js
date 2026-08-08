@@ -317,7 +317,12 @@ export default [
             const fileTreePollInterval = process.env.VITE_FILE_TREE_POLL_INTERVAL || "5000"
             const heartbeatInterval = process.env.VITE_HEARTBEAT_INTERVAL || "60000"
             const diskUsageThreshold = process.env.VITE_DISK_USAGE_THRESHOLD || "90"
-            res.end(JSON.stringify({ clientIP, contactAdmin: contactList, feedbackUrl, caseLibraryDir, helpDocUrl, announcementText, downloadCutoffText, fileTreePollInterval, heartbeatInterval, diskUsageThreshold }))
+            const defaultDir = process.env.VITE_OPENCODE_DEFAULT_DIR || ""
+            const serverHost = process.env.VITE_OPENCODE_SERVER_HOST || ""
+            const serverPort = process.env.VITE_OPENCODE_SERVER_PORT || ""
+            const serverUsername = process.env.VITE_OPENCODE_SERVER_USERNAME || ""
+            const serverPassword = process.env.VITE_OPENCODE_SERVER_PASSWORD || ""
+            res.end(JSON.stringify({ clientIP, contactAdmin: contactList, feedbackUrl, caseLibraryDir, helpDocUrl, announcementText, downloadCutoffText, fileTreePollInterval, heartbeatInterval, diskUsageThreshold, defaultDir, serverHost, serverPort, serverUsername, serverPassword }))
           } catch (error) {
             res.statusCode = 500
             res.end(JSON.stringify({ error: error.message }))
@@ -794,8 +799,6 @@ export default [
       const statsDir = process.env.VITE_STATS_DATA_PATH || dirname(fileURLToPath(import.meta.url))
       const statsPath = join(statsDir, "stats.json")
       const dbPath = join(statsDir, "stats.db")
-
-      const getTzTime = () => new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false })
 
       async function collectMonitorData(serverPort, env) {
         const CLOCK_HZ = 100

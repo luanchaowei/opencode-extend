@@ -97,9 +97,13 @@ if (!(root instanceof HTMLElement) && import.meta.env.DEV) {
   throw new Error(getRootNotFoundError())
 }
 
+const serverConfig = (typeof window !== "undefined" && window.__SERVER_CONFIG__) || {}
+
 const getCurrentUrl = () => {
   if (location.hostname.includes("opencode.ai")) return "http://localhost:4096"
-  return `http://${import.meta.env.VITE_OPENCODE_SERVER_HOST ?? "localhost"}:${import.meta.env.VITE_OPENCODE_SERVER_PORT ?? "4096"}`
+  const host = serverConfig.serverHost || (import.meta.env.VITE_OPENCODE_SERVER_HOST ?? "localhost")
+  const port = serverConfig.serverPort || (import.meta.env.VITE_OPENCODE_SERVER_PORT ?? "4096")
+  return `http://${host}:${port}`
 }
 
 const getDefaultUrl = () => {
@@ -128,8 +132,8 @@ if (root instanceof HTMLElement) {
     type: "http",
     http: {
       url: getCurrentUrl(),
-      username: import.meta.env.VITE_OPENCODE_SERVER_USERNAME || undefined,
-      password: import.meta.env.VITE_OPENCODE_SERVER_PASSWORD || undefined,
+      username: serverConfig.serverUsername || import.meta.env.VITE_OPENCODE_SERVER_USERNAME || undefined,
+      password: serverConfig.serverPassword || import.meta.env.VITE_OPENCODE_SERVER_PASSWORD || undefined,
     },
   }
   render(

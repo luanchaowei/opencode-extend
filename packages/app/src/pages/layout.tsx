@@ -580,34 +580,35 @@ export default function Layout(props: ParentProps) {
   const [autoselecting] = createResource(async () => {
     await ready.promise
     await layout.ready.promise
-    
-    // If VITE_OPENCODE_DEFAULT_DIR is set and no directory in URL, redirect to IP directory
-    const defaultDir = import.meta.env.VITE_OPENCODE_DEFAULT_DIR
-    if (defaultDir && !initialDirectory) {
+
+    // If no directory in URL, try to get defaultDir from /device/info
+    if (!initialDirectory) {
       try {
         const response = await fetch('/device/info')
         if (response.ok) {
-          const { clientIP } = await response.json()
-          const baseDir = defaultDir.startsWith("~") ? defaultDir.replace("~", globalSync.data.path.home) : defaultDir
-          const deviceDir = `${baseDir}/${clientIP}`
-          
-          // Create directory if needed
-          await fetch('/directory/create', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ path: deviceDir }),
-          })
-          
-          layout.projects.open(deviceDir)
-          server.projects.touch(deviceDir)
-          navigate(`/${base64Encode(deviceDir)}`, { replace: true })
-          return
+          const { clientIP, defaultDir } = await response.json()
+          if (defaultDir) {
+            const baseDir = defaultDir.startsWith("~") ? defaultDir.replace("~", globalSync.data.path.home) : defaultDir
+            const deviceDir = `${baseDir}/${clientIP}`
+
+            // Create directory if needed
+            await fetch('/directory/create', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ path: deviceDir }),
+            })
+
+            layout.projects.open(deviceDir)
+            server.projects.touch(deviceDir)
+            navigate(`/${base64Encode(deviceDir)}`, { replace: true })
+            return
+          }
         }
       } catch (error) {
         console.error('Failed to get device info:', error)
       }
     }
-    
+
     if (!untrack(() => state.autoselect)) return
 
     const list = layout.projects.list()

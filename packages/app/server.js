@@ -9,6 +9,74 @@ import { randomUUID } from "node:crypto"
 const isCompiled = import.meta.dir.startsWith("/$bunfs")
 const __dirname = isCompiled ? dirname(process.execPath) : dirname(fileURLToPath(import.meta.url))
 const projectRoot = isCompiled ? __dirname : dirname(dirname(__dirname))
+
+const cliArgs = {}
+const validArgs = new Set(["host", "port", "log", "server-host", "server-port", "server-password", "server-username", "workspace", "stats-path", "auth-enabled", "admin-username", "admin-password", "help", "h"])
+
+for (let i = 2; i < process.argv.length; i++) {
+  const arg = process.argv[i]
+  if (arg === "--help" || arg === "-h") {
+    console.log(`用法: opencode-extend [选项]
+
+选项:
+  --host <addr>              前端监听地址 (默认: 0.0.0.0)
+  --port <port>              前端端口 (默认: 3000)
+  --log <path>               日志文件路径 (默认: /tmp/opencode-extend.log)
+  --server-host <addr>       opencode 后端地址 (默认: 127.0.0.1)
+  --server-port <port>       opencode 后端端口 (默认: 4096)
+  --server-password <pwd>    后端认证密码，为空不认证
+  --server-username <name>   后端认证用户名 (默认: opencode)
+  --workspace <path>         用户工作目录，每个IP自动创建子目录
+  --stats-path <path>        stats.db 存储路径 (默认: 可执行文件所在目录)
+  --auth-enabled             启用登录认证
+  --admin-username <name>    超级管理员用户名 (默认: admin)
+  --admin-password <pwd>     超级管理员密码 (默认: admin123)
+
+以上选项优先级高于 .env 文件中的同名配置。
+可通过系统设置页面配置的项（公告、支撑人员、知识库等）不需要在此指定。
+
+示例:
+  ./opencode-extend --host 127.0.0.1 --port 3000 --server-host 127.0.0.1 --server-port 4096 --workspace /home/user/client --auth-enabled --admin-username admin --admin-password MyPass123!
+`)
+    process.exit(0)
+  }
+  if (!arg.startsWith("--")) {
+    console.error(`错误: 无效参数 '${arg}'\n运行 '--help' 查看可用选项。`)
+    process.exit(1)
+  }
+  const argName = arg.replace(/^--/, "")
+  if (!validArgs.has(argName)) {
+    console.error(`错误: 未知选项 '${arg}'\n运行 '--help' 查看可用选项。`)
+    process.exit(1)
+  }
+  const key = argName.replace(/-/g, "_")
+  const next = process.argv[i + 1]
+  if (key === "auth_enabled") {
+    cliArgs[key] = "true"
+  } else if (next && !next.startsWith("--")) {
+    cliArgs[key] = next
+    i++
+  } else {
+    console.error(`错误: 选项 '${arg}' 需要一个值\n运行 '--help' 查看用法。`)
+    process.exit(1)
+  }
+}
+
+const cliMap = {
+  host: "WEB_HOST",
+  port: "WEB_PORT",
+  log: "LOG_PATH",
+  server_host: "VITE_OPENCODE_SERVER_HOST",
+  server_port: "VITE_OPENCODE_SERVER_PORT",
+  server_password: "VITE_OPENCODE_SERVER_PASSWORD",
+  server_username: "VITE_OPENCODE_SERVER_USERNAME",
+  workspace: "VITE_OPENCODE_DEFAULT_DIR",
+  stats_path: "VITE_STATS_DATA_PATH",
+  auth_enabled: "AUTH_ENABLED",
+  admin_username: "ADMIN_USERNAME",
+  admin_password: "ADMIN_PASSWORD",
+}
+
 const envPath = join(projectRoot, ".env")
 const envVars = {}
 if (existsSync(envPath)) {
@@ -27,6 +95,13 @@ if (existsSync(envPath)) {
         process.env[key] = process.env[key] ?? value
       }
     }
+  }
+}
+
+for (const [cliKey, envKey] of Object.entries(cliMap)) {
+  if (cliArgs[cliKey] !== undefined) {
+    envVars[envKey] = cliArgs[cliKey]
+    process.env[envKey] = cliArgs[cliKey]
   }
 }
 
@@ -109,6 +184,7 @@ function serveStatic(urlPath) {
     }
     return null
   }
+  if (isCompiled) return null
   const filePath = join(distDir, urlPath)
   if (!filePath.startsWith(distDir)) return null
   if (existsSync(filePath) && statSync(filePath).isFile()) {
@@ -354,6 +430,11 @@ async function handleAPI(req, server) {
       fileTreePollInterval: parseInt(process.env.VITE_FILE_TREE_POLL_INTERVAL || "5000", 10),
       heartbeatInterval: parseInt(process.env.VITE_HEARTBEAT_INTERVAL || "60000", 10),
       diskUsageThreshold: parseInt(process.env.VITE_DISK_USAGE_THRESHOLD || "90", 10),
+      defaultDir: process.env.VITE_OPENCODE_DEFAULT_DIR || "",
+      serverHost: process.env.VITE_OPENCODE_SERVER_HOST || "",
+      serverPort: process.env.VITE_OPENCODE_SERVER_PORT || "",
+      serverUsername: process.env.VITE_OPENCODE_SERVER_USERNAME || "",
+      serverPassword: process.env.VITE_OPENCODE_SERVER_PASSWORD || "",
     })
   }
 
@@ -1133,5 +1214,5 @@ setInterval(rotateLog, 600000)
 rotateLog()
 
 console.log(`[${getTzTime()}] Production server listening on ${webHost}:${webPort}`)
-console.log(`[${getTzTime()}] Static files from: ${distDir}`)
+console.log(`[${getTzTime()}] Static files from: ${isCompiled ? "embedded" : distDir}`)
 console.log(`[${getTzTime()}] Stats data: ${statsPath}`)

@@ -78,6 +78,14 @@ declare global {
     api?: {
       setTitlebar?: (theme: { mode: "light" | "dark" }) => Promise<void>
     }
+    __SERVER_CONFIG__?: {
+      serverHost?: string
+      serverPort?: string
+      serverUsername?: string
+      serverPassword?: string
+      defaultDir?: string
+      [key: string]: unknown
+    }
   }
 }
 
