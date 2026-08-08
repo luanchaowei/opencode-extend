@@ -331,19 +331,6 @@ export default function Layout(props: ParentProps) {
     layout.mobileSidebar.hide()
   }
 
-  function cycleTheme(direction = 1) {
-    const ids = availableThemeEntries().map(([id]) => id)
-    if (ids.length === 0) return
-    const currentIndex = ids.indexOf(theme.themeId())
-    const nextIndex = currentIndex === -1 ? 0 : (currentIndex + direction + ids.length) % ids.length
-    const nextThemeId = ids[nextIndex]
-    theme.setTheme(nextThemeId)
-    showToast({
-      title: language.t("toast.theme.title"),
-      description: theme.name(nextThemeId),
-    })
-  }
-
   function cycleColorScheme(direction = 1) {
     const current = theme.colorScheme()
     const currentIndex = colorSchemeOrder.indexOf(current)
@@ -946,77 +933,6 @@ export default function Layout(props: ParentProps) {
     warm(sessions, index)
   })
 
-  function navigateSessionByOffset(offset: number) {
-    const sessions = currentSessions()
-    if (sessions.length === 0) return
-
-    const sessionIndex = params.id ? sessions.findIndex((s) => s.id === params.id) : -1
-
-    let targetIndex: number
-    if (sessionIndex === -1) {
-      targetIndex = offset > 0 ? 0 : sessions.length - 1
-    } else {
-      targetIndex = (sessionIndex + offset + sessions.length) % sessions.length
-    }
-
-    const session = sessions[targetIndex]
-    if (!session) return
-
-    prefetchSession(session, "high")
-    warm(sessions, targetIndex)
-
-    navigateToSession(session)
-  }
-
-  function navigateProjectByOffset(offset: number) {
-    const currentDirectory = decode64(params.dir)
-    if (currentDirectory && !device.isOwnProject(currentDirectory)) return
-    
-    const projects = layout.projects.list()
-    if (projects.length === 0) return
-
-    const current = currentProject()?.worktree
-    const fallback = currentDir() ? projectRoot(currentDir()) : undefined
-    const active = current ?? fallback
-    const index = active ? projects.findIndex((project) => project.worktree === active) : -1
-
-    const target =
-      index === -1
-        ? offset > 0
-          ? projects[0]
-          : projects[projects.length - 1]
-        : projects[(index + offset + projects.length) % projects.length]
-    if (!target) return
-
-    // warm up child store to prevent flicker
-    globalSync.child(target.worktree)
-    void openProject(target.worktree)
-  }
-
-  function navigateSessionByUnseen(offset: number) {
-    const sessions = currentSessions()
-    if (sessions.length === 0) return
-
-    const hasUnseen = sessions.some((session) => notification.session.unseenCount(session.id) > 0)
-    if (!hasUnseen) return
-
-    const activeIndex = params.id ? sessions.findIndex((s) => s.id === params.id) : -1
-    const start = activeIndex === -1 ? (offset > 0 ? -1 : 0) : activeIndex
-
-    for (let i = 1; i <= sessions.length; i++) {
-      const index = offset > 0 ? (start + i) % sessions.length : (start - i + sessions.length) % sessions.length
-      const session = sessions[index]
-      if (!session) continue
-      if (notification.session.unseenCount(session.id) === 0) continue
-
-      prefetchSession(session, "high")
-      warm(sessions, index)
-
-      navigateToSession(session)
-      return
-    }
-  }
-
   async function deleteSession(session: Session) {
     const [store, setStore] = globalSync.child(session.directory)
     const sessions = store.session ?? []
@@ -1050,27 +966,6 @@ export default function Layout(props: ParentProps) {
   command.register("layout", () => {
     const commands: CommandOption[] = [
       {
-        id: "sidebar.toggle",
-        title: language.t("command.sidebar.toggle"),
-        category: language.t("command.category.view"),
-        keybind: "mod+b",
-        onSelect: () => layout.sidebar.toggle(),
-      },
-      {
-        id: "project.previous",
-        title: language.t("command.project.previous"),
-        category: language.t("command.category.project"),
-        keybind: "mod+alt+arrowup",
-        onSelect: () => navigateProjectByOffset(-1),
-      },
-      {
-        id: "project.next",
-        title: language.t("command.project.next"),
-        category: language.t("command.category.project"),
-        keybind: "mod+alt+arrowdown",
-        onSelect: () => navigateProjectByOffset(1),
-      },
-      {
         id: "provider.connect",
         title: language.t("command.provider.connect"),
         category: language.t("command.category.provider"),
@@ -1081,57 +976,6 @@ export default function Layout(props: ParentProps) {
         title: language.t("command.server.switch"),
         category: language.t("command.category.server"),
         onSelect: () => openServer(),
-      },
-      {
-        id: "session.previous",
-        title: language.t("command.session.previous"),
-        category: language.t("command.category.session"),
-        keybind: "alt+arrowup",
-        onSelect: () => navigateSessionByOffset(-1),
-      },
-      {
-        id: "session.next",
-        title: language.t("command.session.next"),
-        category: language.t("command.category.session"),
-        keybind: "alt+arrowdown",
-        onSelect: () => navigateSessionByOffset(1),
-      },
-      {
-        id: "session.previous.unseen",
-        title: language.t("command.session.previous.unseen"),
-        category: language.t("command.category.session"),
-        keybind: "shift+alt+arrowup",
-        onSelect: () => navigateSessionByUnseen(-1),
-      },
-      {
-        id: "session.next.unseen",
-        title: language.t("command.session.next.unseen"),
-        category: language.t("command.category.session"),
-        keybind: "shift+alt+arrowdown",
-        onSelect: () => navigateSessionByUnseen(1),
-      },
-      {
-        id: "session.delete",
-        title: language.t("command.session.delete"),
-        category: language.t("command.category.session"),
-        keybind: "mod+shift+backspace",
-        disabled: !params.dir || !params.id,
-        onSelect: () => {
-          const session = currentSessions().find((s) => s.id === params.id)
-          if (session) void deleteSession(session)
-        },
-      },
-      {
-        id: "workspace.new",
-        title: language.t("workspace.new"),
-        category: language.t("command.category.workspace"),
-        keybind: "mod+shift+w",
-        disabled: !workspaceSetting(),
-        onSelect: () => {
-          const project = currentProject()
-          if (!project) return
-          return createWorkspace(project)
-        },
       },
       {
         id: "workspace.toggle",
@@ -1154,13 +998,6 @@ export default function Layout(props: ParentProps) {
               : language.t("toast.workspace.enabled.description"),
           })
         },
-      },
-      {
-        id: "theme.cycle",
-        title: language.t("command.theme.cycle"),
-        category: language.t("command.category.theme"),
-        keybind: "mod+shift+t",
-        onSelect: () => cycleTheme(1),
       },
     ]
 

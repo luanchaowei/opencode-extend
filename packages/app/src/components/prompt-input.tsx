@@ -21,7 +21,6 @@ import { useComments } from "@/context/comments"
 import { Button } from "@opencode-ai/ui/button"
 import { DockShellForm, DockTray } from "@opencode-ai/ui/dock-surface"
 import { Icon } from "@opencode-ai/ui/icon"
-import { Spinner } from "@opencode-ai/ui/spinner"
 import { ProviderIcon } from "@opencode-ai/ui/provider-icon"
 import { Tooltip, TooltipKeybind } from "@opencode-ai/ui/tooltip"
 import { IconButton } from "@opencode-ai/ui/icon-button"
@@ -41,7 +40,6 @@ import { useSessionLayout } from "@/pages/session/session-layout"
 import { createSessionTabs } from "@/pages/session/helpers"
 import { createTextFragment, getCursorPosition, setCursorPosition, setRangeEdge } from "./prompt-input/editor-dom"
 import { createPromptAttachments } from "./prompt-input/attachments"
-import { ACCEPTED_FILE_TYPES } from "./prompt-input/files"
 import {
   canNavigateHistoryAtCursor,
   navigatePromptHistory,
@@ -119,7 +117,6 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
   const platform = usePlatform()
   const { params, tabs, view } = useSessionLayout()
   let editorRef!: HTMLDivElement
-  let fileInputRef: HTMLInputElement | undefined
   let scrollRef!: HTMLDivElement
 
   const isOwnProject = createMemo(() => {
@@ -262,7 +259,6 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
     draggingType: "image" | "@mention" | null
     mode: "normal" | "shell"
     applyingHistory: boolean
-    uploading: boolean
   }>({
     popover: null,
     historyIndex: -1,
@@ -271,7 +267,6 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
     draggingType: null,
     mode: "normal",
     applyingHistory: false,
-    uploading: false,
   })
 
   const buttonsSpring = useSpring(() => (store.mode === "normal" ? 1 : 0), { visualDuration: 0.2, bounce: 0 })
@@ -446,43 +441,11 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
 
   const escBlur = () => platform.platform === "desktop" && platform.os === "macos"
 
-  const pick = () => fileInputRef?.click()
-
   const setMode = (mode: "normal" | "shell") => {
     setStore("mode", mode)
     setStore("popover", null)
     requestAnimationFrame(() => editorRef?.focus())
   }
-
-  const shellModeKey = "mod+shift+x"
-  const normalModeKey = "mod+shift+e"
-
-  command.register("prompt-input", () => [
-    {
-      id: "file.attach",
-      title: language.t("prompt.action.attachFile"),
-      category: language.t("command.category.file"),
-      keybind: "mod+u",
-      disabled: store.mode !== "normal",
-      onSelect: pick,
-    },
-    {
-      id: "prompt.mode.shell",
-      title: language.t("command.prompt.mode.shell"),
-      category: language.t("command.category.session"),
-      keybind: shellModeKey,
-      disabled: store.mode === "shell",
-      onSelect: () => setMode("shell"),
-    },
-    {
-      id: "prompt.mode.normal",
-      title: language.t("command.prompt.mode.normal"),
-      category: language.t("command.category.session"),
-      keybind: normalModeKey,
-      disabled: store.mode === "normal",
-      onSelect: () => setMode("normal"),
-    },
-  ])
 
   const closePopover = () => setStore("popover", null)
 
@@ -894,7 +857,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
     return true
   }
 
-  const { addAttachments, removeAttachment, handlePaste } = createPromptAttachments({
+  const { removeAttachment, handlePaste } = createPromptAttachments({
     editor: () => editorRef,
     isDialogActive: () => !!dialog.active,
     setDraggingType: (type) => setStore("draggingType", type),
@@ -937,13 +900,6 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
   })
 
   const handleKeyDown = (event: KeyboardEvent) => {
-    if ((event.metaKey || event.ctrlKey) && !event.altKey && !event.shiftKey && event.key.toLowerCase() === "u") {
-      event.preventDefault()
-      if (store.mode !== "normal") return
-      pick()
-      return
-    }
-
     if (event.key === "Backspace") {
       const selection = window.getSelection()
       if (selection && selection.isCollapsed) {
@@ -1189,19 +1145,6 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
           />
 
           <div class="pointer-events-none absolute bottom-2 right-2 flex items-center gap-2">
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              accept={ACCEPTED_FILE_TYPES.join(",")}
-              class="hidden"
-              onChange={(e) => {
-                const list = e.currentTarget.files
-                if (list) void addAttachments(Array.from(list))
-                e.currentTarget.value = ""
-              }}
-            />
-
             <div class="flex items-center gap-1 pointer-events-auto">
               <Tooltip placement="top" inactive={!working() && blank() && isOwnProject()} value={isOwnProject() ? tip() : language.t("prompt.readonly.message")}>
                 <IconButton
@@ -1215,95 +1158,6 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                   aria-label={stopping() ? language.t("prompt.action.stop") : language.t("prompt.action.send")}
                 />
               </Tooltip>
-            </div>
-          </div>
-
-          <div class="pointer-events-none absolute bottom-2 left-2">
-            <div
-              aria-hidden={store.mode !== "normal"}
-              class="pointer-events-auto"
-              style={{
-                "pointer-events": buttonsSpring() > 0.5 ? "auto" : "none",
-                "display": "none"
-              }}
-            >
-              <TooltipKeybind
-                placement="top"
-                title={language.t("prompt.action.attachFile")}
-                keybind={command.keybind("file.attach")}
-              >
-                <Button
-                  data-action="prompt-upload"
-                  type="button"
-                  variant="ghost"
-                  class="size-8 p-0"
-                  classList={{
-                    "bg-surface-interactive-weak": store.uploading,
-                  }}
-                  style={buttons()}
-                  onClick={() => {
-                    if (store.uploading) return
-                    
-                    const input = document.createElement('input')
-                    input.type = 'file'
-                    input.multiple = true
-                    input.style.display = 'none'
-                    input.onchange = async (event) => {
-                      const target = event.target as HTMLInputElement
-                      const files = target.files
-                      if (!files || files.length === 0) return
-                      
-                      setStore("uploading", true)
-                      
-                      const uploadDir = `uploads/${params.id || "default"}`
-                      
-                      for (const selectedFile of Array.from(files)) {
-                        const targetPath = `${uploadDir}/${selectedFile.name}`
-                        const formData = new FormData()
-                        formData.append("file", selectedFile)
-                        formData.append("path", targetPath)
-                        
-                        try {
-                          const response = await fetch(`/file/upload?directory=${sdk.directory}`, {
-                            method: "POST",
-                            body: formData,
-                          })
-                          
-                          if (!response.ok) {
-                            const error = await response.json()
-                            throw new Error(error.error || "Upload failed")
-                          }
-                          
-                          showToast({
-                            variant: "success",
-                            title: "文件上传成功",
-                            description: `${selectedFile.name} 已保存到文件树`,
-                          })
-                        } catch (error) {
-                          const errorMsg = error instanceof Error ? error.message : String(error)
-                          showToast({
-                            variant: "error",
-                            title: "上传失败",
-                            description: `${selectedFile.name}: ${errorMsg}`,
-                          })
-                        }
-                      }
-                      
-                      setStore("uploading", false)
-                      document.body.removeChild(input)
-                    }
-                    document.body.appendChild(input)
-                    input.click()
-                  }}
-                  disabled={store.mode !== "normal" || store.uploading}
-                  tabIndex={store.mode === "normal" && !store.uploading ? undefined : -1}
-                  aria-label={store.uploading ? language.t("session.files.uploading") : language.t("prompt.action.attachFile")}
-                >
-                  <Show when={store.uploading} fallback={<Icon name="cloud-upload" class="size-4.5" />}>
-                    <Spinner class="size-4.5" />
-                  </Show>
-                </Button>
-              </TooltipKeybind>
             </div>
           </div>
         </div>
