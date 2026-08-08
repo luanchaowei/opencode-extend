@@ -5,7 +5,8 @@ OpenCode 自定义前端，支持按客户端IP进行权限隔离。
 ## 详细文档
 
 - [使用指南](doc/user-guide.md) - 面向终端用户，按模块详细介绍各功能使用方法
-- [运维指南](doc/admin-guide.md) - 面向管理员，统计面板和系统配置说明
+- [运维指南](doc/admin-guide.md) - 面向管理员，登录认证、统计面板、系统监控、系统设置和用户管理说明
+- [工具脚本指南](doc/tools-guide.md) - 会话清理和统计数据库查询工具的使用方法
 - [编译打包指南](doc/build-guide.md) - 编译为独立可执行文件
 
 ## 环境要求
@@ -29,6 +30,16 @@ OpenCode 自定义前端，支持按客户端IP进行权限隔离。
 | `--cors http://172.17.0.1:3000` | `WEB_HOST=172.17.0.1` + `WEB_PORT=3000` | CORS 允许前端地址 |
 
 > 注意：服务端设置了 `OPENCODE_SERVER_PASSWORD` 认证密码后，前端需在 `.env` 中配置相同的 `VITE_OPENCODE_SERVER_PASSWORD`。用户名默认为 `opencode`，如服务端通过 `OPENCODE_SERVER_USERNAME` 自定义了用户名，前端必须配置相同的 `VITE_OPENCODE_SERVER_USERNAME`。
+
+### 登录认证
+
+设置 `AUTH_ENABLED=true` 启用前端登录认证。启用后用户必须登录才能访问，支持三种角色：
+
+- **超级管理员（super_admin）**：通过 `ADMIN_USERNAME`/`ADMIN_PASSWORD` 配置，可管理用户
+- **管理员（admin）**：由超级管理员创建，可访问管理面板
+- **普通用户（user）**：由超级管理员创建，仅可使用聊天界面
+
+详见 [运维指南](doc/admin-guide.md)。
 
 ## 安装自定义界面
 
@@ -135,30 +146,9 @@ bash build.sh
 - 前端页面：http://\<WEB_HOST\>:\<WEB_PORT\>
 - 管理面板：http://\<WEB_HOST\>:\<WEB_PORT\>/admin.html
 
-## 会话清理
+## 工具脚本
 
-```bash
-# 清理 14 天未活跃的会话（默认）
-bun packages/scripts/session-cleanup.js
-
-# 清理 30 天未活跃的会话
-bun packages/scripts/session-cleanup.js --days 30
-
-# 清理所有已归档会话
-bun packages/scripts/session-cleanup.js --archived
-
-# 清理孤儿上传目录（session 已删除但上传目录残留）
-bun packages/scripts/session-cleanup.js --orphans
-
-# 预览将要删除的内容（不实际删除）
-bun packages/scripts/session-cleanup.js --dry-run
-
-# 查看帮助
-bun packages/scripts/session-cleanup.js --help
-
-# 建议凌晨定时执行
-0 3 * * * cd /path/to/opencode-extend && bun packages/scripts/session-cleanup.js --days 14 >> /tmp/session-cleanup.log 2>&1
-```
+会话清理、统计数据库查询等工具脚本的使用方法详见 [工具脚本指南](doc/tools-guide.md)。
 
 ## 项目结构
 
