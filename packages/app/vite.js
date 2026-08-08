@@ -108,6 +108,34 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
 </body>
 </html>`
 
+const sessionNotFoundHtml = (backHref) => `<!DOCTYPE html>
+<html lang="zh-CN" style="color-scheme: light dark">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>会话不存在</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--background-base, #f8f8f8); color: var(--text-strong, #171717); font-family: system-ui, -apple-system, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+  .box { text-align: center; padding: 32px; max-width: 400px; }
+  .box h1 { font-size: 20px; font-weight: 600; margin-bottom: 12px; }
+  .box p { font-size: 14px; color: var(--text-weak, #888); margin-bottom: 24px; line-height: 1.6; }
+  .btn { display: inline-block; padding: 10px 24px; background: #2563eb; color: #fff; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; text-decoration: none; }
+  .btn:hover { background: #1d4ed8; }
+  @media (prefers-color-scheme: dark) {
+    body { background: #0a0a0a; color: rgba(255,255,255,0.936); }
+    .box p { color: #888; }
+  }
+</style>
+</head>
+<body>
+  <div class="box">
+    <h1>会话不存在</h1>
+    <p>该会话可能已被删除或清理，请返回创建新的会话。</p>
+    <a href="${backHref}" class="btn">返回会话列表</a>
+  </div>
+</body>
+</html>`
+
 const staticAssetExts = new Set([".js", ".mjs", ".css", ".json", ".png", ".jpg", ".jpeg", ".gif", ".svg", ".ico", ".woff", ".woff2", ".ttf", ".webmanifest", ".map"])
 const noAuthPaths = new Set(["/login", "/api/login", "/oc-theme-preload.js"])
 
@@ -175,6 +203,14 @@ export default [
         if (url.pathname === "/login" && req.method === "GET") {
           res.setHeader("Content-Type", "text/html")
           res.end(loginPageHtml)
+          return
+        }
+
+        if (url.pathname === "/session-not-found" && req.method === "GET") {
+          const dir = url.searchParams.get("dir") || ""
+          const backHref = dir ? `/${dir}/session` : "/"
+          res.setHeader("Content-Type", "text/html")
+          res.end(sessionNotFoundHtml(backHref))
           return
         }
 

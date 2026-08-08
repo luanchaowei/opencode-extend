@@ -737,6 +737,17 @@ export default function Page() {
 
   createEffect(
     on(
+      () => sessionSync.error,
+      (error) => {
+        if (error && params.id) {
+          window.location.href = `/session-not-found?dir=${params.dir}`
+        }
+      },
+    ),
+  )
+
+  createEffect(
+    on(
       () => {
         const id = params.id
         return [
@@ -1233,7 +1244,7 @@ export default function Page() {
 
   return (
     <div class="relative bg-background-base size-full overflow-hidden flex flex-col">
-      {sessionSync() ?? ""}
+      <Show when={!sessionSync.error}>{sessionSync() ?? ""}</Show>
       <SessionHeader />
       <div class="flex-1 min-h-0 flex flex-col md:flex-row">
         {/* Session panel */}
