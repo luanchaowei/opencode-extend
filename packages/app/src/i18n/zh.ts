@@ -518,7 +518,7 @@ export const dict = {
   "session.revertDock.collapse": "折叠已回滚消息",
   "session.revertDock.expand": "展开已回滚消息",
   "session.revertDock.restore": "恢复消息",
-  "session.new.title": "构建任何东西",
+  "session.new.title": "欢迎使用GE诊断助手，会话加载中请稍候！",
   "session.new.worktree.main": "主分支",
   "session.new.worktree.mainWithBranch": "主分支（{{branch}}）",
   "session.new.worktree.create": "创建新的 worktree",

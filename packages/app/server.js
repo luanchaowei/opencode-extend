@@ -1215,4 +1215,4 @@ rotateLog()
 
 console.log(`[${getTzTime()}] Production server listening on ${webHost}:${webPort}`)
 console.log(`[${getTzTime()}] Static files from: ${isCompiled ? "embedded" : distDir}`)
-console.log(`[${getTzTime()}] Stats data: ${statsPath}`)
+console.log(`[${getTzTime()}] Stats data: ${dbPath}`)
