@@ -148,7 +148,7 @@ export default function Layout(props: ParentProps) {
     return {
       slug,
       store,
-      dir: store[0].path.directory || dir,
+      dir: dir,
     }
   })
   const availableThemeEntries = createMemo(() => theme.ids().map((id) => [id, theme.themes()[id]] as const))

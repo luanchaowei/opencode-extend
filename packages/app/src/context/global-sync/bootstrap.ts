@@ -273,8 +273,8 @@ export async function bootstrapDirectory(input: {
       !seededPath &&
         (() =>
           input.queryClient.ensureQueryData(
-            loadPathQuery(input.directory, input.sdk, (x) => {
-              const next = projectID(x.data?.directory ?? input.directory, input.global.project)
+            loadPathQuery(input.directory, input.sdk, () => {
+              const next = projectID(input.directory, input.global.project)
               if (next) input.setStore("project", next)
             }),
           )),
