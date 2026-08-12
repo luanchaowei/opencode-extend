@@ -242,11 +242,12 @@ Set-Cookie: `session_id=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax`
   "serverHost": "127.0.0.1",
   "serverPort": "4096",
   "serverUsername": "opencode",
-  "serverPassword": ""
+  "serverPassword": "",
+  "hiddenProviders": ["opencode", "alibaba-cn"]
 }
 ```
 
-> `clientIP` 为客户端 IP 地址，`.` 替换为 `_`。
+> `clientIP` 为客户端 IP 地址，`.` 替换为 `_`。`hiddenProviders` 为隐藏的供应商 ID 列表，前端模型选择器和模型管理 Tab 会过滤掉这些供应商。
 
 ---
 
@@ -271,7 +272,8 @@ Set-Cookie: `session_id=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax`
   "caseLibraryDir": "/path/to/cases",
   "monitorDiskMounts": "/",
   "monitorBackendPattern": "",
-  "monitorFrontendPattern": ""
+  "monitorFrontendPattern": "",
+  "hiddenProviders": "opencode,alibaba-cn"
 }
 ```
 
@@ -289,7 +291,8 @@ Set-Cookie: `session_id=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax`
 {
   "announcementText": "新公告",
   "contactAdmin": "admin:12345678|admin2:87654321",
-  "diskUsageThreshold": "85"
+  "diskUsageThreshold": "85",
+  "hiddenProviders": "opencode,alibaba-cn"
 }
 ```
 
@@ -309,8 +312,74 @@ Set-Cookie: `session_id=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax`
 | `monitorDiskMounts` | `VITE_MONITOR_DISK_MOUNTS` |
 | `monitorBackendPattern` | `VITE_MONITOR_BACKEND_PATTERN` |
 | `monitorFrontendPattern` | `VITE_MONITOR_FRONTEND_PATTERN` |
+| `hiddenProviders` | `VITE_HIDDEN_PROVIDERS` |
 
 **成功响应** `200`：`{ "success": true }`
+
+---
+
+## 模型管理接口
+
+### GET /api/models/list
+
+获取已配置的模型列表（管理面板模型管理页面使用）。
+
+**权限**：管理员
+
+**成功响应** `200`：
+
+```json
+{
+  "models": [
+    {
+      "providerID": "cannbot",
+      "providerName": "CANNBOT",
+      "modelID": "glm-5.2",
+      "modelName": "GLM-5.2",
+      "status": "active",
+      "testResult": {
+        "success": true,
+        "error": "",
+        "durationMs": 1321,
+        "testedAt": 1718000000000
+      }
+    }
+  ]
+}
+```
+
+> 已隐藏的供应商（`VITE_HIDDEN_PROVIDERS`）不会出现在列表中。`status` 为 `deprecated` 的模型也会被过滤。`testResult` 为历史检测结果，未检测过时为 `null`。
+
+---
+
+### POST /api/models/test
+
+检测指定模型是否可用。创建临时会话发送测试消息，检测完成后自动删除临时会话，并将结果存入数据库。
+
+**权限**：管理员
+
+**请求体**：
+
+```json
+{
+  "providerID": "cannbot",
+  "modelID": "glm-5.2"
+}
+```
+
+**成功响应** `200`：
+
+```json
+{ "success": true, "durationMs": 1321 }
+```
+
+**失败响应** `200`（模型不可用）：
+
+```json
+{ "success": false, "error": "错误信息", "durationMs": 500 }
+```
+
+> 不设超时，等待后端返回结果。`durationMs` 为检测耗时（毫秒）。检测结果存入 `model_test_results` 表，下次加载列表时可查看历史记录。临时会话使用 `VITE_OPENCODE_DEFAULT_DIR` 作为工作目录。
 
 ---
 

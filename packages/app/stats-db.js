@@ -91,6 +91,15 @@ export function createStatsDb(Database, dbPath, statsJsonPath) {
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS model_test_results (
+      provider_id TEXT NOT NULL,
+      model_id TEXT NOT NULL,
+      success INTEGER NOT NULL,
+      error TEXT,
+      duration_ms INTEGER NOT NULL,
+      tested_at INTEGER NOT NULL,
+      PRIMARY KEY (provider_id, model_id)
+    );
   `)
 
   db.query("INSERT OR IGNORE INTO counters VALUES ('totalSessionsEverCreated', 0)").run()
@@ -478,6 +487,16 @@ export function createStatsDb(Database, dbPath, statsJsonPath) {
     return { success: true }
   }
 
+  function saveModelTestResult(providerID, modelID, success, error, durationMs) {
+    db.query("INSERT OR REPLACE INTO model_test_results VALUES (?, ?, ?, ?, ?, ?)").run(
+      providerID, modelID, success ? 1 : 0, error || "", durationMs, Date.now()
+    )
+  }
+
+  function getModelTestResults() {
+    return db.query("SELECT provider_id, model_id, success, error, duration_ms, tested_at FROM model_test_results").all()
+  }
+
   function close() {
     rawDb.close()
   }
@@ -502,6 +521,8 @@ export function createStatsDb(Database, dbPath, statsJsonPath) {
     updateUserPassword,
     updateUserRole,
     validatePassword,
+    saveModelTestResult,
+    getModelTestResults,
     close,
   }
 }

@@ -95,6 +95,9 @@ VITE_DISK_USAGE_THRESHOLD=90             # 磁盘使用率阈值（%），超过
 VITE_MONITOR_DISK_MOUNTS=/               # 监控的磁盘挂载点，逗号分隔
 VITE_MONITOR_BACKEND_PATTERN=            # 后端进程匹配规则，为空默认 opencode serve.*--port 端口
 VITE_MONITOR_FRONTEND_PATTERN=           # 前端进程匹配规则，为空默认 bun.*packages/app
+
+# === 模型管理 ===
+VITE_HIDDEN_PROVIDERS=                   # 隐藏的供应商 ID，逗号分隔
 ENV_EXAMPLE
 
 tar czf "$OUTPUT_DIR/opencode-extend.tar.gz" \

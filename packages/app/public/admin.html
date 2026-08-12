@@ -79,6 +79,7 @@
       <div id="nav-stats" class="sidebar-item active" onclick="switchTab('stats')">使用统计</div>
       <div id="nav-monitor" class="sidebar-item" onclick="switchTab('monitor')">系统监控</div>
       <div id="nav-settings" class="sidebar-item" onclick="switchTab('settings')">系统设置</div>
+      <div id="nav-models" class="sidebar-item" onclick="switchTab('models')">模型管理</div>
       <div id="nav-users" class="sidebar-item" onclick="switchTab('users')" style="display:none">用户管理</div>
     </nav>
     <div class="content">
@@ -327,10 +328,32 @@
                 <input id="monitorFrontendPattern" type="text" placeholder="bun.*packages/app">
                 <div class="hint">pgrep 匹配前端进程的模式，为空时默认 bun.*packages/app</div>
               </div>
+              <div class="field">
+                <label>隐藏供应商</label>
+                <input id="hiddenProviders" type="text" placeholder="opencode,alibaba-cn">
+                <div class="hint">隐藏的供应商 ID，逗号分隔，隐藏后用户模型选择器和管理面板均不显示</div>
+              </div>
             </div>
           </div>
           <button id="save-btn" class="save-btn" onclick="save()">保存配置</button>
           <div id="msg" class="msg"></div>
+        </div>
+      </div>
+
+      <div id="tab-models" style="display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
+          <h1 class="page-title">模型管理</h1>
+          <div style="display:flex;gap:8px">
+            <button class="refresh-btn" onclick="testAllModels()" id="test-all-btn">检测全部</button>
+            <button class="refresh-btn" onclick="fetchModels()">手动刷新</button>
+          </div>
+        </div>
+        <div id="test-progress" style="display:none;margin-bottom:16px;font-size:12px;color:#888"></div>
+        <div class="card">
+          <table>
+            <thead><tr><th>供应商</th><th>模型</th><th>状态</th><th>检测结果</th><th>耗时</th><th>检测时间</th><th>操作</th></tr></thead>
+            <tbody id="models-table"></tbody>
+          </table>
         </div>
       </div>
     </div>
@@ -407,17 +430,19 @@
 
     function switchTab(tab) {
       currentTab = tab
-      const tabNames = { stats: '使用统计', monitor: '系统监控', settings: '系统设置', users: '用户管理' }
+      const tabNames = { stats: '使用统计', monitor: '系统监控', settings: '系统设置', models: '模型管理', users: '用户管理' }
       document.querySelectorAll('.sidebar-item').forEach(el => {
         el.classList.toggle('active', el.textContent === tabNames[tab])
       })
       document.getElementById('tab-stats').style.display = tab === 'stats' ? 'block' : 'none'
       document.getElementById('tab-monitor').style.display = tab === 'monitor' ? 'block' : 'none'
       document.getElementById('tab-settings').style.display = tab === 'settings' ? 'block' : 'none'
+      document.getElementById('tab-models').style.display = tab === 'models' ? 'block' : 'none'
       document.getElementById('tab-users').style.display = tab === 'users' ? 'block' : 'none'
       if (tab === 'stats') { fetchStats(); stopMonitor() }
       if (tab === 'monitor') { startMonitor() }
       if (tab === 'settings') { stopMonitor() }
+      if (tab === 'models') { stopMonitor(); fetchModels() }
       if (tab === 'users') { stopMonitor(); fetchUsers() }
     }
 
@@ -465,6 +490,7 @@
           document.getElementById('monitorDiskMounts').value = data.monitorDiskMounts || '/'
           document.getElementById('monitorBackendPattern').value = data.monitorBackendPattern || ''
           document.getElementById('monitorFrontendPattern').value = data.monitorFrontendPattern || ''
+          document.getElementById('hiddenProviders').value = data.hiddenProviders || ''
           showPanel('main')
           fetchStats()
         } else {
@@ -499,6 +525,7 @@
             monitorDiskMounts: document.getElementById('monitorDiskMounts').value,
             monitorBackendPattern: document.getElementById('monitorBackendPattern').value,
             monitorFrontendPattern: document.getElementById('monitorFrontendPattern').value,
+            hiddenProviders: document.getElementById('hiddenProviders').value,
           })
         })
         if (resp.ok) {
@@ -875,6 +902,127 @@
       } catch (err) {
         document.getElementById('monitor-content').innerHTML = '<div style="color:#f87171;font-size:13px">获取监控数据失败: ' + err.message + '</div>'
       }
+    }
+
+    let modelsCache = []
+    let testingAll = false
+
+    async function fetchModels() {
+      try {
+        const resp = await fetch('/api/models/list')
+        if (!resp.ok) return
+        const data = await resp.json()
+        modelsCache = data.models || []
+        renderModelsTable()
+      } catch (err) {
+        document.getElementById('models-table').innerHTML = '<tr><td colspan="7" style="color:#f87171">获取模型列表失败: ' + err.message + '</td></tr>'
+      }
+    }
+
+    function fmtDuration(ms) {
+      if (ms < 1000) return ms + 'ms'
+      return (ms / 1000).toFixed(1) + 's'
+    }
+
+    function fmtTime(ts) {
+      if (!ts) return '-'
+      const d = new Date(ts)
+      const pad = (n) => String(n).padStart(2, '0')
+      return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
+    }
+
+    function renderTestResult(index) {
+      const m = modelsCache[index]
+      const resultEl = document.getElementById('model-result-' + index)
+      const durationEl = document.getElementById('model-duration-' + index)
+      const timeEl = document.getElementById('model-time-' + index)
+      const tr = m.testResult
+      if (!tr) {
+        resultEl.textContent = '-'
+        resultEl.style.color = '#888'
+        durationEl.textContent = '-'
+        timeEl.textContent = '-'
+        return
+      }
+      if (tr.success) {
+        resultEl.textContent = '✓ 可用'
+        resultEl.style.color = '#22c55e'
+      } else {
+        resultEl.textContent = '✗ ' + (tr.error || '不可用')
+        resultEl.style.color = '#f87171'
+      }
+      durationEl.textContent = fmtDuration(tr.durationMs)
+      durationEl.style.color = tr.durationMs > 10000 ? '#f87171' : tr.durationMs > 5000 ? '#f59e0b' : '#888'
+      timeEl.textContent = fmtTime(tr.testedAt)
+    }
+
+    function renderModelsTable() {
+      const tbody = document.getElementById('models-table')
+      if (modelsCache.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="color:#888;text-align:center;padding:20px">暂无模型</td></tr>'
+        return
+      }
+      tbody.innerHTML = modelsCache.map((m, i) => {
+        const statusColor = m.status === 'active' ? '#22c55e' : m.status === 'beta' ? '#f59e0b' : '#888'
+        return `<tr id="model-row-${i}">
+          <td>${m.providerName}</td>
+          <td>${m.modelName}</td>
+          <td style="color:${statusColor}">${m.status}</td>
+          <td id="model-result-${i}" style="color:#888">-</td>
+          <td id="model-duration-${i}" style="color:#888">-</td>
+          <td id="model-time-${i}" style="color:#888;font-size:11px">-</td>
+          <td><button class="range-btn" onclick="testModel(${i})">检测</button></td>
+        </tr>`
+      }).join('')
+      for (let i = 0; i < modelsCache.length; i++) renderTestResult(i)
+    }
+
+    async function testModel(index) {
+      const m = modelsCache[index]
+      if (!m) return
+      const resultEl = document.getElementById('model-result-' + index)
+      const durationEl = document.getElementById('model-duration-' + index)
+      const timeEl = document.getElementById('model-time-' + index)
+      resultEl.textContent = '检测中...'
+      resultEl.style.color = '#f59e0b'
+      durationEl.textContent = '-'
+      timeEl.textContent = '-'
+      try {
+        const resp = await fetch('/api/models/test', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ providerID: m.providerID, modelID: m.modelID }),
+        })
+        const data = await resp.json()
+        if (data.success) {
+          m.testResult = { success: true, error: '', durationMs: data.durationMs, testedAt: Date.now() }
+        } else {
+          m.testResult = { success: false, error: data.error || '不可用', durationMs: data.durationMs || 0, testedAt: Date.now() }
+        }
+        renderTestResult(index)
+      } catch (err) {
+        m.testResult = { success: false, error: err.message, durationMs: 0, testedAt: Date.now() }
+        renderTestResult(index)
+      }
+    }
+
+    async function testAllModels() {
+      if (testingAll) return
+      testingAll = true
+      const btn = document.getElementById('test-all-btn')
+      btn.disabled = true
+      btn.textContent = '检测中...'
+      const progress = document.getElementById('test-progress')
+      progress.style.display = 'block'
+      const total = modelsCache.length
+      for (let i = 0; i < total; i++) {
+        progress.textContent = `正在检测 ${i + 1}/${total}: ${modelsCache[i].providerName} / ${modelsCache[i].modelName}`
+        await testModel(i)
+      }
+      progress.style.display = 'none'
+      btn.disabled = false
+      btn.textContent = '检测全部'
+      testingAll = false
     }
 
     async function fetchUsers() {

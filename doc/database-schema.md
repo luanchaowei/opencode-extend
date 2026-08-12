@@ -131,6 +131,25 @@
 
 **密码存储**：`SHA-256(password + salt)`，每个用户独立盐值。
 
+---
+
+### model_test_results
+
+模型检测结果记录表，每个 provider+model 组合一条记录（覆盖更新）。
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `provider_id` | TEXT NOT NULL | 供应商 ID |
+| `model_id` | TEXT NOT NULL | 模型 ID |
+| `success` | INTEGER NOT NULL | 检测结果：1=可用，0=不可用 |
+| `error` | TEXT | 错误信息（成功时为空） |
+| `duration_ms` | INTEGER NOT NULL | 检测耗时（毫秒） |
+| `tested_at` | INTEGER NOT NULL | 检测时间戳（毫秒） |
+
+**主键**：`(provider_id, model_id)`
+
+> 每次检测后通过 `INSERT OR REPLACE` 覆盖更新，只保留最近一次检测结果。
+
 ## 索引
 
 | 索引名 | 表 | 字段 | 说明 |

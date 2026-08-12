@@ -358,7 +358,8 @@ export default [
             const serverPort = process.env.VITE_OPENCODE_SERVER_PORT || ""
             const serverUsername = process.env.VITE_OPENCODE_SERVER_USERNAME || ""
             const serverPassword = process.env.VITE_OPENCODE_SERVER_PASSWORD || ""
-            res.end(JSON.stringify({ clientIP, contactAdmin: contactList, feedbackUrl, caseLibraryDir, helpDocUrl, announcementText, downloadCutoffText, fileTreePollInterval, heartbeatInterval, diskUsageThreshold, defaultDir, serverHost, serverPort, serverUsername, serverPassword }))
+            const hiddenProviders = (process.env.VITE_HIDDEN_PROVIDERS || "").split(",").map(s => s.trim()).filter(Boolean)
+            res.end(JSON.stringify({ clientIP, contactAdmin: contactList, feedbackUrl, caseLibraryDir, helpDocUrl, announcementText, downloadCutoffText, fileTreePollInterval, heartbeatInterval, diskUsageThreshold, defaultDir, serverHost, serverPort, serverUsername, serverPassword, hiddenProviders }))
           } catch (error) {
             res.statusCode = 500
             res.end(JSON.stringify({ error: error.message }))
@@ -1162,6 +1163,123 @@ export default [
           return
         }
 
+        if (req.url?.startsWith("/api/models/list") && req.method === "GET") {
+          try {
+            if (!requireAdmin(req)) { sendJson(res, { error: "Forbidden" }, 403); return }
+            const serverHost = process.env.VITE_OPENCODE_SERVER_HOST || "127.0.0.1"
+            const serverPort = process.env.VITE_OPENCODE_SERVER_PORT || "4096"
+            const serverUrl = `http://${serverHost}:${serverPort}`
+            const serverPassword = process.env.VITE_OPENCODE_SERVER_PASSWORD || ""
+            const serverUsername = process.env.VITE_OPENCODE_SERVER_USERNAME || "opencode"
+            const authHeader = serverPassword ? `Basic ${Buffer.from(`${serverUsername}:${serverPassword}`).toString("base64")}` : ""
+            const r = await fetch(`${serverUrl}/config/providers`, {
+              headers: authHeader ? { Authorization: authHeader } : {},
+            })
+            if (!r.ok) { sendJson(res, { error: `Backend returned ${r.status}` }, r.status); return }
+            const data = await r.json()
+            const hiddenSet = new Set((process.env.VITE_HIDDEN_PROVIDERS || "").split(",").map(s => s.trim()).filter(Boolean))
+            const providers = (data.providers || []).filter(p => !hiddenSet.has(p.id))
+            const testResults = new Map()
+            for (const row of statsDb.getModelTestResults()) {
+              testResults.set(`${row.provider_id}:${row.model_id}`, row)
+            }
+            const models = []
+            for (const p of providers) {
+              const pModels = p.models || {}
+              for (const [modelID, model] of Object.entries(pModels)) {
+                if (model.status === "deprecated") continue
+                const tr = testResults.get(`${p.id}:${modelID}`)
+                models.push({
+                  providerID: p.id, providerName: p.name || p.id, modelID, modelName: model.name || modelID, status: model.status || "active",
+                  testResult: tr ? { success: !!tr.success, error: tr.error || "", durationMs: tr.duration_ms, testedAt: tr.tested_at } : null,
+                })
+              }
+            }
+            sendJson(res, { models })
+          } catch (error) {
+            res.statusCode = 500
+            res.setHeader("Content-Type", "application/json")
+            res.end(JSON.stringify({ error: error.message }))
+          }
+          return
+        }
+
+        if (req.url?.startsWith("/api/models/test") && req.method === "POST") {
+          try {
+            if (!requireAdmin(req)) { sendJson(res, { error: "Forbidden" }, 403); return }
+            const body = JSON.parse(await readBody())
+            const { providerID, modelID } = body
+            if (!providerID || !modelID) { sendJson(res, { error: "Missing providerID or modelID" }, 400); return }
+            const serverHost = process.env.VITE_OPENCODE_SERVER_HOST || "127.0.0.1"
+            const serverPort = process.env.VITE_OPENCODE_SERVER_PORT || "4096"
+            const serverUrl = `http://${serverHost}:${serverPort}`
+            const serverPassword = process.env.VITE_OPENCODE_SERVER_PASSWORD || ""
+            const serverUsername = process.env.VITE_OPENCODE_SERVER_USERNAME || "opencode"
+            const authHeader = serverPassword ? `Basic ${Buffer.from(`${serverUsername}:${serverPassword}`).toString("base64")}` : ""
+            const defaultDir = process.env.VITE_OPENCODE_DEFAULT_DIR || ""
+            if (!defaultDir) { sendJson(res, { error: "VITE_OPENCODE_DEFAULT_DIR not configured" }, 500); return }
+
+            let sessionID = null
+            const testStart = Date.now()
+            try {
+              const sessionRes = await fetch(`${serverUrl}/session`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", ...(authHeader ? { Authorization: authHeader } : {}) },
+                body: JSON.stringify({ directory: defaultDir, title: "model-test" }),
+              })
+              if (!sessionRes.ok) {
+                const errText = await sessionRes.text()
+                const durationMs = Date.now() - testStart
+                const errorMsg = `创建会话失败: ${sessionRes.status} ${errText}`
+                statsDb.saveModelTestResult(providerID, modelID, false, errorMsg, durationMs)
+                sendJson(res, { success: false, error: errorMsg, durationMs })
+                return
+              }
+              const sessionData = await sessionRes.json()
+              sessionID = sessionData.id
+              if (!sessionID) {
+                const durationMs = Date.now() - testStart
+                const errorMsg = "创建会话失败: 未返回 sessionID"
+                statsDb.saveModelTestResult(providerID, modelID, false, errorMsg, durationMs)
+                sendJson(res, { success: false, error: errorMsg, durationMs })
+                return
+              }
+
+              const msgRes = await fetch(`${serverUrl}/session/${sessionID}/message`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", ...(authHeader ? { Authorization: authHeader } : {}) },
+                body: JSON.stringify({ model: { providerID, modelID }, parts: [{ type: "text", text: "hi" }] }),
+              })
+
+              const durationMs = Date.now() - testStart
+              if (msgRes.ok) {
+                statsDb.saveModelTestResult(providerID, modelID, true, "", durationMs)
+                sendJson(res, { success: true, durationMs })
+              } else {
+                const errText = await msgRes.text()
+                let errMsg = errText
+                try { errMsg = JSON.parse(errText).error || errMsg } catch {}
+                statsDb.saveModelTestResult(providerID, modelID, false, errMsg, durationMs)
+                sendJson(res, { success: false, error: errMsg, durationMs })
+              }
+            } finally {
+              if (sessionID) {
+                try {
+                  await fetch(`${serverUrl}/session/${sessionID}?directory=${encodeURIComponent(defaultDir)}`, {
+                    method: "DELETE",
+                    headers: authHeader ? { Authorization: authHeader } : {},
+                  })
+                } catch {}
+              }
+            }
+          } catch (error) {
+            res.statusCode = 500
+            res.setHeader("Content-Type", "application/json")
+            res.end(JSON.stringify({ error: error.message }))
+          }
+          return
+        }
+
         next()
       })
     },
@@ -1193,6 +1311,7 @@ export default [
               monitorDiskMounts: process.env.VITE_MONITOR_DISK_MOUNTS || "/",
               monitorBackendPattern: process.env.VITE_MONITOR_BACKEND_PATTERN || "",
               monitorFrontendPattern: process.env.VITE_MONITOR_FRONTEND_PATTERN || "",
+              hiddenProviders: process.env.VITE_HIDDEN_PROVIDERS || "",
             }))
           } catch (error) {
             res.statusCode = 500
@@ -1219,6 +1338,7 @@ export default [
               monitorDiskMounts: "VITE_MONITOR_DISK_MOUNTS",
               monitorBackendPattern: "VITE_MONITOR_BACKEND_PATTERN",
               monitorFrontendPattern: "VITE_MONITOR_FRONTEND_PATTERN",
+              hiddenProviders: "VITE_HIDDEN_PROVIDERS",
             }
             for (const [key, envKey] of Object.entries(envMap)) {
               if (body[key] !== undefined) {

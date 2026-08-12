@@ -1950,7 +1950,7 @@ export default function Layout(props: ParentProps) {
                       }}
                     >
                       <span class="text-12-regular text-text-base truncate select-text">
-                        {worktree().replace(homedir(), "~")}
+                        {homedir() ? worktree().replace(homedir(), "~") : worktree()}
                       </span>
                     </Tooltip>
                   </div>

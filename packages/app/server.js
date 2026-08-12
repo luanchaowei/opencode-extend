@@ -202,7 +202,7 @@ const statsDb = createStatsDb(Database, dbPath, statsPath)
 const authEnabled = envVars.AUTH_ENABLED === "true"
 
 const adminUsername = envVars.ADMIN_USERNAME || "admin"
-const adminPassword = envVars.ADMIN_PASSWORD || "admin123"
+const adminPassword = envVars.ADMIN_PASSWORD || "admin123!"
 statsDb.ensureSuperAdmin(adminUsername, adminPassword)
 
 const sessions = new Map()
@@ -447,6 +447,7 @@ async function handleAPI(req, server) {
   if (url.pathname === "/device/info" && method === "GET") {
     const contactAdmin = process.env.VITE_CONTACT_ADMIN || ""
     const contactList = contactAdmin.split('|').filter(line => line.trim())
+    const hiddenProviders = (process.env.VITE_HIDDEN_PROVIDERS || "").split(",").map(s => s.trim()).filter(Boolean)
     return jsonResponse({
       clientIP: getClientIP(req, server),
       contactAdmin: contactList,
@@ -463,6 +464,7 @@ async function handleAPI(req, server) {
       serverPort: process.env.VITE_OPENCODE_SERVER_PORT || "",
       serverUsername: process.env.VITE_OPENCODE_SERVER_USERNAME || "",
       serverPassword: process.env.VITE_OPENCODE_SERVER_PASSWORD || "",
+      hiddenProviders,
     })
   }
 
@@ -884,6 +886,117 @@ async function handleAPI(req, server) {
     })
   }
 
+  if (url.pathname === "/api/models/list" && method === "GET") {
+    if (!requireAdmin(req)) return jsonResponse({ error: "Forbidden" }, 403)
+    try {
+      const res = await fetch(`${serverUrl}/config/providers`, {
+        headers: serverAuthHeader ? { Authorization: serverAuthHeader } : {},
+      })
+      if (!res.ok) return jsonResponse({ error: `Backend returned ${res.status}` }, res.status)
+      const data = await res.json()
+      const hiddenSet = new Set((process.env.VITE_HIDDEN_PROVIDERS || "").split(",").map(s => s.trim()).filter(Boolean))
+      const providers = (data.providers || []).filter(p => !hiddenSet.has(p.id))
+      const testResults = new Map()
+      for (const r of statsDb.getModelTestResults()) {
+        testResults.set(`${r.provider_id}:${r.model_id}`, r)
+      }
+      const models = []
+      for (const p of providers) {
+        const pModels = p.models || {}
+        for (const [modelID, model] of Object.entries(pModels)) {
+          if (model.status === "deprecated") continue
+          const testResult = testResults.get(`${p.id}:${modelID}`)
+          models.push({
+            providerID: p.id,
+            providerName: p.name || p.id,
+            modelID,
+            modelName: model.name || modelID,
+            status: model.status || "active",
+            testResult: testResult ? {
+              success: !!testResult.success,
+              error: testResult.error || "",
+              durationMs: testResult.duration_ms,
+              testedAt: testResult.tested_at,
+            } : null,
+          })
+        }
+      }
+      return jsonResponse({ models })
+    } catch (err) {
+      return jsonResponse({ error: err.message }, 500)
+    }
+  }
+
+  if (url.pathname === "/api/models/test" && method === "POST") {
+    if (!requireAdmin(req)) return jsonResponse({ error: "Forbidden" }, 403)
+    let sessionID = null
+    const testStart = Date.now()
+    try {
+      const body = JSON.parse(await readBody(req))
+      const { providerID, modelID } = body
+      if (!providerID || !modelID) return jsonResponse({ error: "Missing providerID or modelID" }, 400)
+
+      const defaultDir = envVars.VITE_OPENCODE_DEFAULT_DIR || ""
+      if (!defaultDir) return jsonResponse({ error: "VITE_OPENCODE_DEFAULT_DIR not configured" }, 500)
+
+      const sessionRes = await fetch(`${serverUrl}/session`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(serverAuthHeader ? { Authorization: serverAuthHeader } : {}) },
+        body: JSON.stringify({ directory: defaultDir, title: "model-test" }),
+      })
+      if (!sessionRes.ok) {
+        const errText = await sessionRes.text()
+        const durationMs = Date.now() - testStart
+        const errorMsg = `创建会话失败: ${sessionRes.status} ${errText}`
+        statsDb.saveModelTestResult(providerID, modelID, false, errorMsg, durationMs)
+        return jsonResponse({ success: false, error: errorMsg, durationMs })
+      }
+      const sessionData = await sessionRes.json()
+      sessionID = sessionData.id
+      if (!sessionID) {
+        const durationMs = Date.now() - testStart
+        const errorMsg = "创建会话失败: 未返回 sessionID"
+        statsDb.saveModelTestResult(providerID, modelID, false, errorMsg, durationMs)
+        return jsonResponse({ success: false, error: errorMsg, durationMs })
+      }
+
+      const msgRes = await fetch(`${serverUrl}/session/${sessionID}/message`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(serverAuthHeader ? { Authorization: serverAuthHeader } : {}) },
+        body: JSON.stringify({
+          model: { providerID, modelID },
+          parts: [{ type: "text", text: "hi" }],
+        }),
+      })
+
+      const durationMs = Date.now() - testStart
+
+      if (msgRes.ok) {
+        statsDb.saveModelTestResult(providerID, modelID, true, "", durationMs)
+        return jsonResponse({ success: true, durationMs })
+      } else {
+        const errText = await msgRes.text()
+        let errMsg = errText
+        try { errMsg = JSON.parse(errText).error || errMsg } catch {}
+        statsDb.saveModelTestResult(providerID, modelID, false, errMsg, durationMs)
+        return jsonResponse({ success: false, error: errMsg, durationMs })
+      }
+    } catch (err) {
+      const durationMs = Date.now() - testStart
+      statsDb.saveModelTestResult(providerID || "", modelID || "", false, err.message, durationMs)
+      return jsonResponse({ success: false, error: err.message, durationMs })
+    } finally {
+      if (sessionID) {
+        try {
+          await fetch(`${serverUrl}/session/${sessionID}?directory=${encodeURIComponent(envVars.VITE_OPENCODE_DEFAULT_DIR || "")}`, {
+            method: "DELETE",
+            headers: serverAuthHeader ? { Authorization: serverAuthHeader } : {},
+          })
+        } catch {}
+      }
+    }
+  }
+
   if (url.pathname.startsWith("/api/system/monitor") && method === "GET") {
     if (!requireAdmin(req)) return jsonResponse({ error: "Forbidden" }, 403)
 
@@ -911,6 +1024,7 @@ async function handleAPI(req, server) {
       monitorDiskMounts: process.env.VITE_MONITOR_DISK_MOUNTS || "/",
       monitorBackendPattern: process.env.VITE_MONITOR_BACKEND_PATTERN || "",
       monitorFrontendPattern: process.env.VITE_MONITOR_FRONTEND_PATTERN || "",
+      hiddenProviders: process.env.VITE_HIDDEN_PROVIDERS || "",
     })
   }
 
@@ -931,6 +1045,7 @@ async function handleAPI(req, server) {
         monitorDiskMounts: "VITE_MONITOR_DISK_MOUNTS",
         monitorBackendPattern: "VITE_MONITOR_BACKEND_PATTERN",
         monitorFrontendPattern: "VITE_MONITOR_FRONTEND_PATTERN",
+        hiddenProviders: "VITE_HIDDEN_PROVIDERS",
       }
       for (const [key, envKey] of Object.entries(envMap)) {
         if (body[key] !== undefined) process.env[envKey] = String(body[key])

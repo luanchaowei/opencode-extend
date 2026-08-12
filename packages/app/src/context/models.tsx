@@ -4,6 +4,7 @@ import { DateTime } from "luxon"
 import { filter, firstBy, flat, groupBy, mapValues, pipe, uniqueBy, values } from "remeda"
 import { createSimpleContext } from "@opencode-ai/ui/context"
 import { useProviders } from "@/hooks/use-providers"
+import { useDevice } from "@/context/device"
 import { Persist, persisted } from "@/utils/persist"
 
 export type ModelKey = { providerID: string; modelID: string }
@@ -26,6 +27,7 @@ export const { use: useModels, provider: ModelsProvider } = createSimpleContext(
   name: "Models",
   init: () => {
     const providers = useProviders()
+    const device = useDevice()
 
     const [store, setStore, _, ready] = persisted(
       Persist.global("model", ["model.v1"]),
@@ -36,13 +38,17 @@ export const { use: useModels, provider: ModelsProvider } = createSimpleContext(
       }),
     )
 
+    const hiddenProviderSet = createMemo(() => new Set(device.hiddenProviders()))
+
     const available = createMemo(() =>
-      providers.connected().flatMap((p) =>
-        Object.values(p.models).map((m) => ({
-          ...m,
-          provider: p,
-        })),
-      ),
+      providers.connected()
+        .filter((p) => !hiddenProviderSet().has(p.id))
+        .flatMap((p) =>
+          Object.values(p.models).map((m) => ({
+            ...m,
+            provider: p,
+          })),
+        ),
     )
 
     const release = createMemo(

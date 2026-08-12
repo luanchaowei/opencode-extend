@@ -101,6 +101,9 @@ VITE_STATS_DATA_PATH=/path/to/stats   # 统计数据存储路径（stats.db）
 VITE_MONITOR_DISK_MOUNTS=/             # 监控的磁盘挂载点，逗号分隔，默认 /
 VITE_MONITOR_BACKEND_PATTERN=          # 后端进程匹配规则，为空默认 opencode serve.*--port 端口
 VITE_MONITOR_FRONTEND_PATTERN=         # 前端进程匹配规则，为空默认 bun.*packages/app
+
+# 模型管理
+VITE_HIDDEN_PROVIDERS=                 # 隐藏的供应商 ID，逗号分隔，隐藏后用户模型选择器和管理面板均不显示
 ```
 
 ## 启动自定义界面
