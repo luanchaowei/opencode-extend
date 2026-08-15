@@ -460,7 +460,6 @@ export default [
             res.setHeader("Content-Type", "application/json")
             const helpDocUrl = process.env.VITE_HELP_DOC_URL || ""
             const announcementText = process.env.VITE_ANNOUNCEMENT_TEXT || ""
-            const downloadCutoffText = process.env.VITE_DOWNLOAD_CUTOFF_TEXT || ""
             const fileTreePollInterval = process.env.VITE_FILE_TREE_POLL_INTERVAL || "5000"
             const heartbeatInterval = process.env.VITE_HEARTBEAT_INTERVAL || "60000"
             const diskUsageThreshold = process.env.VITE_DISK_USAGE_THRESHOLD || "90"
@@ -470,7 +469,7 @@ export default [
             const serverUsername = process.env.VITE_OPENCODE_SERVER_USERNAME || ""
             const serverPassword = process.env.VITE_OPENCODE_SERVER_PASSWORD || ""
             const hiddenProviders = (process.env.VITE_HIDDEN_PROVIDERS || "").split(",").map(s => s.trim()).filter(Boolean)
-            res.end(JSON.stringify({ clientIP, contactAdmin: contactList, feedbackUrl, caseLibraryDir, helpDocUrl, announcementText, downloadCutoffText, fileTreePollInterval, heartbeatInterval, diskUsageThreshold, defaultDir, serverHost, serverPort, serverUsername, serverPassword, hiddenProviders }))
+            res.end(JSON.stringify({ clientIP, contactAdmin: contactList, feedbackUrl, caseLibraryDir, helpDocUrl, announcementText, fileTreePollInterval, heartbeatInterval, diskUsageThreshold, defaultDir, serverHost, serverPort, serverUsername, serverPassword, hiddenProviders }))
           } catch (error) {
             res.statusCode = 500
             res.end(JSON.stringify({ error: error.message }))
@@ -1414,7 +1413,6 @@ export default [
               contactAdmin: process.env.VITE_CONTACT_ADMIN || "",
               feedbackUrl: process.env.VITE_FEEDBACK_URL || "",
               helpDocUrl: process.env.VITE_HELP_DOC_URL || "",
-              downloadCutoffText: process.env.VITE_DOWNLOAD_CUTOFF_TEXT || "",
               fileTreePollInterval: process.env.VITE_FILE_TREE_POLL_INTERVAL || "5000",
               heartbeatInterval: process.env.VITE_HEARTBEAT_INTERVAL || "60000",
               diskUsageThreshold: process.env.VITE_DISK_USAGE_THRESHOLD || "90",
@@ -1443,7 +1441,6 @@ export default [
               contactAdmin: "VITE_CONTACT_ADMIN",
               feedbackUrl: "VITE_FEEDBACK_URL",
               helpDocUrl: "VITE_HELP_DOC_URL",
-              downloadCutoffText: "VITE_DOWNLOAD_CUTOFF_TEXT",
               fileTreePollInterval: "VITE_FILE_TREE_POLL_INTERVAL",
               heartbeatInterval: "VITE_HEARTBEAT_INTERVAL",
               diskUsageThreshold: "VITE_DISK_USAGE_THRESHOLD",

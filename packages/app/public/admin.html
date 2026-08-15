@@ -290,9 +290,9 @@
                 <div class="hint">本地案例库文件所在目录路径</div>
               </div>
               <div class="field">
-                <label>下载截断标记</label>
-                <input id="downloadCutoffText" type="text" placeholder="以上回答是否在帮助到了你">
-                <div class="hint">下载Markdown文件时，从此文本开始的行及其之后的内容不写入文件</div>
+                <label>隐藏供应商</label>
+                <input id="hiddenProviders" type="text" placeholder="opencode,alibaba-cn">
+                <div class="hint">隐藏的供应商 ID，逗号分隔，隐藏后用户模型选择器和管理面板均不显示</div>
               </div>
             </div>
           </div>
@@ -328,11 +328,6 @@
                 <label>前端进程匹配规则</label>
                 <input id="monitorFrontendPattern" type="text" placeholder="bun.*packages/app">
                 <div class="hint">pgrep 匹配前端进程的模式，为空时默认 bun.*packages/app</div>
-              </div>
-              <div class="field">
-                <label>隐藏供应商</label>
-                <input id="hiddenProviders" type="text" placeholder="opencode,alibaba-cn">
-                <div class="hint">隐藏的供应商 ID，逗号分隔，隐藏后用户模型选择器和管理面板均不显示</div>
               </div>
               <div class="field" id="field-registrationEnabled" style="display:none">
                 <label>允许自助注册</label>
@@ -491,7 +486,6 @@
           document.getElementById('contactAdmin').value = data.contactAdmin || ''
           document.getElementById('feedbackUrl').value = data.feedbackUrl || ''
           document.getElementById('helpDocUrl').value = data.helpDocUrl || ''
-          document.getElementById('downloadCutoffText').value = data.downloadCutoffText || ''
           document.getElementById('fileTreePollInterval').value = data.fileTreePollInterval || '5000'
           document.getElementById('heartbeatInterval').value = data.heartbeatInterval || '60000'
           document.getElementById('diskUsageThreshold').value = data.diskUsageThreshold || '90'
@@ -530,7 +524,6 @@
             contactAdmin: document.getElementById('contactAdmin').value,
             feedbackUrl: document.getElementById('feedbackUrl').value,
             helpDocUrl: document.getElementById('helpDocUrl').value,
-            downloadCutoffText: document.getElementById('downloadCutoffText').value,
             fileTreePollInterval: document.getElementById('fileTreePollInterval').value,
             heartbeatInterval: document.getElementById('heartbeatInterval').value,
             diskUsageThreshold: document.getElementById('diskUsageThreshold').value,

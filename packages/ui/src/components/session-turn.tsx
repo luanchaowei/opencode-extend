@@ -155,7 +155,6 @@ export function SessionTurn(
     active?: boolean
     status?: SessionStatus
     onUserInteracted?: () => void
-    downloadCutoffText?: string
     classes?: {
       root?: string
       content?: string
@@ -409,7 +408,6 @@ export function SessionTurn(
                     showReasoningSummaries={showReasoningSummaries()}
                     shellToolDefaultOpen={props.shellToolDefaultOpen}
                     editToolDefaultOpen={props.editToolDefaultOpen}
-                    downloadCutoffText={props.downloadCutoffText}
                   />
                 </div>
               </Show>

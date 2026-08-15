@@ -84,7 +84,6 @@ VITE_FEEDBACK_URL=                        # 问题反馈 URL
 VITE_HELP_DOC_URL=                        # 帮助文档 URL
 VITE_CASE_LIBRARY_DIR=                    # 知识库目录路径
 VITE_ANNOUNCEMENT_TEXT=                   # 公告文案，为空不显示
-VITE_DOWNLOAD_CUTOFF_TEXT=                # 下载截断标记，为空不截断
 
 # === 系统参数 ===
 VITE_FILE_TREE_POLL_INTERVAL=5000         # 文件树刷新间隔（毫秒）

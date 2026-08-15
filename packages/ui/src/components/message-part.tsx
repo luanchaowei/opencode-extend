@@ -136,7 +136,6 @@ export interface MessageProps {
   actions?: UserActions
   showAssistantCopyPartID?: string | null
   showReasoningSummaries?: boolean
-  downloadCutoffText?: string
 }
 
 export type SessionAction = (input: { sessionID: string; messageID: string }) => Promise<void> | void
@@ -153,7 +152,6 @@ export interface MessagePartProps {
   defaultOpen?: boolean
   showAssistantCopyPartID?: string | null
   turnDurationMs?: number
-  downloadCutoffText?: string
 }
 
 export type PartComponent = Component<MessagePartProps>
@@ -601,7 +599,6 @@ export function AssistantParts(props: {
   showReasoningSummaries?: boolean
   shellToolDefaultOpen?: boolean
   editToolDefaultOpen?: boolean
-  downloadCutoffText?: string
 }) {
   const data = useData()
   const emptyParts: PartType[] = []
@@ -683,7 +680,6 @@ export function AssistantParts(props: {
                         showAssistantCopyPartID={props.showAssistantCopyPartID}
                         turnDurationMs={props.turnDurationMs}
                         defaultOpen={partDefaultOpen(item()!, props.shellToolDefaultOpen, props.editToolDefaultOpen)}
-                        downloadCutoffText={props.downloadCutoffText}
                       />
                     </Show>
                   </Show>
@@ -816,7 +812,6 @@ export function Message(props: MessageProps) {
             parts={props.parts}
             showAssistantCopyPartID={props.showAssistantCopyPartID}
             showReasoningSummaries={props.showReasoningSummaries}
-            downloadCutoffText={props.downloadCutoffText}
           />
         )}
       </Match>
@@ -829,7 +824,6 @@ export function AssistantMessageDisplay(props: {
   parts: PartType[]
   showAssistantCopyPartID?: string | null
   showReasoningSummaries?: boolean
-  downloadCutoffText?: string
 }) {
   const emptyTools: ToolPart[] = []
   const part = createMemo(() => index(props.parts))
@@ -889,7 +883,6 @@ export function AssistantMessageDisplay(props: {
                       part={item()!}
                       message={props.message}
                       showAssistantCopyPartID={props.showAssistantCopyPartID}
-                      downloadCutoffText={props.downloadCutoffText}
                     />
                   </Show>
                 )
@@ -1253,7 +1246,6 @@ export function Part(props: MessagePartProps) {
         defaultOpen={props.defaultOpen}
         showAssistantCopyPartID={props.showAssistantCopyPartID}
         turnDurationMs={props.turnDurationMs}
-        downloadCutoffText={props.downloadCutoffText}
       />
     </Show>
   )
@@ -1534,19 +1526,10 @@ PART_MAPPING["text"] = function TextPartDisplay(props) {
   const handleDownload = () => {
     const content = text()
     if (!content) return
-    const cutoff = props.downloadCutoffText || ""
-    let downloadContent = content
-    if (cutoff) {
-      const lines = content.split("\n")
-      const cutoffIndex = lines.findIndex(line => line.includes(cutoff))
-      if (cutoffIndex >= 0) {
-        downloadContent = lines.slice(0, cutoffIndex).join("\n").trimEnd()
-      }
-    }
     const session = data.store.session.find(s => s.id === props.message.sessionID)
     const rawTitle = session?.title || props.message.sessionID
     const filename = `${rawTitle.replace(/[\\/:*?"<>|]/g, "_")}.md`
-    const blob = new Blob([downloadContent], { type: "text/markdown;charset=utf-8" })
+    const blob = new Blob([content], { type: "text/markdown;charset=utf-8" })
     const url = URL.createObjectURL(blob)
     const a = document.createElement("a")
     a.href = url

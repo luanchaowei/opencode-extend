@@ -268,7 +268,6 @@ Set-Cookie: `session_id=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax`
   "caseLibraryDir": "/path/to/cases",
   "helpDocUrl": "https://docs.example.com",
   "announcementText": "系统公告内容",
-  "downloadCutoffText": "",
   "fileTreePollInterval": 5000,
   "heartbeatInterval": 60000,
   "diskUsageThreshold": 90,
@@ -299,7 +298,6 @@ Set-Cookie: `session_id=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax`
   "contactAdmin": "admin:12345678",
   "feedbackUrl": "https://example.com/feedback",
   "helpDocUrl": "https://docs.example.com",
-  "downloadCutoffText": "",
   "fileTreePollInterval": "5000",
   "heartbeatInterval": "60000",
   "diskUsageThreshold": "90",
@@ -340,7 +338,6 @@ Set-Cookie: `session_id=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax`
 | `contactAdmin` | `VITE_CONTACT_ADMIN` |
 | `feedbackUrl` | `VITE_FEEDBACK_URL` |
 | `helpDocUrl` | `VITE_HELP_DOC_URL` |
-| `downloadCutoffText` | `VITE_DOWNLOAD_CUTOFF_TEXT` |
 | `fileTreePollInterval` | `VITE_FILE_TREE_POLL_INTERVAL` |
 | `heartbeatInterval` | `VITE_HEARTBEAT_INTERVAL` |
 | `diskUsageThreshold` | `VITE_DISK_USAGE_THRESHOLD` |

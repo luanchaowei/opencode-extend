@@ -201,7 +201,7 @@ http://<WEB_HOST>:<WEB_PORT>/admin.html
 | 意见反馈 URL | `VITE_FEEDBACK_URL` | 点击后新窗口打开的反馈页面地址 |
 | 帮助文档 URL | `VITE_HELP_DOC_URL` | 点击后新窗口打开的帮助文档地址 |
 | 知识库目录 | `VITE_CASE_LIBRARY_DIR` | 本地案例库文件所在目录路径 |
-| 下载截断标记 | `VITE_DOWNLOAD_CUTOFF_TEXT` | 下载回复时从包含此文本的行起截断，为空表示不截断 |
+| 隐藏供应商 | `VITE_HIDDEN_PROVIDERS` | 隐藏的供应商 ID，逗号分隔，隐藏后用户模型选择器和管理面板均不显示 |
 
 #### 系统参数
 
@@ -213,14 +213,12 @@ http://<WEB_HOST>:<WEB_PORT>/admin.html
 | 监控磁盘挂载点 | `VITE_MONITOR_DISK_MOUNTS` | 系统监控页面展示的磁盘挂载点，逗号分隔，默认 `/` |
 | 后端进程匹配规则 | `VITE_MONITOR_BACKEND_PATTERN` | 系统监控中匹配后端进程的 pgrep 模式，为空时默认 `opencode serve.*--port 端口` |
 | 前端进程匹配规则 | `VITE_MONITOR_FRONTEND_PATTERN` | 系统监控中匹配前端进程的 pgrep 模式，为空时默认 `bun.*packages/app` |
-| 隐藏供应商 | `VITE_HIDDEN_PROVIDERS` | 隐藏的供应商 ID，逗号分隔，隐藏后用户模型选择器和模型管理 Tab 均不显示 |
 | 允许自助注册 | `VITE_REGISTRATION_ENABLED` | 是否开放用户注册页面，`true`=开放，`false`=关闭（默认）。仅在 `AUTH_ENABLED=true` 时显示此配置项 |
 
 ### 注意事项
 
 - 点击"保存配置"后，配置同时写入内存和 `.env` 文件，页面提示"配置已保存，刷新页面生效，重启后持久化"
 - 修改配置后建议刷新前端页面确保生效
-- 下载截断标记为空时下载完整回复，非空时从包含该标记文本的行起截断
 - 支撑人员多个联系方式用 `|` 分隔
 - 公告文案支持多行文本
 
