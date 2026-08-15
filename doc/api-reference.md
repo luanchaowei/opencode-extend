@@ -16,7 +16,7 @@
 
 | 权限级别 | 说明 | 判断方式 |
 |---------|------|---------|
-| 公开 | 无需认证 | `/api/login`、`/api/logout` |
+| 公开 | 无需认证 | `/api/login`、`/api/logout`、`/api/register` |
 | 已登录 | 任意已认证用户 | `AUTH_ENABLED=true` 时需有效 session |
 | 管理员 | admin 或 super_admin | `requireAdmin()` |
 | 超级管理员 | 仅 super_admin | `requireSuperAdmin()` |
@@ -76,6 +76,40 @@ Set-Cookie: `session_id=<uuid>; HttpOnly; Path=/; Max-Age=1800; SameSite=Lax`
 ```
 
 Set-Cookie: `session_id=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax`
+
+---
+
+### POST /api/register
+
+用户自助注册，创建普通用户账号。
+
+**权限**：公开（需 `AUTH_ENABLED=true` 且 `VITE_REGISTRATION_ENABLED=true`）
+
+**请求体**：
+
+```json
+{
+  "username": "newuser",
+  "password": "MyPass123!"
+}
+```
+
+**密码规则**：至少 8 位，需包含数字/大写字母/小写字母/特殊字符中的 3 种。
+
+**成功响应** `200`：
+
+```json
+{ "ok": true }
+```
+
+**错误响应**：
+
+| 状态码 | 说明 |
+|--------|------|
+| 400 | 用户名或密码为空 / 密码不符合规则 / 用户名已存在 |
+| 403 | 注册功能未开放（AUTH_ENABLED=false 或 VITE_REGISTRATION_ENABLED=false） |
+
+> 注册成功后跳转到登录页，用户需手动登录。注册用户固定为 `user` 角色。
 
 ---
 
@@ -273,7 +307,9 @@ Set-Cookie: `session_id=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax`
   "monitorDiskMounts": "/",
   "monitorBackendPattern": "",
   "monitorFrontendPattern": "",
-  "hiddenProviders": "opencode,alibaba-cn"
+  "hiddenProviders": "opencode,alibaba-cn",
+  "authEnabled": true,
+  "registrationEnabled": "true"
 }
 ```
 
@@ -313,6 +349,7 @@ Set-Cookie: `session_id=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax`
 | `monitorBackendPattern` | `VITE_MONITOR_BACKEND_PATTERN` |
 | `monitorFrontendPattern` | `VITE_MONITOR_FRONTEND_PATTERN` |
 | `hiddenProviders` | `VITE_HIDDEN_PROVIDERS` |
+| `registrationEnabled` | `VITE_REGISTRATION_ENABLED` |
 
 **成功响应** `200`：`{ "success": true }`
 
@@ -767,6 +804,7 @@ Set-Cookie: `session_id=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax`
 | 路径 | 方法 | 权限 | 说明 |
 |------|------|------|------|
 | `/login` | GET | 公开 | 登录页面（仅 AUTH_ENABLED=true 时可访问） |
+| `/register` | GET | 公开 | 注册页面（仅 AUTH_ENABLED=true 且 VITE_REGISTRATION_ENABLED=true 时可访问） |
 | `/admin.html` | GET | 管理员 | 管理面板页面 |
 | `/` | GET | 已登录 | 前端 SPA（未匹配路由时回退到 index.html） |
 

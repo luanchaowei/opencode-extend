@@ -187,6 +187,8 @@ users (id PK)            独立表，无外键关联
 | 删除会话 | `POST /api/stats/session-delete` | `heartbeat_sessions` 删除对应行 |
 | 发送消息 | `POST /api/stats/message-send` | `counters.totalMessagesEver` 递增 + `daily_stats.messages_sent` 递增 |
 | 状态对齐 | `GET /api/stats`（服务端内部） | `heartbeat_sessions.status` 更新为后端实际状态 |
+| 用户注册 | `POST /api/register` | `users` 插入（role=user） |
+| 管理员创建用户 | `POST /api/users` | `users` 插入（role=user/admin） |
 
 ## 数据清理
 

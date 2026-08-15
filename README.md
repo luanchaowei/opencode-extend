@@ -39,7 +39,7 @@ OpenCode 自定义前端，支持按客户端IP进行权限隔离。
 
 - **超级管理员（super_admin）**：通过 `ADMIN_USERNAME`/`ADMIN_PASSWORD` 配置，可管理用户
 - **管理员（admin）**：由超级管理员创建，可访问管理面板
-- **普通用户（user）**：由超级管理员创建，仅可使用聊天界面
+- **普通用户（user）**：由超级管理员创建或通过注册页面自助注册，仅可使用聊天界面
 
 详见 [运维指南](doc/admin-guide.md)。
 
@@ -80,6 +80,7 @@ VITE_OPENCODE_SERVER_USERNAME="opencode" # 后端认证用户名，必须与服�
 AUTH_ENABLED=false                      # 是否启用登录，false=不登录直接用
 ADMIN_USERNAME=admin                    # 超级管理员用户名（仅 AUTH_ENABLED=true 时生效）
 ADMIN_PASSWORD=Admin123!                # 超级管理员密码
+VITE_REGISTRATION_ENABLED=false          # 是否开放用户自助注册，true=开放注册页面，false=关闭（默认）
 
 # 企业功能
 VITE_CONTACT_ADMIN=admin:12345678      # 支撑人员联系方式

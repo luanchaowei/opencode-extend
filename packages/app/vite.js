@@ -86,6 +86,7 @@ const loginPageHtml = `<!DOCTYPE html>
     <button type="submit" class="login-btn" id="login-btn">登录</button>
     <div class="error-msg" id="error-msg"></div>
   </form>
+  __REGISTER_LINK__
 </div>
 <script>
 document.getElementById('login-form').addEventListener('submit', async (e) => {
@@ -103,6 +104,84 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
     else { const data = await res.json(); errEl.textContent = data.error || '登录失败'; errEl.style.display = 'block' }
   } catch { errEl.textContent = '网络错误'; errEl.style.display = 'block' }
   btn.disabled = false; btn.textContent = '登录'
+})
+</script>
+</body>
+</html>`
+
+const registerPageHtml = `<!DOCTYPE html>
+<html lang="zh-CN" style="color-scheme: light">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>注册 - GE诊断助手</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--background-base, #f8f8f8); color: var(--text-strong, #171717); font-family: system-ui, -apple-system, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+  .login-box { background: var(--background-stronger, #fcfcfc); border: 1px solid var(--border-weak-base, #e5e5e5); border-radius: 12px; padding: 32px; width: 100%; max-width: 360px; box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
+  .login-box h1 { font-size: 18px; font-weight: 600; margin-bottom: 24px; text-align: center; }
+  .field { margin-bottom: 16px; }
+  .field label { display: block; font-size: 12px; color: #888; margin-bottom: 6px; }
+  .field input { width: 100%; background: var(--background-base, #f8f8f8); border: 1px solid var(--border-weak-base, #e5e5e5); border-radius: 8px; padding: 10px 14px; font-size: 14px; color: var(--text-strong, #171717); outline: none; transition: border-color 0.15s; }
+  .field input:focus { border-color: #2563eb; }
+  .login-btn { width: 100%; padding: 10px; background: #2563eb; color: #fff; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; margin-top: 8px; transition: background 0.15s; }
+  .login-btn:hover { background: #1d4ed8; }
+  .login-btn:disabled { background: #93c5fd; cursor: not-allowed; }
+  .error-msg { color: #ef4444; font-size: 12px; margin-top: 12px; text-align: center; display: none; }
+  .success-msg { color: #22c55e; font-size: 12px; margin-top: 12px; text-align: center; display: none; }
+  .pwd-hint { font-size: 12px; color: #888; margin-top: 6px; line-height: 1.5; }
+  .register-link { display: block; text-align: center; margin-top: 16px; font-size: 13px; color: #2563eb; text-decoration: none; }
+  .register-link:hover { text-decoration: underline; }
+  @media (prefers-color-scheme: dark) {
+    body { background: #101010; color: rgba(255,255,255,0.936); }
+    .login-box { background: #151515; border-color: #282828; }
+    .field input { background: #101010; border-color: #282828; color: rgba(255,255,255,0.936); }
+    .pwd-hint { color: #888; }
+  }
+</style>
+</head>
+<body>
+<div class="login-box">
+  <h1>注册账号</h1>
+  <form id="register-form">
+    <div class="field"><label>用户名</label><input type="text" id="username" autocomplete="username" autofocus></div>
+    <div class="field">
+      <label>密码</label>
+      <input type="password" id="password" autocomplete="new-password">
+      <div class="pwd-hint">至少8位，需包含数字/大写字母/小写字母/特殊字符中的3种</div>
+    </div>
+    <div class="field"><label>确认密码</label><input type="password" id="confirmPassword" autocomplete="new-password"></div>
+    <button type="submit" class="login-btn" id="register-btn">注册</button>
+    <div class="error-msg" id="error-msg"></div>
+    <div class="success-msg" id="success-msg"></div>
+  </form>
+  <a href="/login" class="register-link">已有账号？去登录</a>
+</div>
+<script>
+document.getElementById('register-form').addEventListener('submit', async (e) => {
+  e.preventDefault()
+  const btn = document.getElementById('register-btn')
+  const errEl = document.getElementById('error-msg')
+  const okEl = document.getElementById('success-msg')
+  const username = document.getElementById('username').value.trim()
+  const password = document.getElementById('password').value
+  const confirmPassword = document.getElementById('confirmPassword').value
+  errEl.style.display = 'none'
+  okEl.style.display = 'none'
+  if (!username || !password) { errEl.textContent = '请填写用户名和密码'; errEl.style.display = 'block'; return }
+  if (password !== confirmPassword) { errEl.textContent = '两次输入的密码不一致'; errEl.style.display = 'block'; return }
+  btn.disabled = true; btn.textContent = '注册中...'
+  try {
+    const res = await fetch('/api/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }) })
+    const data = await res.json()
+    if (res.ok) {
+      okEl.textContent = '注册成功，即将跳转到登录页...'
+      okEl.style.display = 'block'
+      setTimeout(() => { window.location.href = '/login' }, 1500)
+    } else {
+      errEl.textContent = data.error || '注册失败'; errEl.style.display = 'block'
+    }
+  } catch { errEl.textContent = '网络错误'; errEl.style.display = 'block' }
+  btn.disabled = false; btn.textContent = '注册'
 })
 </script>
 </body>
@@ -137,7 +216,7 @@ const sessionNotFoundHtml = (backHref) => `<!DOCTYPE html>
 </html>`
 
 const staticAssetExts = new Set([".js", ".mjs", ".css", ".json", ".png", ".jpg", ".jpeg", ".gif", ".svg", ".ico", ".woff", ".woff2", ".ttf", ".webmanifest", ".map"])
-const noAuthPaths = new Set(["/login", "/api/login", "/oc-theme-preload.js"])
+const noAuthPaths = new Set(["/login", "/register", "/api/login", "/api/register", "/oc-theme-preload.js"])
 
 function isStaticAsset(pathname) {
   if (pathname.startsWith("/assets/")) return true
@@ -201,8 +280,18 @@ export default [
         const url = new URL(req.url || "/", "http://localhost")
 
         if (url.pathname === "/login" && req.method === "GET") {
+          if (!authEnabled) { sendRedirect(res, "/"); return }
           res.setHeader("Content-Type", "text/html")
-          res.end(loginPageHtml)
+          res.end(loginPageHtml.replace("__REGISTER_LINK__",
+            process.env.VITE_REGISTRATION_ENABLED === "true" ? '<a href="/register" class="register-link" style="display:block;text-align:center;margin-top:16px;font-size:13px;color:#2563eb;text-decoration:none">没有账号？去注册</a>' : ""))
+          return
+        }
+
+        if (url.pathname === "/register" && req.method === "GET") {
+          if (!authEnabled) { sendRedirect(res, "/"); return }
+          if (process.env.VITE_REGISTRATION_ENABLED !== "true") { sendRedirect(res, "/login"); return }
+          res.setHeader("Content-Type", "text/html")
+          res.end(registerPageHtml)
           return
         }
 
@@ -225,6 +314,28 @@ export default [
             if (!user) { sendJson(res, { error: "用户名或密码错误" }, 401); return }
             const sid = createSession(user.id, user.username, user.role)
             sendJson(res, { ok: true, username: user.username, role: user.role }, 200, { "Set-Cookie": sessionCookie(sid) })
+          } catch (err) { sendJson(res, { error: err.message }, 500) }
+          return
+        }
+
+        if (url.pathname === "/api/register" && req.method === "POST") {
+          if (!authEnabled || process.env.VITE_REGISTRATION_ENABLED !== "true") { sendJson(res, { error: "注册功能未开放" }, 403); return }
+          try {
+            const chunks = []
+            for await (const chunk of req) chunks.push(chunk)
+            const body = JSON.parse(Buffer.concat(chunks).toString())
+            const { username, password } = body
+            if (!username || !password) { sendJson(res, { error: "请填写用户名和密码" }, 400); return }
+            const result = statsDbRef.createUser(username.trim(), password, "user")
+            if (result.error) {
+              const msg = result.error === "Username already exists" ? "用户名已存在"
+                : result.error === "Password must be at least 8 chars with 3 of: digits, lowercase, uppercase, special chars"
+                ? "密码不符合规则：至少8位，需包含数字/大写/小写/特殊字符中的3种"
+                : result.error
+              sendJson(res, { error: msg }, 400)
+              return
+            }
+            sendJson(res, { ok: true })
           } catch (err) { sendJson(res, { error: err.message }, 500) }
           return
         }
@@ -1312,6 +1423,8 @@ export default [
               monitorBackendPattern: process.env.VITE_MONITOR_BACKEND_PATTERN || "",
               monitorFrontendPattern: process.env.VITE_MONITOR_FRONTEND_PATTERN || "",
               hiddenProviders: process.env.VITE_HIDDEN_PROVIDERS || "",
+              authEnabled: process.env.AUTH_ENABLED === "true",
+              registrationEnabled: process.env.VITE_REGISTRATION_ENABLED === "true",
             }))
           } catch (error) {
             res.statusCode = 500
@@ -1339,6 +1452,7 @@ export default [
               monitorBackendPattern: "VITE_MONITOR_BACKEND_PATTERN",
               monitorFrontendPattern: "VITE_MONITOR_FRONTEND_PATTERN",
               hiddenProviders: "VITE_HIDDEN_PROVIDERS",
+              registrationEnabled: "VITE_REGISTRATION_ENABLED",
             }
             for (const [key, envKey] of Object.entries(envMap)) {
               if (body[key] !== undefined) {

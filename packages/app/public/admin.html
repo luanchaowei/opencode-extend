@@ -18,7 +18,8 @@
     .field { margin-bottom: 0; }
     .field label { display: block; font-size: 12px; font-weight: 500; color: #888; margin-bottom: 6px; }
     .field input { width: 100%; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 6px; padding: 8px 12px; font-size: 12px; color: #e5e5e5; outline: none; box-sizing: border-box; }
-    .field input:focus { border-color: #3a3a3a; }
+    .field select { width: 100%; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 6px; padding: 8px 12px; font-size: 12px; color: #e5e5e5; outline: none; box-sizing: border-box; }
+    .field input:focus, .field select:focus { border-color: #3a3a3a; }
     .field .hint { font-size: 11px; color: #666; margin-top: 4px; }
     .settings-group { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
     .settings-group-title { font-size: 13px; font-weight: 600; color: #fff; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #2a2a2a; }
@@ -333,6 +334,14 @@
                 <input id="hiddenProviders" type="text" placeholder="opencode,alibaba-cn">
                 <div class="hint">隐藏的供应商 ID，逗号分隔，隐藏后用户模型选择器和管理面板均不显示</div>
               </div>
+              <div class="field" id="field-registrationEnabled" style="display:none">
+                <label>允许自助注册</label>
+                <select id="registrationEnabled">
+                  <option value="false">关闭</option>
+                  <option value="true">开启</option>
+                </select>
+                <div class="hint">开启后登录页显示注册入口，注册用户固定为普通用户角色</div>
+              </div>
             </div>
           </div>
           <button id="save-btn" class="save-btn" onclick="save()">保存配置</button>
@@ -491,6 +500,10 @@
           document.getElementById('monitorBackendPattern').value = data.monitorBackendPattern || ''
           document.getElementById('monitorFrontendPattern').value = data.monitorFrontendPattern || ''
           document.getElementById('hiddenProviders').value = data.hiddenProviders || ''
+          if (data.authEnabled) {
+            document.getElementById('field-registrationEnabled').style.display = ''
+            document.getElementById('registrationEnabled').value = data.registrationEnabled === 'true' ? 'true' : 'false'
+          }
           showPanel('main')
           fetchStats()
         } else {
@@ -526,6 +539,7 @@
             monitorBackendPattern: document.getElementById('monitorBackendPattern').value,
             monitorFrontendPattern: document.getElementById('monitorFrontendPattern').value,
             hiddenProviders: document.getElementById('hiddenProviders').value,
+            registrationEnabled: document.getElementById('registrationEnabled') ? document.getElementById('registrationEnabled').value : 'false',
           })
         })
         if (resp.ok) {
