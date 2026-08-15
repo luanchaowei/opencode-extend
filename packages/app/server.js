@@ -259,7 +259,7 @@ const loginPageHtml = `<!DOCTYPE html>
 <title>登录 - GE诊断助手</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: var(--background-base, #f8f8f8); color: var(--text-strong, #171717); font-family: system-ui, -apple-system, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+  body { background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf3 100%); color: var(--text-strong, #171717); font-family: system-ui, -apple-system, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
   .login-box { background: var(--background-stronger, #fcfcfc); border: 1px solid var(--border-weak-base, #e5e5e5); border-radius: 12px; padding: 32px; width: 100%; max-width: 360px; box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
   .login-box h1 { font-size: 18px; font-weight: 600; margin-bottom: 24px; text-align: center; }
   .field { margin-bottom: 16px; }
@@ -271,7 +271,7 @@ const loginPageHtml = `<!DOCTYPE html>
   .login-btn:disabled { background: #93c5fd; cursor: not-allowed; }
   .error-msg { color: #ef4444; font-size: 12px; margin-top: 12px; text-align: center; display: none; }
   @media (prefers-color-scheme: dark) {
-    body { background: #101010; color: rgba(255,255,255,0.936); }
+    body { background: linear-gradient(135deg, #0a0a0a 0%, #151528 100%); color: rgba(255,255,255,0.936); }
     .login-box { background: #151515; border-color: #282828; }
     .field input { background: #101010; border-color: #282828; color: rgba(255,255,255,0.936); }
   }
@@ -316,7 +316,7 @@ const registerPageHtml = `<!DOCTYPE html>
 <title>注册 - GE诊断助手</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: var(--background-base, #f8f8f8); color: var(--text-strong, #171717); font-family: system-ui, -apple-system, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+  body { background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf3 100%); color: var(--text-strong, #171717); font-family: system-ui, -apple-system, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
   .login-box { background: var(--background-stronger, #fcfcfc); border: 1px solid var(--border-weak-base, #e5e5e5); border-radius: 12px; padding: 32px; width: 100%; max-width: 360px; box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
   .login-box h1 { font-size: 18px; font-weight: 600; margin-bottom: 24px; text-align: center; }
   .field { margin-bottom: 16px; }
@@ -332,7 +332,7 @@ const registerPageHtml = `<!DOCTYPE html>
   .register-link { display: block; text-align: center; margin-top: 16px; font-size: 13px; color: #2563eb; text-decoration: none; }
   .register-link:hover { text-decoration: underline; }
   @media (prefers-color-scheme: dark) {
-    body { background: #101010; color: rgba(255,255,255,0.936); }
+    body { background: linear-gradient(135deg, #0a0a0a 0%, #151528 100%); color: rgba(255,255,255,0.936); }
     .login-box { background: #151515; border-color: #282828; }
     .field input { background: #101010; border-color: #282828; color: rgba(255,255,255,0.936); }
     .pwd-hint { color: #888; }
@@ -394,7 +394,7 @@ const sessionNotFoundHtml = (backHref) => `<!DOCTYPE html>
 <title>会话不存在</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: var(--background-base, #f8f8f8); color: var(--text-strong, #171717); font-family: system-ui, -apple-system, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+  body { background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf3 100%); color: var(--text-strong, #171717); font-family: system-ui, -apple-system, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
   .box { text-align: center; padding: 32px; max-width: 400px; }
   .box h1 { font-size: 20px; font-weight: 600; margin-bottom: 12px; }
   .box p { font-size: 14px; color: var(--text-weak, #888); margin-bottom: 24px; line-height: 1.6; }
