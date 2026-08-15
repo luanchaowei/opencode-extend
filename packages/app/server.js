@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync, mkdirSync, existsSync, unlinkSync, statSync, readdirSync, rmdirSync, realpathSync, renameSync, copyFileSync } from "node:fs"
+import { readFileSync, writeFileSync, mkdirSync, existsSync, unlinkSync, statSync, readdirSync, rmdirSync, realpathSync, renameSync, copyFileSync, truncateSync } from "node:fs"
 import { dirname, join, extname } from "node:path"
 import { execSync } from "node:child_process"
 import { fileURLToPath } from "url"
@@ -1355,7 +1355,7 @@ const rotateLog = () => {
       if (i === 5) { try { unlinkSync(oldPath) } catch {} }
       else { try { renameSync(oldPath, newPath) } catch {} }
     }
-    try { renameSync(logPath, `${logPath}.1`) } catch {}
+    try { copyFileSync(logPath, `${logPath}.1`); truncateSync(logPath, 0) } catch {}
     console.log(`[${getTzTime()}] rotated, previous size: ${(size / 1024 / 1024).toFixed(1)}MB`)
   } catch {}
 }
