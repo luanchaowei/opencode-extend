@@ -496,7 +496,7 @@
           document.getElementById('hiddenProviders').value = data.hiddenProviders || ''
           if (data.authEnabled) {
             document.getElementById('field-registrationEnabled').style.display = ''
-            document.getElementById('registrationEnabled').value = data.registrationEnabled === 'true' ? 'true' : 'false'
+            document.getElementById('registrationEnabled').value = data.registrationEnabled ? 'true' : 'false'
           }
           showPanel('main')
           fetchStats()
@@ -999,6 +999,7 @@
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ providerID: m.providerID, modelID: m.modelID }),
+          signal: AbortSignal.timeout(65000),
         })
         const data = await resp.json()
         if (data.success) {
@@ -1008,7 +1009,8 @@
         }
         renderTestResult(index)
       } catch (err) {
-        m.testResult = { success: false, error: err.message, durationMs: 0, testedAt: Date.now() }
+        const errMsg = err.name === 'TimeoutError' ? '检测超时' : err.message
+        m.testResult = { success: false, error: errMsg, durationMs: 0, testedAt: Date.now() }
         renderTestResult(index)
       }
     }

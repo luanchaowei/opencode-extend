@@ -464,9 +464,10 @@ async function handleAPI(req, server) {
     if (!authEnabled || process.env.VITE_REGISTRATION_ENABLED !== "true") return jsonResponse({ error: "注册功能未开放" }, 403)
     try {
       const body = JSON.parse(await readBody(req))
-      const { username, password } = body
+      const username = (body.username || "").trim()
+      const password = body.password || ""
       if (!username || !password) return jsonResponse({ error: "请填写用户名和密码" }, 400)
-      const result = statsDb.createUser(username.trim(), password, "user")
+      const result = statsDb.createUser(username, password, "user")
       if (result.error) {
         const msg = result.error === "Username already exists" ? "用户名已存在"
           : result.error === "Password must be at least 8 chars with 3 of: digits, lowercase, uppercase, special chars"
@@ -1028,10 +1029,13 @@ async function handleAPI(req, server) {
   if (url.pathname === "/api/models/test" && method === "POST") {
     if (!requireAdmin(req)) return jsonResponse({ error: "Forbidden" }, 403)
     let sessionID = null
+    let providerID = ""
+    let modelID = ""
     const testStart = Date.now()
     try {
       const body = JSON.parse(await readBody(req))
-      const { providerID, modelID } = body
+      providerID = body.providerID || ""
+      modelID = body.modelID || ""
       if (!providerID || !modelID) return jsonResponse({ error: "Missing providerID or modelID" }, 400)
 
       const defaultDir = envVars.VITE_OPENCODE_DEFAULT_DIR || ""
@@ -1065,6 +1069,7 @@ async function handleAPI(req, server) {
           model: { providerID, modelID },
           parts: [{ type: "text", text: "hi" }],
         }),
+        signal: AbortSignal.timeout(60000),
       })
 
       const durationMs = Date.now() - testStart
@@ -1081,14 +1086,16 @@ async function handleAPI(req, server) {
       }
     } catch (err) {
       const durationMs = Date.now() - testStart
-      statsDb.saveModelTestResult(providerID || "", modelID || "", false, err.message, durationMs)
-      return jsonResponse({ success: false, error: err.message, durationMs })
+      const errMsg = err.name === "TimeoutError" ? "检测超时（60s）" : err.message
+      statsDb.saveModelTestResult(providerID || "", modelID || "", false, errMsg, durationMs)
+      return jsonResponse({ success: false, error: errMsg, durationMs })
     } finally {
       if (sessionID) {
         try {
           await fetch(`${serverUrl}/session/${sessionID}?directory=${encodeURIComponent(envVars.VITE_OPENCODE_DEFAULT_DIR || "")}`, {
             method: "DELETE",
             headers: serverAuthHeader ? { Authorization: serverAuthHeader } : {},
+            signal: AbortSignal.timeout(5000),
           })
         } catch {}
       }

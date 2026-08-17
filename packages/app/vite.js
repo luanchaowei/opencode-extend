@@ -324,9 +324,10 @@ export default [
             const chunks = []
             for await (const chunk of req) chunks.push(chunk)
             const body = JSON.parse(Buffer.concat(chunks).toString())
-            const { username, password } = body
+            const username = (body.username || "").trim()
+            const password = body.password || ""
             if (!username || !password) { sendJson(res, { error: "请填写用户名和密码" }, 400); return }
-            const result = statsDbRef.createUser(username.trim(), password, "user")
+            const result = statsDbRef.createUser(username, password, "user")
             if (result.error) {
               const msg = result.error === "Username already exists" ? "用户名已存在"
                 : result.error === "Password must be at least 8 chars with 3 of: digits, lowercase, uppercase, special chars"
@@ -1359,6 +1360,7 @@ export default [
                 method: "POST",
                 headers: { "Content-Type": "application/json", ...(authHeader ? { Authorization: authHeader } : {}) },
                 body: JSON.stringify({ model: { providerID, modelID }, parts: [{ type: "text", text: "hi" }] }),
+                signal: AbortSignal.timeout(60000),
               })
 
               const durationMs = Date.now() - testStart
@@ -1372,12 +1374,18 @@ export default [
                 statsDb.saveModelTestResult(providerID, modelID, false, errMsg, durationMs)
                 sendJson(res, { success: false, error: errMsg, durationMs })
               }
+            } catch (err) {
+              const durationMs = Date.now() - testStart
+              const errMsg = err.name === "TimeoutError" ? "检测超时（60s）" : err.message
+              statsDb.saveModelTestResult(providerID, modelID, false, errMsg, durationMs)
+              sendJson(res, { success: false, error: errMsg, durationMs })
             } finally {
               if (sessionID) {
                 try {
                   await fetch(`${serverUrl}/session/${sessionID}?directory=${encodeURIComponent(defaultDir)}`, {
                     method: "DELETE",
                     headers: authHeader ? { Authorization: authHeader } : {},
+                    signal: AbortSignal.timeout(5000),
                   })
                 } catch {}
               }
