@@ -143,7 +143,7 @@ const registerPageHtml = `<!DOCTYPE html>
 <div class="login-box">
   <h1>注册账号</h1>
   <form id="register-form">
-    <div class="field"><label>用户名</label><input type="text" id="username" autocomplete="username" autofocus></div>
+    <div class="field"><label>用户名</label><input type="text" id="username" autocomplete="username" autofocus><div class="pwd-hint">至少3个字符，只允许大小写字母、数字、中文、下划线</div></div>
     <div class="field">
       <label>密码</label>
       <input type="password" id="password" autocomplete="new-password">
@@ -168,6 +168,7 @@ document.getElementById('register-form').addEventListener('submit', async (e) =>
   errEl.style.display = 'none'
   okEl.style.display = 'none'
   if (!username || !password) { errEl.textContent = '请填写用户名和密码'; errEl.style.display = 'block'; return }
+  if (username.length < 3 || !/^[a-zA-Z0-9\u4e00-\u9fa5_]+$/.test(username)) { errEl.textContent = '用户名至少3个字符，只允许大小写字母、数字、中文、下划线'; errEl.style.display = 'block'; return }
   if (password !== confirmPassword) { errEl.textContent = '两次输入的密码不一致'; errEl.style.display = 'block'; return }
   btn.disabled = true; btn.textContent = '注册中...'
   try {
@@ -330,6 +331,7 @@ export default [
             if (result.error) {
               const msg = result.error === "Username already exists" ? "用户名已存在"
                 : result.error === "Missing required fields" ? "用户名不能为空"
+                : result.error === "Invalid username" ? "用户名无效：至少3个字符，只允许大小写字母、数字、中文、下划线"
                 : result.error === "Password must be at least 8 chars with 3 of: digits, lowercase, uppercase, special chars"
                 ? "密码不符合规则：至少8位，需包含数字/大写/小写/特殊字符中的3种"
                 : result.error
@@ -370,7 +372,17 @@ export default [
             for await (const chunk of req) chunks.push(chunk)
             const body = JSON.parse(Buffer.concat(chunks).toString())
             const result = statsDbRef.createUser(body.username, body.password, body.role)
-            if (result.error) { sendJson(res, { error: result.error }, 400); return }
+            if (result.error) {
+              const msg = result.error === "Username already exists" ? "用户名已存在"
+                : result.error === "Missing required fields" ? "用户名和密码不能为空"
+                : result.error === "Invalid username" ? "用户名无效：至少3个字符，只允许大小写字母、数字、中文、下划线"
+                : result.error === "Invalid role" ? "角色无效"
+                : result.error === "Password must be at least 8 chars with 3 of: digits, lowercase, uppercase, special chars"
+                ? "密码不符合规则：至少8位，需包含数字/大写/小写/特殊字符中的3种"
+                : result.error
+              sendJson(res, { error: msg }, 400)
+              return
+            }
             sendJson(res, { ok: true, user: result })
           } catch (err) { sendJson(res, { error: err.message }, 500) }
           return

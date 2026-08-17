@@ -370,6 +370,7 @@
       <div class="field" style="margin-bottom:16px">
         <label>用户名</label>
         <input id="dialog-username" type="text" placeholder="用户名" style="width:100%;background:#0a0a0a;border:1px solid #2a2a2a;border-radius:6px;padding:8px 12px;font-size:13px;color:#e5e5e5;box-sizing:border-box">
+        <div class="hint">至少3个字符，只允许大小写字母、数字、中文、下划线</div>
       </div>
       <div class="field" style="margin-bottom:16px">
         <label>密码</label>
@@ -532,7 +533,7 @@
             monitorBackendPattern: document.getElementById('monitorBackendPattern').value,
             monitorFrontendPattern: document.getElementById('monitorFrontendPattern').value,
             hiddenProviders: document.getElementById('hiddenProviders').value,
-            registrationEnabled: document.getElementById('registrationEnabled') ? document.getElementById('registrationEnabled').value : 'false',
+            ...(document.getElementById('field-registrationEnabled').style.display !== 'none' ? { registrationEnabled: document.getElementById('registrationEnabled').value } : {}),
           })
         })
         if (resp.ok) {
@@ -1095,6 +1096,7 @@
         } catch { msgEl.textContent = '网络错误'; msgEl.className = 'msg msg-error'; msgEl.style.display = 'block' }
       } else {
         if (!username || !password) { msgEl.textContent = '请填写用户名和密码'; msgEl.className = 'msg msg-error'; msgEl.style.display = 'block'; return }
+        if (username.length < 3 || !/^[a-zA-Z0-9\u4e00-\u9fa5_]+$/.test(username)) { msgEl.textContent = '用户名至少3个字符，只允许大小写字母、数字、中文、下划线'; msgEl.className = 'msg msg-error'; msgEl.style.display = 'block'; return }
         try {
           const resp = await fetch('/api/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password, role }) })
           const data = await resp.json()

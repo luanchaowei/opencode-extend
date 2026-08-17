@@ -433,9 +433,16 @@ export function createStatsDb(Database, dbPath, statsJsonPath) {
     }
   }
 
+  function validateUsername(username) {
+    if (!username || username.length < 3) return false
+    if (!/^[a-zA-Z0-9\u4e00-\u9fa5_]+$/.test(username)) return false
+    return true
+  }
+
   function createUser(username, password, role) {
     username = (username || "").trim()
     if (!username || !password || !role) return { error: "Missing required fields" }
+    if (!validateUsername(username)) return { error: "Invalid username" }
     if (role !== "admin" && role !== "user") return { error: "Invalid role" }
     if (!validatePassword(password)) return { error: "Password must be at least 8 chars with 3 of: digits, lowercase, uppercase, special chars" }
     const existing = db.query("SELECT 1 FROM users WHERE username = ?").get(username)
