@@ -12,6 +12,21 @@
 - 会话有效期 30 分钟，请求时自动续期（`/api/stats/heartbeat` 除外）
 - 未认证的 API 请求返回 `401`，页面请求重定向到 `/login`
 
+### 代理层与目录隔离
+
+当 `AUTH_ENABLED=true` 时，所有后端 API 请求通过前端服务代理转发（端口 3000），不再直连后端（端口 4096）。代理层负责校验目录归属：
+
+- **目录校验**：普通用户只能访问 `${baseDir}/${username}` 目录，管理员可访问任意目录
+- **SessionID 路由校验**：对 `/session/:sessionID/*` 路径，代理层先向后端查询该会话所属目录，再与用户允许目录（`allowedDir`）比对，不匹配则拒绝
+- **`/provider` 响应过滤**：过滤掉 `apiKey` 等敏感字段
+- **`/project` 和 `/experimental/session` 响应过滤**：过滤掉非当前用户拥有的目录
+
+### 代理白名单
+
+当 `AUTH_ENABLED=true` 时，仅以下路径前缀会被代理转发到后端，其余路径不代理：
+
+`/session`、`/experimental`、`/project`、`/config`、`/event`、`/global/*`、`/permission`、`/question`、`/file`、`/find`、`/path`、`/vcs`、`/agent`、`/instance/dispose`、`/provider`
+
 ### 权限级别
 
 | 权限级别 | 说明 | 判断方式 |
@@ -20,6 +35,8 @@
 | 已登录 | 任意已认证用户 | `AUTH_ENABLED=true` 时需有效 session |
 | 管理员 | admin 或 super_admin | `requireAdmin()` |
 | 超级管理员 | 仅 super_admin | `requireSuperAdmin()` |
+
+> **目录隔离**：`AUTH_ENABLED=true` 时，普通用户只能访问自己目录（`${baseDir}/${username}`）下的会话和资源，管理员可访问任意目录。校验在代理层完成。
 
 > `AUTH_ENABLED=false` 时，所有接口无需认证，权限检查全部通过。
 
@@ -276,11 +293,12 @@ Set-Cookie: `session_id=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax`
   "serverPort": "4096",
   "serverUsername": "opencode",
   "serverPassword": "",
-  "hiddenProviders": ["opencode", "alibaba-cn"]
+  "hiddenProviders": ["opencode", "alibaba-cn"],
+  "authEnabled": false
 }
 ```
 
-> `clientIP` 为客户端 IP 地址，`.` 替换为 `_`。`hiddenProviders` 为隐藏的供应商 ID 列表，前端模型选择器和模型管理 Tab 会过滤掉这些供应商。
+> `clientIP` 为客户端 IP 地址，`.` 替换为 `_`。当 `AUTH_ENABLED=true` 时，`clientIP` 返回当前登录用户名（`username`）而非 IP 地址。`hiddenProviders` 为隐藏的供应商 ID 列表，前端模型选择器和模型管理 Tab 会过滤掉这些供应商。`authEnabled` 为布尔值，表示是否启用了登录认证。
 
 ---
 
@@ -307,7 +325,8 @@ Set-Cookie: `session_id=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax`
   "monitorFrontendPattern": "",
   "hiddenProviders": "opencode,alibaba-cn",
   "authEnabled": true,
-  "registrationEnabled": "true"
+  "registrationEnabled": "true",
+  "modelTestTimeout": "30000"
 }
 ```
 
@@ -347,6 +366,7 @@ Set-Cookie: `session_id=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax`
 | `monitorFrontendPattern` | `VITE_MONITOR_FRONTEND_PATTERN` |
 | `hiddenProviders` | `VITE_HIDDEN_PROVIDERS` |
 | `registrationEnabled` | `VITE_REGISTRATION_ENABLED` |
+| `modelTestTimeout` | `VITE_MODEL_TEST_TIMEOUT` |
 
 **成功响应** `200`：`{ "success": true }`
 

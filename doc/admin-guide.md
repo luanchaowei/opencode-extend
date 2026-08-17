@@ -8,13 +8,15 @@
 
 在 `.env` 中设置 `AUTH_ENABLED=true` 启用登录认证（默认关闭）。启用后，所有用户必须登录才能访问系统。
 
+> **目录命名与隔离**：`AUTH_ENABLED=true` 时，用户目录按 `username` 命名（如 `/home/user/zhangsan`），不同机器登录同一账号可看到相同的历史会话。所有后端请求通过前端服务代理转发，普通用户只能访问自己目录。
+
 ### 角色体系
 
 | 角色 | 说明 | 可访问范围 |
 |------|------|-----------|
 | 超级管理员（super_admin） | 通过 `ADMIN_USERNAME`/`ADMIN_PASSWORD` 配置 | 全部功能，包括用户管理 |
 | 管理员（admin） | 由超级管理员创建 | 统计面板、系统监控、系统设置 |
-| 普通用户（user） | 由超级管理员创建或通过注册页面自助注册 | 仅前端聊天界面，不可访问管理面板 |
+| 普通用户（user） | 由超级管理员创建或通过注册页面自助注册，目录按 username 隔离，只能访问自己目录下的会话 | 仅前端聊天界面，不可访问管理面板 |
 
 ### 登录页面
 
@@ -214,6 +216,7 @@ http://<WEB_HOST>:<WEB_PORT>/admin.html
 | 后端进程匹配规则 | `VITE_MONITOR_BACKEND_PATTERN` | 系统监控中匹配后端进程的 pgrep 模式，为空时默认 `opencode serve.*--port 端口` |
 | 前端进程匹配规则 | `VITE_MONITOR_FRONTEND_PATTERN` | 系统监控中匹配前端进程的 pgrep 模式，为空时默认 `bun.*packages/app` |
 | 允许自助注册 | `VITE_REGISTRATION_ENABLED` | 是否开放用户注册页面，`true`=开放，`false`=关闭（默认）。仅在 `AUTH_ENABLED=true` 时显示此配置项 |
+| 模型检测超时（毫秒） | `VITE_MODEL_TEST_TIMEOUT` | 单个模型检测的超时时间，默认 30000 毫秒（30秒） |
 
 ### 注意事项
 

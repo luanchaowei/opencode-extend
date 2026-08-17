@@ -40,11 +40,7 @@
 | `last_seen` | INTEGER | 最后一次心跳时间戳（毫秒） |
 | `user_id` | INTEGER DEFAULT NULL | 关联用户 ID（预留字段） |
 
-> `user_id` 为预留字段，通过 `ALTER TABLE` 动态添加，当前未实际使用。
-
----
-
-### heartbeat_sessions
+> `user_id` 为预留字段，通过 `ALTER TABLE` 动态添加。当 `AUTH_ENABLED=true` 时，心跳接口会从会话中提取 `userId` 并写入此字段；`AUTH_ENABLED=false` 时该字段为 `NULL`。
 
 会话心跳记录，记录每个客户端下的会话状态。
 
@@ -60,7 +56,7 @@
 
 **外键**：`client_ip` → `heartbeats(client_ip)` ON DELETE CASCADE
 
-> `user_id` 为预留字段，通过 `ALTER TABLE` 动态添加，当前未实际使用。
+> `user_id` 为预留字段，通过 `ALTER TABLE` 动态添加。当 `AUTH_ENABLED=true` 时，心跳接口会从会话中提取 `userId` 并写入此字段；`AUTH_ENABLED=false` 时该字段为 `NULL`。
 
 ---
 
@@ -189,6 +185,10 @@ users (id PK)            独立表，无外键关联
 | 状态对齐 | `GET /api/stats`（服务端内部） | `heartbeat_sessions.status` 更新为后端实际状态 |
 | 用户注册 | `POST /api/register` | `users` 插入（role=user） |
 | 管理员创建用户 | `POST /api/users` | `users` 插入（role=user/admin） |
+
+> **userId 写入说明**：当 `AUTH_ENABLED=true` 时，心跳接口（`POST /api/stats/heartbeat`）和会话创建接口（`POST /api/stats/session-create`）会从登录会话中提取 `userId`，并写入 `heartbeats.user_id` 和 `heartbeat_sessions.user_id` 字段；`AUTH_ENABLED=false` 时这些字段为 `NULL`。
+
+> **getUsernameById 函数**：系统提供 `getUsernameById(userId)` 工具函数，根据 `users.id` 查询用户名，用于在统计面板等场景中将 `user_id` 反查为可读的用户名展示。
 
 ## 数据清理
 

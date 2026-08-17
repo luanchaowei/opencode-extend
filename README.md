@@ -81,6 +81,7 @@ AUTH_ENABLED=false                      # 是否启用登录，false=不登录�
 ADMIN_USERNAME=admin                    # 超级管理员用户名（仅 AUTH_ENABLED=true 时生效）
 ADMIN_PASSWORD=Admin123!                # 超级管理员密码
 VITE_REGISTRATION_ENABLED=false          # 是否开放用户自助注册，true=开放注册页面，false=关闭（默认）
+VITE_MODEL_TEST_TIMEOUT=30000             # 模型检测超时时间（毫秒），默认 30000
 
 # 企业功能
 VITE_CONTACT_ADMIN=admin:12345678      # 支撑人员联系方式
