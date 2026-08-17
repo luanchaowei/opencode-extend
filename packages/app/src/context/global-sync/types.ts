@@ -1,9 +1,6 @@
 import type {
   Agent,
-  Command,
   Config,
-  LspStatus,
-  McpStatus,
   Message,
   Part,
   Path,
@@ -33,7 +30,6 @@ export type ProjectMeta = {
 export type State = {
   status: "loading" | "partial" | "complete"
   agent: Agent[]
-  command: Command[]
   project: string
   projectMeta: ProjectMeta | undefined
   icon: string | undefined
@@ -58,12 +54,6 @@ export type State = {
   question: {
     [sessionID: string]: QuestionRequest[]
   }
-  mcp_ready: boolean
-  mcp: {
-    [name: string]: McpStatus
-  }
-  lsp_ready: boolean
-  lsp: LspStatus[]
   vcs: VcsInfo | undefined
   limit: number
   message: {

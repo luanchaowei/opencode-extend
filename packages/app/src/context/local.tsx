@@ -4,6 +4,7 @@ import { useParams } from "@solidjs/router"
 import { batch, createEffect, createMemo } from "solid-js"
 import { createStore } from "solid-js/store"
 import { useModels } from "@/context/models"
+import { useDevice } from "@/context/device"
 import { useProviders } from "@/hooks/use-providers"
 import { Persist, persisted } from "@/utils/persist"
 import { cycleModelVariant, getConfiguredAgentVariant, resolveModelVariant } from "./model-variant"
@@ -61,6 +62,7 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
     const globalSync = useGlobalSync()
     const providers = useProviders()
     const models = useModels()
+    const device = useDevice()
 
     const id = createMemo(() => params.id || undefined)
     const list = createMemo(() => sync.data.agent.filter((item) => item.mode !== "subagent" && !item.hidden))
@@ -93,7 +95,7 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
 
     const validModel = (model: ModelKey) => {
       const provider = providers.all().find((item) => item.id === model.providerID)
-      return !!provider?.models[model.modelID] && connected().has(model.providerID)
+      return !!provider?.models[model.modelID] && connected().has(model.providerID) && !device.hiddenProviders().includes(model.providerID)
     }
 
     const firstModel = (...items: Array<() => ModelKey | undefined>) => {

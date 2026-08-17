@@ -250,10 +250,6 @@ export async function bootstrapDirectory(input: {
   if (loading || input.store.provider.all.length === 0) {
     input.setStore("provider_ready", false)
   }
-  input.setStore("mcp_ready", false)
-  input.setStore("mcp", {})
-  input.setStore("lsp_ready", false)
-  input.setStore("lsp", [])
   if (loading) input.setStore("status", "partial")
 
   const rev = (providerRev.get(input.directory) ?? 0) + 1
@@ -286,7 +282,6 @@ export async function bootstrapDirectory(input: {
             if (next) input.vcsCache.setStore("value", next)
           }),
         ),
-      () => retry(() => input.sdk.command.list().then((x) => input.setStore("command", x.data ?? []))),
       () =>
         retry(() =>
           input.sdk.permission.list().then((x) => {
@@ -340,13 +335,6 @@ export async function bootstrapDirectory(input: {
           }),
         ),
       () => Promise.resolve(input.loadSessions(input.directory)),
-      () =>
-        retry(() =>
-          input.sdk.mcp.status().then((x) => {
-            input.setStore("mcp", x.data!)
-            input.setStore("mcp_ready", true)
-          }),
-        ),
       () =>
         input.queryClient.ensureQueryData({
           ...loadProvidersQuery(input.directory),
