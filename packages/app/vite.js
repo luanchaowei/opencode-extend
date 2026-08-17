@@ -268,6 +268,15 @@ function getClientIP(req) {
   return 'unknown'
 }
 
+function getAllowedDir(req) {
+  if (!authEnabled) return "*"
+  const baseDir = process.env.VITE_OPENCODE_DEFAULT_DIR || ""
+  const s = getSessionFromReq(req)
+  if (!s) return null
+  if (s.role === "admin" || s.role === "super_admin") return "*"
+  return `${baseDir}/${s.username}`
+}
+
 let statsDbRef = null
 
 /**
@@ -465,7 +474,8 @@ export default [
       server.middlewares.use(async (req, res, next) => {
         if (req.url?.startsWith("/device/info") && req.method === "GET") {
           try {
-            const clientIP = getClientIP(req)
+            const session = authEnabled ? getSessionFromReq(req) : null
+            const clientIP = authEnabled ? (session?.username || "unknown") : getClientIP(req)
             const contactAdmin = process.env.VITE_CONTACT_ADMIN || ""
             const contactList = contactAdmin.split('|').filter(line => line.trim())
             const feedbackUrl = process.env.VITE_FEEDBACK_URL || ""
@@ -482,7 +492,7 @@ export default [
             const serverUsername = process.env.VITE_OPENCODE_SERVER_USERNAME || ""
             const serverPassword = process.env.VITE_OPENCODE_SERVER_PASSWORD || ""
             const hiddenProviders = (process.env.VITE_HIDDEN_PROVIDERS || "").split(",").map(s => s.trim()).filter(Boolean)
-            res.end(JSON.stringify({ clientIP, contactAdmin: contactList, feedbackUrl, caseLibraryDir, helpDocUrl, announcementText, fileTreePollInterval, heartbeatInterval, diskUsageThreshold, defaultDir, serverHost, serverPort, serverUsername, serverPassword, hiddenProviders }))
+            res.end(JSON.stringify({ clientIP, authEnabled, contactAdmin: contactList, feedbackUrl, caseLibraryDir, helpDocUrl, announcementText, fileTreePollInterval, heartbeatInterval, diskUsageThreshold, defaultDir, serverHost, serverPort, serverUsername, serverPassword, hiddenProviders }))
           } catch (error) {
             res.statusCode = 500
             res.end(JSON.stringify({ error: error.message }))
@@ -1183,7 +1193,8 @@ export default [
             const body = JSON.parse(await readBody())
             const { clientIP, sessions, timestamp } = body
             if (!clientIP) { res.statusCode = 400; res.end(JSON.stringify({ error: "Missing clientIP" })); return }
-            statsDb.heartbeat(clientIP, sessions, timestamp)
+            const userId = authEnabled ? (getSessionFromReq(req)?.userId || null) : null
+            statsDb.heartbeat(clientIP, sessions, timestamp, userId)
             res.setHeader("Content-Type", "application/json")
             res.end(JSON.stringify({ ok: true, buildTime }))
           } catch (err) {
@@ -1197,7 +1208,8 @@ export default [
             const body = JSON.parse(await readBody())
             const { clientIP, sessionID, timestamp } = body
             if (!clientIP || !sessionID) { res.statusCode = 400; res.end(JSON.stringify({ error: "Missing clientIP or sessionID" })); return }
-            statsDb.sessionCreate(clientIP, sessionID, timestamp)
+            const userId = authEnabled ? (getSessionFromReq(req)?.userId || null) : null
+            statsDb.sessionCreate(clientIP, sessionID, timestamp, userId)
             res.setHeader("Content-Type", "application/json")
             res.end(JSON.stringify({ ok: true }))
           } catch (err) {
@@ -1243,7 +1255,12 @@ export default [
           const { onlineClients, onlineSessions, processingSessions, currentSessions } = statsDb.getOnlineStats(tenMinAgo)
           const baseDir = process.env.VITE_OPENCODE_DEFAULT_DIR || process.cwd()
           for (const s of currentSessions) {
-            s.directory = `${baseDir}/${s.clientIP}`
+            if (authEnabled && s.user_id) {
+              const username = statsDb.getUsernameById(s.user_id)
+              s.directory = `${baseDir}/${username || s.clientIP}`
+            } else {
+              s.directory = `${baseDir}/${s.clientIP}`
+            }
           }
           const counters = statsDb.getCounters()
           const statsUrl = new URL(req.url, "http://localhost")
@@ -1503,6 +1520,132 @@ export default [
         }
 
         next()
+      })
+    },
+  },
+  {
+    name: "opencode-desktop:backend-proxy",
+    configureServer(viteServer) {
+      if (!authEnabled) return
+      const PROXY_PREFIXES = ["/session", "/experimental", "/project", "/config", "/event",
+        "/permission", "/question", "/file", "/find", "/path", "/vcs", "/agent",
+        "/instance/dispose", "/global/health", "/global/event", "/global/config", "/provider"]
+
+      viteServer.middlewares.use(async (req, res, next) => {
+        const url = new URL(req.url || "/", "http://localhost")
+
+        if (!PROXY_PREFIXES.some(p => url.pathname.startsWith(p))) {
+          next()
+          return
+        }
+
+        const allowedDir = getAllowedDir(req)
+        if (!allowedDir) { sendJson(res, { error: "Not authenticated" }, 401); return }
+
+        const serverHost = process.env.VITE_OPENCODE_SERVER_HOST || "127.0.0.1"
+        const serverPort = process.env.VITE_OPENCODE_SERVER_PORT || "4096"
+        const backendUrl = `http://${serverHost}:${serverPort}`
+        const serverPassword = process.env.VITE_OPENCODE_SERVER_PASSWORD || ""
+        const serverUsername = process.env.VITE_OPENCODE_SERVER_USERNAME || "opencode"
+        const authHeader = serverPassword ? `Basic ${Buffer.from(`${serverUsername}:${serverPassword}`).toString("base64")}` : ""
+
+        const sessionMatch = url.pathname.match(/^\/session\/([^/]+)/)
+        if (sessionMatch && !url.pathname.startsWith("/session/status") && !url.pathname.endsWith("/message")) {
+          const sessionID = sessionMatch[1]
+          try {
+            const checkRes = await fetch(`${backendUrl}/session/${sessionID}?directory=${encodeURIComponent(allowedDir === "*" ? process.env.VITE_OPENCODE_DEFAULT_DIR || "" : allowedDir)}`, {
+              headers: authHeader ? { Authorization: authHeader } : {},
+              signal: AbortSignal.timeout(5000),
+            })
+            if (checkRes.ok) {
+              const sessionData = await checkRes.json()
+              const sessionDir = sessionData.metadata?.directory || sessionData.directory || sessionData.location?.directory || ""
+              if (allowedDir !== "*" && sessionDir && sessionDir !== allowedDir) {
+                sendJson(res, { error: "无权访问该会话" }, 403)
+                return
+              }
+            } else if (checkRes.status === 404) {
+              sendJson(res, { error: "会话不存在" }, 404)
+              return
+            }
+          } catch {}
+        }
+
+        const dirHeader = req.headers["x-opencode-directory"]
+        const requestedDir = url.searchParams.get("directory")
+          || (dirHeader ? decodeURIComponent(dirHeader) : "")
+        if (requestedDir && allowedDir !== "*" && requestedDir !== allowedDir) {
+          sendJson(res, { error: "无权访问该目录" }, 403)
+          return
+        }
+
+        try {
+          const proxyHeaders = { ...req.headers }
+          delete proxyHeaders["host"]
+          if (authHeader) proxyHeaders["authorization"] = authHeader
+
+          const body = ["GET", "HEAD"].includes(req.method) ? undefined : await new Promise((resolve) => {
+            const chunks = []
+            req.on("data", (c) => chunks.push(c))
+            req.on("end", () => resolve(Buffer.concat(chunks)))
+            req.on("error", () => resolve(undefined))
+          })
+
+          const proxyRes = await fetch(`${backendUrl}${url.pathname}${url.search}`, {
+            method: req.method,
+            headers: proxyHeaders,
+            body,
+          })
+
+          if (url.pathname === "/provider" && proxyRes.ok) {
+            const data = await proxyRes.json()
+            if (data.all) {
+              for (const p of data.all) {
+                if (p.key) p.key = "***"
+                if (p.options?.apiKey) p.options.apiKey = "***"
+              }
+            }
+            sendJson(res, data, proxyRes.status)
+            return
+          }
+
+          if (url.pathname === "/project" && allowedDir !== "*" && proxyRes.ok) {
+            const data = await proxyRes.json()
+            const filtered = Array.isArray(data) ? data.filter(p => p.worktree === allowedDir) : data
+            sendJson(res, filtered, proxyRes.status)
+            return
+          }
+
+          if (url.pathname === "/experimental/session" && allowedDir !== "*" && proxyRes.ok) {
+            const data = await proxyRes.json()
+            if (data.data && Array.isArray(data.data)) {
+              data.data = data.data.filter(s => {
+                const dir = s.metadata?.directory || s.directory || s.location?.directory || ""
+                return dir === allowedDir
+              })
+              sendJson(res, data, proxyRes.status)
+              return
+            } else if (Array.isArray(data)) {
+              const filtered = data.filter(s => {
+                const dir = s.metadata?.directory || s.directory || s.location?.directory || ""
+                return dir === allowedDir
+              })
+              sendJson(res, filtered, proxyRes.status)
+              return
+            }
+            sendJson(res, data, proxyRes.status)
+            return
+          }
+
+          res.statusCode = proxyRes.status
+          proxyRes.headers.forEach((value, key) => {
+            if (key !== "transfer-encoding" && key !== "content-encoding" && key !== "content-length") res.setHeader(key, value)
+          })
+          const respBuffer = await proxyRes.arrayBuffer()
+          res.end(Buffer.from(respBuffer))
+        } catch (err) {
+          sendJson(res, { error: err.message }, 502)
+        }
       })
     },
   },

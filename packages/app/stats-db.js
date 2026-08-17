@@ -171,16 +171,16 @@ export function createStatsDb(Database, dbPath, statsJsonPath) {
     }
   }
 
-  function heartbeat(clientIP, sessions, timestamp) {
+  function heartbeat(clientIP, sessions, timestamp, userId) {
     const dayKey = getDayKey(timestamp)
     const txn = db.transaction(() => {
       ensureDayStats(dayKey)
       const hb = db.query("SELECT 1 FROM heartbeats WHERE client_ip = ?").get(clientIP)
       if (!hb) {
-        db.query("INSERT INTO heartbeats (client_ip, last_seen) VALUES (?, ?)").run(clientIP, timestamp)
+        db.query("INSERT INTO heartbeats (client_ip, last_seen, user_id) VALUES (?, ?, ?)").run(clientIP, timestamp, userId || null)
         db.query("UPDATE daily_stats SET new_clients = new_clients + 1 WHERE day_key = ?").run(dayKey)
       } else {
-        db.query("UPDATE heartbeats SET last_seen = ? WHERE client_ip = ?").run(timestamp, clientIP)
+        db.query("UPDATE heartbeats SET last_seen = ?, user_id = ? WHERE client_ip = ?").run(timestamp, userId || null, clientIP)
       }
 
       const reportedIDs = (sessions || []).map((s) => s.sessionID)
@@ -226,20 +226,20 @@ export function createStatsDb(Database, dbPath, statsJsonPath) {
     txn()
   }
 
-  function sessionCreate(clientIP, sessionID, timestamp) {
+  function sessionCreate(clientIP, sessionID, timestamp, userId) {
     const dayKey = getDayKey(timestamp)
     const result = { isNew: false }
     const txn = db.transaction(() => {
       ensureDayStats(dayKey)
       const hb = db.query("SELECT 1 FROM heartbeats WHERE client_ip = ?").get(clientIP)
       if (!hb) {
-        db.query("INSERT INTO heartbeats (client_ip, last_seen) VALUES (?, ?)").run(clientIP, timestamp)
+        db.query("INSERT INTO heartbeats (client_ip, last_seen, user_id) VALUES (?, ?, ?)").run(clientIP, timestamp, userId || null)
         db.query("UPDATE daily_stats SET new_clients = new_clients + 1 WHERE day_key = ?").run(dayKey)
       }
 
       const existing = db.query("SELECT 1 FROM heartbeat_sessions WHERE client_ip = ? AND session_id = ?").get(clientIP, sessionID)
       if (!existing) {
-        db.query("INSERT INTO heartbeat_sessions (client_ip, session_id, status, last_seen) VALUES (?, ?, ?, ?)").run(clientIP, sessionID, "idle", timestamp)
+        db.query("INSERT INTO heartbeat_sessions (client_ip, session_id, status, last_seen, user_id) VALUES (?, ?, ?, ?, ?)").run(clientIP, sessionID, "idle", timestamp, userId || null)
         db.query("UPDATE counters SET value = value + 1 WHERE key = 'totalSessionsEverCreated'").run()
         db.query("UPDATE daily_stats SET new_sessions = new_sessions + 1 WHERE day_key = ?").run(dayKey)
         result.isNew = true
@@ -505,6 +505,11 @@ export function createStatsDb(Database, dbPath, statsJsonPath) {
     return db.query("SELECT provider_id, model_id, success, error, duration_ms, tested_at FROM model_test_results").all()
   }
 
+  function getUsernameById(userId) {
+    const row = db.query("SELECT username FROM users WHERE id = ?").get(userId)
+    return row?.username || null
+  }
+
   function close() {
     rawDb.close()
   }
@@ -531,6 +536,7 @@ export function createStatsDb(Database, dbPath, statsJsonPath) {
     validatePassword,
     saveModelTestResult,
     getModelTestResults,
+    getUsernameById,
     close,
   }
 }

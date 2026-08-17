@@ -146,6 +146,15 @@ function getClientIP(req, server) {
   return 'localhost'
 }
 
+function getAllowedDir(req) {
+  if (!authEnabled) return "*"
+  const baseDir = envVars.VITE_OPENCODE_DEFAULT_DIR || ""
+  const session = getSession(req)
+  if (!session) return null
+  if (session.role === "admin" || session.role === "super_admin") return "*"
+  return `${baseDir}/${session.username}`
+}
+
 const mimeTypes = {
   '.html': 'text/html',
   '.js': 'application/javascript',
@@ -559,8 +568,11 @@ async function handleAPI(req, server) {
     const contactAdmin = process.env.VITE_CONTACT_ADMIN || ""
     const contactList = contactAdmin.split('|').filter(line => line.trim())
     const hiddenProviders = (process.env.VITE_HIDDEN_PROVIDERS || "").split(",").map(s => s.trim()).filter(Boolean)
+    const session = authEnabled ? getSession(req) : null
+    const clientIP = authEnabled ? (session?.username || "unknown") : getClientIP(req, server)
     return jsonResponse({
-      clientIP: getClientIP(req, server),
+      clientIP,
+      authEnabled,
       contactAdmin: contactList,
       feedbackUrl: process.env.VITE_FEEDBACK_URL || "",
       caseLibraryDir: process.env.VITE_CASE_LIBRARY_DIR || "",
@@ -880,7 +892,8 @@ async function handleAPI(req, server) {
       const body = JSON.parse(await readBody(req))
       const { clientIP, sessions, timestamp } = body
       if (!clientIP) return jsonResponse({ error: "Missing clientIP" }, 400)
-      statsDb.heartbeat(clientIP, sessions, timestamp)
+      const userId = authEnabled ? (getSession(req)?.userId || null) : null
+      statsDb.heartbeat(clientIP, sessions, timestamp, userId)
       return jsonResponse({ ok: true, buildTime })
     } catch (err) {
       return jsonResponse({ error: err.message }, 500)
@@ -892,7 +905,8 @@ async function handleAPI(req, server) {
       const body = JSON.parse(await readBody(req))
       const { clientIP, sessionID, timestamp } = body
       if (!clientIP || !sessionID) return jsonResponse({ error: "Missing clientIP or sessionID" }, 400)
-      const result = statsDb.sessionCreate(clientIP, sessionID, timestamp)
+      const userId = authEnabled ? (getSession(req)?.userId || null) : null
+      const result = statsDb.sessionCreate(clientIP, sessionID, timestamp, userId)
       if (result.isNew) {
         console.log(`[${getTzTime()}] session-create NEW: ip=${clientIP} sid=${sessionID} total=${result.total}`)
       } else {
@@ -973,7 +987,12 @@ async function handleAPI(req, server) {
     const { onlineClients, onlineSessions, processingSessions, currentSessions } = statsDb.getOnlineStats(tenMinAgo)
     const baseDir = envVars.VITE_OPENCODE_DEFAULT_DIR || process.cwd()
     for (const s of currentSessions) {
-      s.directory = `${baseDir}/${s.clientIP}`
+      if (authEnabled && s.user_id) {
+        const username = statsDb.getUsernameById(s.user_id)
+        s.directory = `${baseDir}/${username || s.clientIP}`
+      } else {
+        s.directory = `${baseDir}/${s.clientIP}`
+      }
     }
     const counters = statsDb.getCounters()
     const range = url.searchParams.get("range") || "7d"
@@ -1439,6 +1458,92 @@ Bun.serve({
       if (apiRes) {
         console.log(`[${getTzTime()}] ${req.method} ${url.pathname} -> middleware ${apiRes.status} ${Date.now() - start}ms`)
         return apiRes
+      }
+
+      if (authEnabled) {
+        const PROXY_PREFIXES = ["/session", "/experimental", "/project", "/config", "/event",
+          "/permission", "/question", "/file", "/find", "/path", "/vcs", "/agent",
+          "/instance/dispose", "/global/health", "/global/event", "/global/config", "/provider"]
+
+        if (PROXY_PREFIXES.some(p => url.pathname.startsWith(p))) {
+          const allowedDir = getAllowedDir(req)
+          if (!allowedDir) return jsonResponse({ error: "Not authenticated" }, 401)
+
+          const sessionMatch = url.pathname.match(/^\/session\/([^/]+)/)
+          if (sessionMatch && !url.pathname.startsWith("/session/status") && !url.pathname.endsWith("/message")) {
+            const sessionID = sessionMatch[1]
+            try {
+              const checkRes = await fetch(`${serverUrl}/session/${sessionID}?directory=${encodeURIComponent(allowedDir === "*" ? envVars.VITE_OPENCODE_DEFAULT_DIR || "" : allowedDir)}`, {
+                headers: serverAuthHeader ? { Authorization: serverAuthHeader } : {},
+                signal: AbortSignal.timeout(5000),
+              })
+              if (checkRes.ok) {
+                const sessionData = await checkRes.json()
+                const sessionDir = sessionData.metadata?.directory || sessionData.directory || sessionData.location?.directory || ""
+                if (allowedDir !== "*" && sessionDir && sessionDir !== allowedDir) {
+                  return jsonResponse({ error: "无权访问该会话" }, 403)
+                }
+              } else if (checkRes.status === 404) {
+                return jsonResponse({ error: "会话不存在" }, 404)
+              }
+            } catch {}
+          }
+
+          const dirHeader = req.headers.get("x-opencode-directory")
+          const requestedDir = url.searchParams.get("directory")
+            || (dirHeader ? decodeURIComponent(dirHeader) : "")
+          if (requestedDir && allowedDir !== "*" && requestedDir !== allowedDir) {
+            return jsonResponse({ error: "无权访问该目录" }, 403)
+          }
+
+          const proxyHeaders = new Headers(req.headers)
+          proxyHeaders.delete("host")
+          if (serverAuthHeader) proxyHeaders.set("Authorization", serverAuthHeader)
+
+          const proxyRes = await fetch(`${serverUrl}${url.pathname}${url.search}`, {
+            method: req.method,
+            headers: proxyHeaders,
+            body: ["GET", "HEAD"].includes(req.method) ? undefined : await req.arrayBuffer(),
+          })
+
+          if (url.pathname === "/provider" && proxyRes.ok) {
+            const data = await proxyRes.json()
+            if (data.all) {
+              for (const p of data.all) {
+                if (p.key) p.key = "***"
+                if (p.options?.apiKey) p.options.apiKey = "***"
+              }
+            }
+            return jsonResponse(data, proxyRes.status)
+          }
+
+          if (url.pathname === "/project" && allowedDir !== "*" && proxyRes.ok) {
+            const data = await proxyRes.json()
+            const filtered = Array.isArray(data) ? data.filter(p => p.worktree === allowedDir) : data
+            return jsonResponse(filtered, proxyRes.status)
+          }
+
+          if (url.pathname === "/experimental/session" && allowedDir !== "*" && proxyRes.ok) {
+            let data = await proxyRes.json()
+            if (data.data && Array.isArray(data.data)) {
+              data.data = data.data.filter(s => {
+                const dir = s.metadata?.directory || s.directory || s.location?.directory || ""
+                return dir === allowedDir
+              })
+            } else if (Array.isArray(data)) {
+              data = data.filter(s => {
+                const dir = s.metadata?.directory || s.directory || s.location?.directory || ""
+                return dir === allowedDir
+              })
+            }
+            return jsonResponse(data, proxyRes.status)
+          }
+
+          const respHeaders = new Headers(proxyRes.headers)
+          respHeaders.delete("content-encoding")
+          respHeaders.delete("content-length")
+          return new Response(proxyRes.body, { status: proxyRes.status, headers: respHeaders })
+        }
       }
 
       const staticResult = serveStatic(url.pathname)
