@@ -130,9 +130,9 @@ export function createStatsDb(Database, dbPath, statsJsonPath) {
     db.exec("PRAGMA foreign_keys = OFF")
     const txn = db.transaction(() => {
       for (const [ip, hb] of Object.entries(data.heartbeats || {})) {
-        db.query("INSERT OR REPLACE INTO heartbeats VALUES (?, ?)").run(ip, hb.lastSeen)
+        db.query("INSERT OR REPLACE INTO heartbeats (client_ip, last_seen) VALUES (?, ?)").run(ip, hb.lastSeen)
         for (const [sid, s] of Object.entries(hb.sessions || {})) {
-          db.query("INSERT OR REPLACE INTO heartbeat_sessions VALUES (?, ?, ?, ?)").run(ip, sid, s.status, s.lastSeen)
+          db.query("INSERT OR REPLACE INTO heartbeat_sessions (client_ip, session_id, status, last_seen) VALUES (?, ?, ?, ?)").run(ip, sid, s.status, s.lastSeen)
         }
       }
       for (const [day, val] of Object.entries(data.dailyStats || {})) {
@@ -239,7 +239,7 @@ export function createStatsDb(Database, dbPath, statsJsonPath) {
 
       const existing = db.query("SELECT 1 FROM heartbeat_sessions WHERE client_ip = ? AND session_id = ?").get(clientIP, sessionID)
       if (!existing) {
-        db.query("INSERT INTO heartbeat_sessions VALUES (?, ?, ?, ?)").run(clientIP, sessionID, "idle", timestamp)
+        db.query("INSERT INTO heartbeat_sessions (client_ip, session_id, status, last_seen) VALUES (?, ?, ?, ?)").run(clientIP, sessionID, "idle", timestamp)
         db.query("UPDATE counters SET value = value + 1 WHERE key = 'totalSessionsEverCreated'").run()
         db.query("UPDATE daily_stats SET new_sessions = new_sessions + 1 WHERE day_key = ?").run(dayKey)
         result.isNew = true
