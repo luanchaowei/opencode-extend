@@ -337,6 +337,11 @@
                 </select>
                 <div class="hint">开启后登录页显示注册入口，注册用户固定为普通用户角色</div>
               </div>
+              <div class="field">
+                <label>模型检测超时（毫秒）</label>
+                <input id="modelTestTimeout" type="number" placeholder="30000" min="5000" max="120000">
+                <div class="hint">单个模型检测的超时时间，默认 30000 毫秒（30秒）</div>
+              </div>
             </div>
           </div>
           <button id="save-btn" class="save-btn" onclick="save()">保存配置</button>
@@ -495,6 +500,7 @@
           document.getElementById('monitorBackendPattern').value = data.monitorBackendPattern || ''
           document.getElementById('monitorFrontendPattern').value = data.monitorFrontendPattern || ''
           document.getElementById('hiddenProviders').value = data.hiddenProviders || ''
+          document.getElementById('modelTestTimeout').value = data.modelTestTimeout || '30000'
           if (data.authEnabled) {
             document.getElementById('field-registrationEnabled').style.display = ''
             document.getElementById('registrationEnabled').value = data.registrationEnabled ? 'true' : 'false'
@@ -533,6 +539,7 @@
             monitorBackendPattern: document.getElementById('monitorBackendPattern').value,
             monitorFrontendPattern: document.getElementById('monitorFrontendPattern').value,
             hiddenProviders: document.getElementById('hiddenProviders').value,
+            modelTestTimeout: document.getElementById('modelTestTimeout').value,
             ...(document.getElementById('field-registrationEnabled').style.display !== 'none' ? { registrationEnabled: document.getElementById('registrationEnabled').value } : {}),
           })
         })

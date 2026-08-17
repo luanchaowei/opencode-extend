@@ -1099,7 +1099,7 @@ async function handleAPI(req, server) {
           model: { providerID, modelID },
           parts: [{ type: "text", text: "hi" }],
         }),
-        signal: AbortSignal.timeout(60000),
+        signal: AbortSignal.timeout(parseInt(process.env.VITE_MODEL_TEST_TIMEOUT || "30000", 10)),
       })
 
       const durationMs = Date.now() - testStart
@@ -1116,7 +1116,7 @@ async function handleAPI(req, server) {
       }
     } catch (err) {
       const durationMs = Date.now() - testStart
-      const errMsg = err.name === "TimeoutError" ? "检测超时（60s）" : err.message
+      const errMsg = err.name === "TimeoutError" ? `检测超时（${parseInt(process.env.VITE_MODEL_TEST_TIMEOUT || "30000", 10) / 1000}s）` : err.message
       statsDb.saveModelTestResult(providerID || "", modelID || "", false, errMsg, durationMs)
       return jsonResponse({ success: false, error: errMsg, durationMs })
     } finally {
@@ -1159,6 +1159,7 @@ async function handleAPI(req, server) {
       monitorBackendPattern: process.env.VITE_MONITOR_BACKEND_PATTERN || "",
       monitorFrontendPattern: process.env.VITE_MONITOR_FRONTEND_PATTERN || "",
       hiddenProviders: process.env.VITE_HIDDEN_PROVIDERS || "",
+      modelTestTimeout: process.env.VITE_MODEL_TEST_TIMEOUT || "30000",
       authEnabled: envVars.AUTH_ENABLED === "true",
       registrationEnabled: process.env.VITE_REGISTRATION_ENABLED === "true",
     })
@@ -1181,6 +1182,7 @@ async function handleAPI(req, server) {
         monitorBackendPattern: "VITE_MONITOR_BACKEND_PATTERN",
         monitorFrontendPattern: "VITE_MONITOR_FRONTEND_PATTERN",
         hiddenProviders: "VITE_HIDDEN_PROVIDERS",
+        modelTestTimeout: "VITE_MODEL_TEST_TIMEOUT",
         registrationEnabled: "VITE_REGISTRATION_ENABLED",
       }
       for (const [key, envKey] of Object.entries(envMap)) {
