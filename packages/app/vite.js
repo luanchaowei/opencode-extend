@@ -324,12 +324,12 @@ export default [
             const chunks = []
             for await (const chunk of req) chunks.push(chunk)
             const body = JSON.parse(Buffer.concat(chunks).toString())
-            const username = (body.username || "").trim()
-            const password = body.password || ""
+            const { username, password } = body
             if (!username || !password) { sendJson(res, { error: "请填写用户名和密码" }, 400); return }
             const result = statsDbRef.createUser(username, password, "user")
             if (result.error) {
               const msg = result.error === "Username already exists" ? "用户名已存在"
+                : result.error === "Missing required fields" ? "用户名不能为空"
                 : result.error === "Password must be at least 8 chars with 3 of: digits, lowercase, uppercase, special chars"
                 ? "密码不符合规则：至少8位，需包含数字/大写/小写/特殊字符中的3种"
                 : result.error

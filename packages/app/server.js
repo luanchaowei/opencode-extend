@@ -464,12 +464,12 @@ async function handleAPI(req, server) {
     if (!authEnabled || process.env.VITE_REGISTRATION_ENABLED !== "true") return jsonResponse({ error: "注册功能未开放" }, 403)
     try {
       const body = JSON.parse(await readBody(req))
-      const username = (body.username || "").trim()
-      const password = body.password || ""
+      const { username, password } = body
       if (!username || !password) return jsonResponse({ error: "请填写用户名和密码" }, 400)
       const result = statsDb.createUser(username, password, "user")
       if (result.error) {
         const msg = result.error === "Username already exists" ? "用户名已存在"
+          : result.error === "Missing required fields" ? "用户名不能为空"
           : result.error === "Password must be at least 8 chars with 3 of: digits, lowercase, uppercase, special chars"
           ? "密码不符合规则：至少8位，需包含数字/大写/小写/特殊字符中的3种"
           : result.error

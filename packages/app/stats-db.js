@@ -434,6 +434,7 @@ export function createStatsDb(Database, dbPath, statsJsonPath) {
   }
 
   function createUser(username, password, role) {
+    username = (username || "").trim()
     if (!username || !password || !role) return { error: "Missing required fields" }
     if (role !== "admin" && role !== "user") return { error: "Invalid role" }
     if (!validatePassword(password)) return { error: "Password must be at least 8 chars with 3 of: digits, lowercase, uppercase, special chars" }
