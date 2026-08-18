@@ -48,7 +48,13 @@ const language = useLanguage()
 
 const isDesktop = createMediaQuery("(min-width: 768px)")
   const sessionID = createMemo(() => params.id)
-  const uploadDir = createMemo(() => sessionID() ? `uploads/${sessionID()}` : undefined)
+  const uploadDir = createMemo(() => {
+    const id = sessionID()
+    if (!id) return undefined
+    const info = sync.session.get(id)
+    const uploadID = info?.parentID || id
+    return `uploads/${uploadID}`
+  })
   const [uploading, setUploading] = createSignal(false)
   let uploadAbortController: AbortController | null = null
   let uploadStartSessionID: string | null = null
