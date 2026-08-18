@@ -18,14 +18,12 @@
   "license": "MIT",
   "devDependencies": {
     "@tailwindcss/vite": "catalog:",
-    "@tsconfig/bun": "1.0.9",
     "@types/bun": "catalog:",
     "@types/luxon": "catalog:",
     "@types/node": "catalog:",
     "@typescript/native-preview": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
-    "vite-plugin-icons-spritesheet": "3.0.1",
     "vite-plugin-solid": "catalog:"
   },
   "dependencies": {
@@ -33,7 +31,6 @@
     "@opencode-ai/core": "workspace:*",
     "@opencode-ai/sdk": "workspace:*",
     "@opencode-ai/ui": "workspace:*",
-    "@shikijs/transformers": "3.9.2",
     "@solid-primitives/event-bus": "1.1.2",
     "@solid-primitives/event-listener": "2.4.5",
     "@solid-primitives/i18n": "2.2.1",
@@ -47,17 +44,10 @@
     "@thisbeyond/solid-dnd": "0.7.5",
     "effect": "catalog:",
     "fuzzysort": "catalog:",
-    "ghostty-web": "github:anomalyco/ghostty-web#main",
     "luxon": "catalog:",
-    "marked": "catalog:",
-    "marked-shiki": "catalog:",
     "mermaid": "11.15.0",
     "remeda": "catalog:",
-    "shiki": "catalog:",
     "solid-js": "catalog:",
-    "solid-list": "catalog:",
-    "tailwindcss": "catalog:",
-    "virtua": "catalog:",
     "zod": "catalog:"
   }
 }

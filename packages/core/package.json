@@ -20,10 +20,8 @@
     "./util/slug": "./src/util/slug.ts"
   },
   "dependencies": {
-    "effect": "catalog:",
     "glob": "catalog:",
     "minimatch": "catalog:",
-    "mime-types": "catalog:",
     "zod": "catalog:"
   }
 }
