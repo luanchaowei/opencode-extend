@@ -10,7 +10,7 @@ import { useFileComponent } from "../context/file"
 
 import { Binary } from "@opencode-ai/core/util/binary"
 import { getDirectory, getFilename } from "@opencode-ai/core/util/path"
-import { createEffect, createMemo, createSignal, For, on, ParentProps, Show } from "solid-js"
+import { createEffect, createMemo, createSignal, For, on, onCleanup, ParentProps, Show } from "solid-js"
 import { createStore } from "solid-js/store"
 import { Dynamic } from "solid-js/web"
 import { AssistantParts, Message, MessageDivider, PART_MAPPING, type UserActions } from "./message-part"
@@ -368,6 +368,23 @@ export function SessionTurn(
     return true
   })
 
+  const [elapsedNow, setElapsedNow] = createSignal(Date.now())
+  createEffect(() => {
+    if (!working()) return
+    setElapsedNow(Date.now())
+    const timer = setInterval(() => setElapsedNow(Date.now()), 1000)
+    onCleanup(() => clearInterval(timer))
+  })
+  const elapsedText = createMemo(() => {
+    const start = message()?.time.created
+    if (typeof start !== "number") return ""
+    const sec = Math.max(0, Math.floor((elapsedNow() - start) / 1000))
+    if (sec < 60) return `${sec}s`
+    const min = Math.floor(sec / 60)
+    const rem = sec % 60
+    return `${min}m ${String(rem).padStart(2, "0")}s`
+  })
+
   const autoScroll = createAutoScroll({
     working,
     onUserInteracted: props.onUserInteracted,
@@ -414,6 +431,11 @@ export function SessionTurn(
               <Show when={showThinking()}>
                 <div data-slot="session-turn-thinking">
                   <TextShimmer text={i18n.t("ui.sessionTurn.status.thinking")} />
+                  <Show when={elapsedText()}>
+                    <span style={{ color: "var(--text-interactive-base)", "font-size": "12px", "font-weight": "500", "margin-left": "4px" }}>
+                      耗时 {elapsedText()}
+                    </span>
+                  </Show>
                   <Show when={!showReasoningSummaries()}>
                     <TextReveal
                       text={reasoningHeading()}
