@@ -1,4 +1,4 @@
-import { For, createEffect, createMemo, on, onCleanup, Show, Index, type JSX, createSignal } from "solid-js"
+import { For, createEffect, createMemo, on, onCleanup, Show, Index, createSignal } from "solid-js"
 import { createStore, produce } from "solid-js/store"
 import { useNavigate } from "@solidjs/router"
 import { useMutation } from "@tanstack/solid-query"
@@ -12,7 +12,6 @@ import { InlineInput } from "@opencode-ai/ui/inline-input"
 import { Spinner } from "@opencode-ai/ui/spinner"
 import { SessionTurn } from "@opencode-ai/ui/session-turn"
 import { ScrollView } from "@opencode-ai/ui/scroll-view"
-import { TextField } from "@opencode-ai/ui/text-field"
 import type { AssistantMessage, Message as MessageType, Part, TextPart, UserMessage } from "@opencode-ai/sdk/v2"
 import { showToast } from "@opencode-ai/ui/toast"
 import { Binary } from "@opencode-ai/core/util/binary"
@@ -23,8 +22,6 @@ import { createResizeObserver } from "@solid-primitives/resize-observer"
 import { useLanguage } from "@/context/language"
 import { useDevice } from "@/context/device"
 import { useSessionKey } from "@/pages/session/session-layout"
-import { useGlobalSDK } from "@/context/global-sdk"
-import { usePlatform } from "@/context/platform"
 import { useSettings } from "@/context/settings"
 import { useSDK } from "@/context/sdk"
 import { useLocal } from "@/context/local"
@@ -232,7 +229,6 @@ export function MessageTimeline(props: {
   let touchGesture: number | undefined
 
   const navigate = useNavigate()
-  const globalSDK = useGlobalSDK()
   const sdk = useSDK()
   const local = useLocal()
   const sync = useSync()
@@ -241,7 +237,6 @@ export function MessageTimeline(props: {
   const language = useLanguage()
   const device = useDevice()
   const { params, sessionKey } = useSessionKey()
-  const platform = usePlatform()
 
   const isOwnProject = createMemo(() => {
     const directory = decode64(params.dir)
@@ -362,7 +357,6 @@ export function MessageTimeline(props: {
     ms: pace(640),
   })
 
-  let more: HTMLButtonElement | undefined
   let head: HTMLDivElement | undefined
 
   createResizeObserver(
@@ -789,9 +783,6 @@ return language.t("common.requestFailed")
                               aria-label={language.t("common.moreOptions")}
                               aria-expanded={title.menuOpen}
                               disabled={!isOwnProject()}
-                              ref={(el: HTMLButtonElement) => {
-                                more = el
-                              }}
                             />
                             <DropdownMenu.Portal>
                               <DropdownMenu.Content

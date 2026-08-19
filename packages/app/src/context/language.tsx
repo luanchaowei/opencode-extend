@@ -49,10 +49,6 @@ function loadDict(locale: Locale) {
   })
 }
 
-export function loadLocaleDict(locale: Locale) {
-  return loadDict(locale).then(() => undefined)
-}
-
 const localeMatchers: Array<{ locale: Locale; match: (language: string) => boolean }> = [
   { locale: "en", match: (language) => language.startsWith("en") },
   { locale: "zh", match: (language) => language.startsWith("zh") },
@@ -72,7 +68,7 @@ function detectLocale(): Locale {
   return "en"
 }
 
-export function normalizeLocale(value: string): Locale {
+function normalizeLocale(value: string): Locale {
   return LOCALES.includes(value as Locale) ? (value as Locale) : "en"
 }
 

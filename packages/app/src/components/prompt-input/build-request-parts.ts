@@ -1,10 +1,7 @@
-import { getFilename } from "@opencode-ai/core/util/path"
 import { type AgentPartInput, type FilePartInput, type Part, type TextPartInput } from "@opencode-ai/sdk/v2/client"
 import type { FileSelection } from "@/context/file"
-import { encodeFilePath } from "@/context/file/path"
-import type { AgentPart, FileAttachmentPart, Prompt } from "@/context/prompt"
+import type { Prompt } from "@/context/prompt"
 import { Identifier } from "@/utils/id"
-import { createCommentMetadata, formatCommentNote } from "@/utils/comment-note"
 
 type PromptRequestPart = (TextPartInput | FilePartInput | AgentPartInput) & { id: string }
 
@@ -27,29 +24,6 @@ type BuildRequestPartsInput = {
   sessionID: string
   sessionDirectory: string
 }
-
-const absolute = (directory: string, path: string) => {
-  if (path.startsWith("/")) return path
-  if (/^[A-Za-z]:[\\/]/.test(path) || /^[A-Za-z]:$/.test(path)) return path
-  if (path.startsWith("\\\\") || path.startsWith("//")) return path
-  return `${directory.replace(/[\\/]+$/, "")}/${path}`
-}
-
-const fileQuery = (selection: FileSelection | undefined) =>
-  selection ? `?start=${selection.startLine}&end=${selection.endLine}` : ""
-
-const mention = /(^|[\s([{"'])@(\S+)/g
-
-const parseCommentMentions = (comment: string) => {
-  return Array.from(comment.matchAll(mention)).flatMap((match) => {
-    const path = (match[2] ?? "").replace(/[.,!?;:)}\]"']+$/, "")
-    if (!path) return []
-    return [path]
-  })
-}
-
-const isFileAttachment = (part: Prompt[number]): part is FileAttachmentPart => part.type === "file"
-const isAgentAttachment = (part: Prompt[number]): part is AgentPart => part.type === "agent"
 
 const toOptimisticPart = (part: PromptRequestPart, sessionID: string, messageID: string): Part => {
   if (part.type === "text") {
@@ -106,91 +80,6 @@ This information is provided for your context. You do not need to respond to or 
       text: input.text,
     },
   ]
-
-  const files = input.prompt.filter(isFileAttachment).map((attachment) => {
-    const path = absolute(input.sessionDirectory, attachment.path)
-    return {
-      id: Identifier.ascending("part"),
-      type: "file",
-      mime: "text/plain",
-      url: `file://${encodeFilePath(path)}${fileQuery(attachment.selection)}`,
-      filename: getFilename(attachment.path),
-      source: {
-        type: "file",
-        text: {
-          value: attachment.content,
-          start: attachment.start,
-          end: attachment.end,
-        },
-        path,
-      },
-    } satisfies PromptRequestPart
-  })
-
-  const agents = input.prompt.filter(isAgentAttachment).map((attachment) => {
-    return {
-      id: Identifier.ascending("part"),
-      type: "agent",
-      name: attachment.name,
-      source: {
-        value: attachment.content,
-        start: attachment.start,
-        end: attachment.end,
-      },
-    } satisfies PromptRequestPart
-  })
-
-  const used = new Set(files.map((part) => part.url))
-  const context = input.context.flatMap((item) => {
-    const path = absolute(input.sessionDirectory, item.path)
-    const url = `file://${encodeFilePath(path)}${fileQuery(item.selection)}`
-    const comment = item.comment?.trim()
-    if (!comment && used.has(url)) return []
-    used.add(url)
-
-    const filePart = {
-      id: Identifier.ascending("part"),
-      type: "file",
-      mime: "text/plain",
-      url,
-      filename: getFilename(item.path),
-    } satisfies PromptRequestPart
-
-    if (!comment) return [filePart]
-
-    const mentions = parseCommentMentions(comment).flatMap((path) => {
-      const url = `file://${encodeFilePath(absolute(input.sessionDirectory, path))}`
-      if (used.has(url)) return []
-      used.add(url)
-      return [
-        {
-          id: Identifier.ascending("part"),
-          type: "file",
-          mime: "text/plain",
-          url,
-          filename: getFilename(path),
-        } satisfies PromptRequestPart,
-      ]
-    })
-
-    return [
-      {
-        id: Identifier.ascending("part"),
-        type: "text",
-        text: formatCommentNote({ path: item.path, selection: item.selection, comment }),
-        synthetic: true,
-        metadata: createCommentMetadata({
-          path: item.path,
-          selection: item.selection,
-          comment,
-          preview: item.preview,
-          origin: item.commentOrigin,
-        }),
-      } satisfies PromptRequestPart,
-      filePart,
-      ...mentions,
-    ]
-  })
 
   return {
     requestParts,

@@ -1,7 +1,7 @@
 import { marked, type Tokens } from "marked"
 import remend from "remend"
 
-export type Block = {
+type Block = {
   raw: string
   src: string
   mode: "full" | "live"

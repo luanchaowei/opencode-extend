@@ -16,8 +16,6 @@ type TabsInput = {
   normalizeTab: (tab: string) => string
 }
 
-export const getSessionKey = (dir: string | undefined, id: string | undefined) => `${dir ?? ""}${id ? `/${id}` : ""}`
-
 export const createSessionTabs = (input: TabsInput) => {
   const openedTabs = createMemo(
     () => {
@@ -60,32 +58,6 @@ export const createSessionTabs = (input: TabsInput) => {
     activeFileTab,
     closableTab,
   }
-}
-
-export const createOpenSessionFileTab = (input: {
-  normalizeTab: (tab: string) => string
-  openTab: (tab: string) => void
-  pathFromTab: (tab: string) => string | undefined
-  loadFile: (path: string) => void
-  setActive: (tab: string) => void
-}) => {
-  return (value: string) => {
-    const next = input.normalizeTab(value)
-    input.openTab(next)
-
-    const path = input.pathFromTab(next)
-    if (!path) return
-
-    input.loadFile(path)
-    input.setActive(next)
-  }
-}
-
-export const getTabReorderIndex = (tabs: readonly string[], from: string, to: string) => {
-  const fromIndex = tabs.indexOf(from)
-  const toIndex = tabs.indexOf(to)
-  if (fromIndex === -1 || toIndex === -1 || fromIndex === toIndex) return undefined
-  return toIndex
 }
 
 export const createSizing = () => {

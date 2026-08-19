@@ -4,11 +4,7 @@ import { useParams } from "@solidjs/router"
 import { createSimpleContext } from "@opencode-ai/ui/context"
 import { useGlobalSDK } from "./global-sdk"
 import { useGlobalSync } from "./global-sync"
-import { usePlatform } from "@/context/platform"
-import { useLanguage } from "@/context/language"
-import { useSettings } from "@/context/settings"
 import { Binary } from "@opencode-ai/core/util/binary"
-import { base64Encode } from "@opencode-ai/core/util/encode"
 import { decode64 } from "@/utils/base64"
 import { EventSessionError } from "@opencode-ai/sdk/v2"
 import { Persist, persisted } from "@/utils/persist"
@@ -110,9 +106,6 @@ export const { use: useNotification, provider: NotificationProvider } = createSi
     const params = useParams()
     const globalSDK = useGlobalSDK()
     const globalSync = useGlobalSync()
-    const platform = usePlatform()
-    const settings = useSettings()
-    const language = useLanguage()
 
     const empty: Notification[] = []
 
@@ -239,8 +232,6 @@ export const { use: useNotification, provider: NotificationProvider } = createSi
           type: "turn-complete",
           session: sessionID,
         })
-
-        const href = `/${base64Encode(directory)}/session/${sessionID}`
       })
     }
 
@@ -263,10 +254,6 @@ export const { use: useNotification, provider: NotificationProvider } = createSi
           session: sessionID ?? "global",
           error,
         })
-        const description =
-          session?.title ??
-          (typeof error === "string" ? error : language.t("notification.session.error.fallbackDescription"))
-        const href = sessionID ? `/${base64Encode(directory)}/session/${sessionID}` : `/${base64Encode(directory)}`
       })
     }
 

@@ -113,12 +113,5 @@ export type RootLoadArgs = {
   list: (query: { directory: string; roots: true; limit?: number; archived?: boolean }) => Promise<{ data?: Session[] }>
 }
 
-export type RootLoadResult = {
-  data?: Session[]
-  limit: number
-  rawCount: number
-  limited: boolean
-}
-
 export const MAX_DIR_STORES = 30
 export const DIR_IDLE_TTL_MS = 20 * 60 * 1000

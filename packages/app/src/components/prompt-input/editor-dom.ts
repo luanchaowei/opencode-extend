@@ -27,12 +27,12 @@ export function createTextFragment(content: string): DocumentFragment {
   return fragment
 }
 
-export function getNodeLength(node: Node): number {
+function getNodeLength(node: Node): number {
   if (node.nodeType === Node.ELEMENT_NODE && (node as HTMLElement).tagName === "BR") return 1
   return (node.textContent ?? "").replace(/\u200B/g, "").length
 }
 
-export function getTextLength(node: Node): number {
+function getTextLength(node: Node): number {
   if (node.nodeType === Node.TEXT_NODE) return (node.textContent ?? "").replace(/\u200B/g, "").length
   if (node.nodeType === Node.ELEMENT_NODE && (node as HTMLElement).tagName === "BR") return 1
   let length = 0

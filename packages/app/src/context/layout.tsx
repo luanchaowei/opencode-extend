@@ -51,13 +51,13 @@ type TabHandoff = {
 
 export type LocalProject = Partial<Project> & { worktree: string; expanded: boolean }
 
-export function ensureSessionKey(key: string, touch: (key: string) => void, seed: (key: string) => void) {
+function ensureSessionKey(key: string, touch: (key: string) => void, seed: (key: string) => void) {
   touch(key)
   seed(key)
   return key
 }
 
-export function createSessionKeyReader(sessionKey: string | Accessor<string>, ensure: (key: string) => void) {
+function createSessionKeyReader(sessionKey: string | Accessor<string>, ensure: (key: string) => void) {
   const key = typeof sessionKey === "function" ? sessionKey : () => sessionKey
   return () => {
     const value = key()
@@ -66,7 +66,7 @@ export function createSessionKeyReader(sessionKey: string | Accessor<string>, en
   }
 }
 
-export function pruneSessionKeys(input: {
+function pruneSessionKeys(input: {
   keep?: string
   max: number
   used: Map<string, number>
@@ -677,7 +677,6 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
       },
       view(sessionKey: string | Accessor<string>) {
         const key = createSessionKeyReader(sessionKey, ensureKey)
-        const s = createMemo(() => store.sessionView[key()] ?? { scroll: {} })
 
         return {
           scroll(tab: string) {

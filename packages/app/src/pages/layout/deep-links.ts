@@ -10,7 +10,7 @@ const parseUrl = (input: string) => {
   }
 }
 
-export const parseDeepLink = (input: string) => {
+const parseDeepLink = (input: string) => {
   const url = parseUrl(input)
   if (!url) return
   if (url.hostname !== "open-project") return
@@ -19,7 +19,7 @@ export const parseDeepLink = (input: string) => {
   return directory
 }
 
-export const parseNewSessionDeepLink = (input: string) => {
+const parseNewSessionDeepLink = (input: string) => {
   const url = parseUrl(input)
   if (!url) return
   if (url.hostname !== "new-session") return

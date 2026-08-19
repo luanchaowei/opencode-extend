@@ -48,7 +48,7 @@ export namespace ServerConnection {
     http: HttpBase
   } & Base
 
-  export type Sidecar = {
+  type Sidecar = {
     type: "sidecar"
     http: HttpBase
   } & (
@@ -63,7 +63,7 @@ export namespace ServerConnection {
     Base
 
   // Remote server desktop can SSH into
-  export type Ssh = {
+  type Ssh = {
     type: "ssh"
     host: string
     // SSH client exposes an HTTP server for the app to use as a proxy

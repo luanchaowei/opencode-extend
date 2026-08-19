@@ -5,8 +5,7 @@ import { Icon } from "@opencode-ai/ui/icon"
 import { IconButton } from "@opencode-ai/ui/icon-button"
 import { Spinner } from "@opencode-ai/ui/spinner"
 import { showToast } from "@opencode-ai/ui/toast"
-import { Tooltip, TooltipKeybind } from "@opencode-ai/ui/tooltip"
-import { getFilename } from "@opencode-ai/core/util/path"
+import { TooltipKeybind } from "@opencode-ai/ui/tooltip"
 import { createEffect, createMemo, createSignal, For, onMount, Show } from "solid-js"
 import { createStore } from "solid-js/store"
 import { Portal } from "solid-js/web"
@@ -135,29 +134,9 @@ export function SessionHeader() {
   const settings = useSettings()
   const sync = useSync()
   const device = useDevice()
-  const { params, view } = useSessionLayout()
+  const { params } = useSessionLayout()
 
   const projectDirectory = createMemo(() => decode64(params.dir) ?? "")
-  const isOwnProject = createMemo(() => {
-    const directory = projectDirectory()
-    if (!directory) return true
-    const ip = device.clientIP()
-    if (ip === undefined || ip === null) return undefined // Loading
-    if (ip === 'localhost' || ip === 'unknown') return true
-    const dirName = getFilename(directory)
-    return dirName === ip
-  })
-
-  const project = createMemo(() => {
-    const directory = projectDirectory()
-    if (!directory) return
-    return layout.projects.list().find((p) => p.worktree === directory || p.sandboxes?.includes(directory))
-  })
-  const name = createMemo(() => {
-    const current = project()
-    if (current) return current.name || getFilename(current.worktree)
-    return getFilename(projectDirectory())
-  })
   const os = createMemo(() => detectOS(platform))
   const isDesktopBeta = platform.platform === "desktop" && import.meta.env.VITE_OPENCODE_CHANNEL === "beta"
   const tree = createMemo(() => !isDesktopBeta || settings.general.showFileTree())
@@ -247,7 +226,7 @@ export function SessionHeader() {
 }
 
   const [leftMount, setLeftMount] = createSignal<HTMLElement | null>(null)
-  const [centerMount, setCenterMount] = createSignal<HTMLElement | null>(null)
+  const [, setCenterMount] = createSignal<HTMLElement | null>(null)
   const [rightMount, setRightMount] = createSignal<HTMLElement | null>(null)
   onMount(() => {
     setLeftMount(document.getElementById("opencode-titlebar-left"))

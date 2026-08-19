@@ -96,12 +96,12 @@ export type CommandRegistration = {
   options: Accessor<CommandOption[]>
 }
 
-export function upsertCommandRegistration(registrations: CommandRegistration[], entry: CommandRegistration) {
+function upsertCommandRegistration(registrations: CommandRegistration[], entry: CommandRegistration) {
   if (entry.key === undefined) return [entry, ...registrations]
   return [entry, ...registrations.filter((x) => x.key !== entry.key)]
 }
 
-export function parseKeybind(config: string): Keybind[] {
+function parseKeybind(config: string): Keybind[] {
   if (!config || config === "none") return []
 
   return config.split(",").map((combo) => {
@@ -146,25 +146,7 @@ export function parseKeybind(config: string): Keybind[] {
   })
 }
 
-export function matchKeybind(keybinds: Keybind[], event: KeyboardEvent): boolean {
-  const eventKey = normalizeKey(event.key)
-
-  for (const kb of keybinds) {
-    const keyMatch = kb.key === eventKey
-    const ctrlMatch = kb.ctrl === (event.ctrlKey || false)
-    const metaMatch = kb.meta === (event.metaKey || false)
-    const shiftMatch = kb.shift === (event.shiftKey || false)
-    const altMatch = kb.alt === (event.altKey || false)
-
-    if (keyMatch && ctrlMatch && metaMatch && shiftMatch && altMatch) {
-      return true
-    }
-  }
-
-  return false
-}
-
-export function formatKeybind(config: string, t?: (key: KeyLabel) => string): string {
+function formatKeybind(config: string, t?: (key: KeyLabel) => string): string {
   if (!config || config === "none") return ""
 
   const keybinds = parseKeybind(config)

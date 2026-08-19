@@ -89,8 +89,7 @@ export type Platform = {
   readClipboardImage?(): Promise<File | null>
 }
 
-export type DisplayBackend = "auto" | "wayland"
-
+type DisplayBackend = "auto" | "wayland"
 export const { use: usePlatform, provider: PlatformProvider } = createSimpleContext({
   name: "Platform",
   init: (props: { value: Platform }) => {

@@ -301,13 +301,6 @@ function localStorageDirect(): SyncStorage {
   }
 }
 
-export const PersistTesting = {
-  localStorageDirect,
-  localStorageWithPrefix,
-  normalize,
-  workspaceStorage,
-}
-
 export const Persist = {
   global(key: string, legacy?: string[]): PersistTarget {
     return { storage: GLOBAL_STORAGE, key, legacy }

@@ -1,17 +1,12 @@
-import { For, Match, Show, Switch, createEffect, createMemo, onCleanup, onMount, on, type JSX, createSignal } from "solid-js"
-import { createStore } from "solid-js/store"
+import { Show, createEffect, createMemo, onCleanup, on, createSignal } from "solid-js"
 import { createMediaQuery } from "@solid-primitives/media"
 import { Tabs } from "@opencode-ai/ui/tabs"
-import { IconButton } from "@opencode-ai/ui/icon-button"
-import { TooltipKeybind } from "@opencode-ai/ui/tooltip"
 import { ResizeHandle } from "@opencode-ai/ui/resize-handle"
 import { showToast } from "@opencode-ai/ui/toast"
-import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { Icon } from "@opencode-ai/ui/icon"
 import { Spinner } from "@opencode-ai/ui/spinner"
 
 import FileTree from "@/components/file-tree"
-import { useCommand } from "@/context/command"
 import { useDevice } from "@/context/device"
 import { useFile, type SelectedLineRange } from "@/context/file"
 import { useLanguage } from "@/context/language"
@@ -23,9 +18,7 @@ import { usePrompt, type ContentPart } from "@/context/prompt"
 import { useParams } from "@solidjs/router"
 import { useSDK } from "@/context/sdk"
 import { decode64 } from "@/utils/base64"
-import { createFileTabListSync } from "@/pages/session/file-tab-scroll"
-import { FileTabContent } from "@/pages/session/file-tabs"
-import { createOpenSessionFileTab, createSessionTabs, type Sizing } from "@/pages/session/helpers"
+import { type Sizing } from "@/pages/session/helpers"
 import { setSessionHandoff } from "@/pages/session/handoff"
 import { useSessionLayout } from "@/pages/session/session-layout"
 
@@ -38,13 +31,11 @@ export function SessionSidePanel(props: {
   const sync = useSync()
   const file = useFile()
 const language = useLanguage()
-  const command = useCommand()
-  const dialog = useDialog()
   const params = useParams()
   const prompt = usePrompt()
   const sdk = useSDK()
   const device = useDevice()
-  const { sessionKey, tabs, view } = useSessionLayout()
+  const { sessionKey, tabs } = useSessionLayout()
 
 const isDesktop = createMediaQuery("(min-width: 768px)")
   const sessionID = createMemo(() => params.id)
@@ -60,7 +51,7 @@ const isDesktop = createMediaQuery("(min-width: 768px)")
   let uploadStartSessionID: string | null = null
 
   // Abort upload when session changes
-  createEffect(on(sessionID, (newID, prevID) => {
+  createEffect(on(sessionID, (_newID, prevID) => {
     if (prevID && uploading()) {
       uploadAbortController?.abort()
       setUploading(false)
@@ -140,39 +131,6 @@ const isDesktop = createMediaQuery("(min-width: 768px)")
     if (!state?.loaded) return false
     return file.tree.children("").length === 0
   })
-
-  const normalizeTab = (tab: string) => {
-    if (!tab.startsWith("file://")) return tab
-    return file.tab(tab)
-  }
-
-  const openTab = createOpenSessionFileTab({
-    normalizeTab,
-    openTab: tabs().open,
-    pathFromTab: file.pathFromTab,
-    loadFile: file.load,
-    setActive: tabs().setActive,
-  })
-
-  const tabState = createSessionTabs({
-    tabs,
-    pathFromTab: file.pathFromTab,
-    normalizeTab,
-  })
-  const openedTabs = tabState.openedTabs
-  const activeTab = tabState.activeTab
-  const activeFileTab = tabState.activeFileTab
-
-  const fileTreeTab = () => layout.fileTree.tab()
-
-  const setFileTreeTabValue = (value: string) => {
-    if (value !== "changes" && value !== "all") return
-    layout.fileTree.setTab(value)
-  }
-
-  const showAllFiles = () => {
-    layout.fileTree.setTab("all")
-  }
 
   createEffect(() => {
     if (!file.ready()) return

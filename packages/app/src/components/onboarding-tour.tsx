@@ -5,8 +5,6 @@ import { useLayout } from "@/context/layout"
 import { useParams } from "@solidjs/router"
 import { getFilename } from "@opencode-ai/core/util/path"
 
-const STORAGE_KEY = "onboarding-completed"
-
 type Step = {
   selector: string | null
   titleKey: string
@@ -251,7 +249,6 @@ export function OnboardingTour() {
   const currentStep = () => steps[stepIndex()]
   const isWelcome = () => stepIndex() === 0
   const isComplete = () => stepIndex() === steps.length - 1
-  const isCentered = () => !currentStep()?.selector
 
   return (
     <Show when={active()}>

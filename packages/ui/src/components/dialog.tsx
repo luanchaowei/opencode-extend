@@ -2,7 +2,6 @@ import { Dialog as Kobalte } from "@kobalte/core/dialog"
 import { ComponentProps, createEffect, createSignal, JSXElement, Match, onCleanup, ParentProps, Show, Switch } from "solid-js"
 import { useI18n } from "../context/i18n"
 import { IconButton } from "./icon-button"
-import { Icon } from "./icon"
 
 export interface DialogProps extends ParentProps {
   title?: JSXElement

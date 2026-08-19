@@ -6,22 +6,8 @@
     "./util/array": "./src/util/array.ts",
     "./util/binary": "./src/util/binary.ts",
     "./util/encode": "./src/util/encode.ts",
-    "./util/fn": "./src/util/fn.ts",
-    "./util/glob": "./src/util/glob.ts",
-    "./util/hash": "./src/util/hash.ts",
-    "./util/identifier": "./src/util/identifier.ts",
-    "./util/iife": "./src/util/iife.ts",
-    "./util/lazy": "./src/util/lazy.ts",
-    "./util/log": "./src/util/log.ts",
-    "./util/module": "./src/util/module.ts",
-    "./util/opencode-process": "./src/util/opencode-process.ts",
     "./util/path": "./src/util/path.ts",
-    "./util/retry": "./src/util/retry.ts",
-    "./util/slug": "./src/util/slug.ts"
+    "./util/retry": "./src/util/retry.ts"
   },
-  "dependencies": {
-    "glob": "catalog:",
-    "minimatch": "catalog:",
-    "zod": "catalog:"
-  }
+  "dependencies": {}
 }

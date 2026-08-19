@@ -46,7 +46,7 @@ function isProviderModelNotFoundErrorLike(error: unknown): error is ProviderMode
   return o.name === "ProviderModelNotFoundError" && typeof o.data === "object" && o.data !== null
 }
 
-export function parseReadableConfigInvalidError(errorInput: ConfigInvalidError, translator?: Translator) {
+function parseReadableConfigInvalidError(errorInput: ConfigInvalidError, translator?: Translator) {
   const file = errorInput.data.path && errorInput.data.path !== "config" ? errorInput.data.path : "config"
   const detail = errorInput.data.message?.trim() ?? ""
   const issues = (errorInput.data.issues ?? [])

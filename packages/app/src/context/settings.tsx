@@ -3,7 +3,7 @@ import { createEffect, createMemo } from "solid-js"
 import { createSimpleContext } from "@opencode-ai/ui/context"
 import { persisted } from "@/utils/persist"
 
-export interface NotificationSettings {
+interface NotificationSettings {
   agent: boolean
   permissions: boolean
   errors: boolean
@@ -35,19 +35,12 @@ export interface Settings {
   notifications: NotificationSettings
 }
 
-export const monoDefault = "System Mono"
-export const sansDefault = "System Sans"
-
 const monoFallback =
   'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace'
 const sansFallback = 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
 
 const monoBase = monoFallback
 const sansBase = sansFallback
-
-function input(font: string | undefined) {
-  return font ?? ""
-}
 
 function family(font: string) {
   if (/^[\w-]+$/.test(font)) return font
@@ -60,19 +53,11 @@ function stack(font: string | undefined, base: string) {
   return `${family(value)}, ${base}`
 }
 
-export function monoInput(font: string | undefined) {
-  return input(font)
-}
-
-export function sansInput(font: string | undefined) {
-  return input(font)
-}
-
-export function monoFontFamily(font: string | undefined) {
+function monoFontFamily(font: string | undefined) {
   return stack(font, monoBase)
 }
 
-export function sansFontFamily(font: string | undefined) {
+function sansFontFamily(font: string | undefined) {
   return stack(font, sansBase)
 }
 

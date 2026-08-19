@@ -32,7 +32,6 @@ import { useLanguage } from "@/context/language"
 import { useLayout } from "@/context/layout"
 import { usePrompt } from "@/context/prompt"
 import { useSDK } from "@/context/sdk"
-import { useSettings } from "@/context/settings"
 import { useSync } from "@/context/sync"
 import { useDevice } from "@/context/device"
 import { createSessionComposerState, SessionComposerRegion } from "@/pages/session/composer"
@@ -308,12 +307,11 @@ export default function Page() {
   const dialog = useDialog()
   const language = useLanguage()
   const sdk = useSDK()
-  const settings = useSettings()
   const prompt = usePrompt()
   const device = useDevice()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams<{ prompt?: string }>()
-  const { params, sessionKey, tabs, view } = useSessionLayout()
+  const { params, sessionKey, tabs } = useSessionLayout()
   
   // Auto-open first session or create "default" session when entering project without session id
   let defaultSessionCreating = false
@@ -525,7 +523,6 @@ export default function Page() {
     pathFromTab: file.pathFromTab,
     normalizeTab,
   })
-  const activeTab = tabState.activeTab
   const activeFileTab = tabState.activeFileTab
   const revertMessageID = createMemo(() => info()?.revert?.messageID)
   const messages = createMemo(() => (params.id ? (sync.data.message[params.id] ?? []) : []))

@@ -1,7 +1,6 @@
 import { createSignal, createMemo, For, Show, onCleanup } from "solid-js"
 import { useNavigate, useParams } from "@solidjs/router"
 import { TextField } from "@opencode-ai/ui/text-field"
-import { useLayout } from "@/context/layout"
 import { useGlobalSync } from "@/context/global-sync"
 import { useLanguage } from "@/context/language"
 import { decode64 } from "@/utils/base64"
@@ -11,7 +10,6 @@ import { sortedRootSessions } from "@/pages/layout/helpers"
 export function SessionSearchPopover() {
   const navigate = useNavigate()
   const params = useParams()
-  const layout = useLayout()
   const language = useLanguage()
   const globalSync = useGlobalSync()
   const [search, setSearch] = createSignal("")

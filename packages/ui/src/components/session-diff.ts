@@ -85,8 +85,3 @@ export function normalize(diff: ReviewDiff): ViewDiff {
     fileDiff: file(diff.file, next.patch, next.before, next.after),
   }
 }
-
-export function text(diff: ViewDiff, side: "deletions" | "additions") {
-  if (side === "deletions") return diff.fileDiff.deletionLines.join("")
-  return diff.fileDiff.additionLines.join("")
-}

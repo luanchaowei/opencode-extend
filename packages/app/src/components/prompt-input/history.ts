@@ -3,7 +3,7 @@ import type { SelectedLineRange } from "@/context/file"
 
 const DEFAULT_PROMPT: Prompt = [{ type: "text", content: "", start: 0, end: 0 }]
 
-export const MAX_HISTORY = 100
+const MAX_HISTORY = 100
 
 export type PromptHistoryComment = {
   id: string
@@ -31,7 +31,7 @@ export function canNavigateHistoryAtCursor(direction: "up" | "down", text: strin
   return position === text.length
 }
 
-export function clonePromptParts(prompt: Prompt): Prompt {
+function clonePromptParts(prompt: Prompt): Prompt {
   return prompt.map((part) => {
     if (part.type === "text") return { ...part }
     if (part.type === "image") return { ...part }
@@ -52,14 +52,14 @@ function cloneSelection(selection: SelectedLineRange): SelectedLineRange {
   }
 }
 
-export function clonePromptHistoryComments(comments: PromptHistoryComment[]) {
+function clonePromptHistoryComments(comments: PromptHistoryComment[]) {
   return comments.map((comment) => ({
     ...comment,
     selection: cloneSelection(comment.selection),
   }))
 }
 
-export function normalizePromptHistoryEntry(entry: PromptHistoryStoredEntry): PromptHistoryEntry {
+function normalizePromptHistoryEntry(entry: PromptHistoryStoredEntry): PromptHistoryEntry {
   if (Array.isArray(entry)) {
     return {
       prompt: clonePromptParts(entry),

@@ -20,10 +20,10 @@ let files: Record<string, () => Promise<{ default: DesktopTheme }>> | undefined
 let ids: string[] | undefined
 let known: Set<string> | undefined
 
-function getFiles() {
+function getFiles(): Record<string, () => Promise<{ default: DesktopTheme }>> {
   if (files) return files
   files = import.meta.glob<{ default: DesktopTheme }>("./themes/*.json")
-  return files
+  return files!
 }
 
 function themeIDs() {

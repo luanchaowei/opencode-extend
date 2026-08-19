@@ -1,10 +1,9 @@
-import { createEffect, createMemo, For, Show } from "solid-js"
-import { useLocation, useNavigate, useParams } from "@solidjs/router"
+import { createEffect, createMemo, Show } from "solid-js"
+import { useLocation, useParams } from "@solidjs/router"
 import { IconButton } from "@opencode-ai/ui/icon-button"
 import { Icon } from "@opencode-ai/ui/icon"
 import { Button } from "@opencode-ai/ui/button"
 import { Tooltip, TooltipKeybind } from "@opencode-ai/ui/tooltip"
-import { HoverCard } from "@opencode-ai/ui/hover-card"
 import { useTheme } from "@opencode-ai/ui/theme/context"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
 
@@ -12,7 +11,6 @@ import { useLayout } from "@/context/layout"
 import { usePlatform } from "@/context/platform"
 import { useCommand } from "@/context/command"
 import { useLanguage } from "@/context/language"
-import { useSettings } from "@/context/settings"
 import { useDevice } from "@/context/device"
 
 import { decode64 } from "@/utils/base64"
@@ -46,9 +44,7 @@ export function Titlebar() {
   const platform = usePlatform()
   const command = useCommand()
   const language = useLanguage()
-  const settings = useSettings()
   const theme = useTheme()
-  const navigate = useNavigate()
   const location = useLocation()
   const params = useParams()
   const dialog = useDialog()
@@ -66,8 +62,6 @@ export function Titlebar() {
     const parts = location.pathname.replace(/\/+$/, "").split("/")
     return parts.at(-1) === "session"
   })
-
-  const hasProjects = createMemo(() => layout.projects.list().length > 0)
 
   const getWin = () => {
     if (platform.platform !== "desktop") return

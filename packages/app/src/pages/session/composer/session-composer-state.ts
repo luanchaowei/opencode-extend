@@ -10,7 +10,7 @@ import { useSDK } from "@/context/sdk"
 import { useSync } from "@/context/sync"
 import { sessionPermissionRequest, sessionQuestionRequest } from "./session-request-tree"
 
-export const todoState = (input: {
+const todoState = (input: {
   count: number
   done: boolean
   live: boolean

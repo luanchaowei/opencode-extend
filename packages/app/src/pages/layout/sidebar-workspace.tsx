@@ -1,4 +1,4 @@
-import { useNavigate, useParams } from "@solidjs/router"
+import { useParams } from "@solidjs/router"
 import { createEffect, createMemo, For, Show, type Accessor, type JSX } from "solid-js"
 import { createStore } from "solid-js/store"
 import { createSortable } from "@thisbeyond/solid-dnd"
@@ -12,7 +12,6 @@ import { Icon } from "@opencode-ai/ui/icon"
 import { IconButton } from "@opencode-ai/ui/icon-button"
 import { Spinner } from "@opencode-ai/ui/spinner"
 import { Tooltip } from "@opencode-ai/ui/tooltip"
-import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { type Session } from "@opencode-ai/sdk/v2/client"
 import { type LocalProject } from "@/context/layout"
 import { useDevice } from "@/context/device"
@@ -21,7 +20,6 @@ import { useLanguage } from "@/context/language"
 import { NewSessionItem, SessionItem, SessionSkeleton } from "./sidebar-items"
 import { sortedRootSessions, workspaceKey } from "./helpers"
 import { useQuery } from "@tanstack/solid-query"
-import { DialogNewSession } from "@/components/dialog-new-session"
 
 type InlineEditorComponent = (props: {
   id: string
@@ -306,7 +304,6 @@ export const SortableWorkspace = (props: {
   sortNow: Accessor<number>
   mobile?: boolean
 }): JSX.Element => {
-  const navigate = useNavigate()
   const params = useParams()
   const globalSync = useGlobalSync()
   const language = useLanguage()

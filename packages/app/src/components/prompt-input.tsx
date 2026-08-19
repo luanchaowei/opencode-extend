@@ -1,4 +1,3 @@
-import { useFilteredList } from "@opencode-ai/ui/hooks"
 import { createEffect, on, Component, Show, onCleanup, createMemo, createSignal, createResource } from "solid-js"
 import { createStore } from "solid-js/store"
 import { useLocal } from "@/context/local"
@@ -26,7 +25,6 @@ import { Select } from "@opencode-ai/ui/select"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { ModelSelectorPopover } from "@/components/dialog-select-model"
 import { useProviders } from "@/hooks/use-providers"
-import { showToast } from "@opencode-ai/ui/toast"
 import { useCommand } from "@/context/command"
 import { useDevice } from "@/context/device"
 import { Persist, persisted } from "@/utils/persist"
@@ -35,7 +33,6 @@ import { useLanguage } from "@/context/language"
 import { usePlatform } from "@/context/platform"
 import { decode64 } from "@/utils/base64"
 import { useSessionLayout } from "@/pages/session/session-layout"
-import { createSessionTabs } from "@/pages/session/helpers"
 import { createTextFragment, getCursorPosition, setCursorPosition, setRangeEdge } from "./prompt-input/editor-dom"
 import {
   canNavigateHistoryAtCursor,
@@ -110,7 +107,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
   const permission = usePermission()
   const language = useLanguage()
   const platform = usePlatform()
-  const { params, tabs, view } = useSessionLayout()
+  const { params, tabs } = useSessionLayout()
   let editorRef!: HTMLDivElement
   let scrollRef!: HTMLDivElement
 
@@ -164,11 +161,6 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
     })
   }
 
-  const activeFileTab = createSessionTabs({
-    tabs,
-    pathFromTab: files.pathFromTab,
-    normalizeTab: (tab) => (tab.startsWith("file://") ? files.tab(tab) : tab),
-  }).activeFileTab
 
   const commentInReview = (path: string) => {
     const sessionID = params.id
@@ -217,23 +209,6 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
     void Promise.resolve(files.load(item.path)).finally(() => queueCommentFocus())
   }
 
-  const recent = createMemo(() => {
-    const all = tabs().all()
-    const active = activeFileTab()
-    const order = active ? [active, ...all.filter((x) => x !== active)] : all
-    const seen = new Set<string>()
-    const paths: string[] = []
-
-    for (const tab of order) {
-      const path = files.pathFromTab(tab)
-      if (!path) continue
-      if (seen.has(path)) continue
-      seen.add(path)
-      paths.push(path)
-    }
-
-    return paths
-  })
   const info = createMemo(() => (params.id ? sync.session.get(params.id) : undefined))
   const status = createMemo(
     () =>
@@ -419,23 +394,6 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
 
   const clearEditor = () => {
     editorRef.innerHTML = ""
-  }
-
-  const setEditorText = (text: string) => {
-    clearEditor()
-    editorRef.textContent = text
-  }
-
-  const focusEditorEnd = () => {
-    requestAnimationFrame(() => {
-      editorRef.focus()
-      const range = document.createRange()
-      const selection = window.getSelection()
-      range.selectNodeContents(editorRef)
-      range.collapse(false)
-      selection?.removeAllRanges()
-      selection?.addRange(range)
-    })
   }
 
   const currentCursor = () => {

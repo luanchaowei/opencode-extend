@@ -12,7 +12,7 @@ interface PartBase {
   end: number
 }
 
-export interface TextPart extends PartBase {
+interface TextPart extends PartBase {
   type: "text"
 }
 

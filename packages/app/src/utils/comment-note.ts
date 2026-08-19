@@ -1,6 +1,6 @@
 import type { FileSelection } from "@/context/file"
 
-export type PromptComment = {
+type PromptComment = {
   path: string
   selection?: FileSelection
   comment: string
@@ -23,18 +23,6 @@ function selection(selection: unknown) {
   } satisfies FileSelection
 }
 
-export function createCommentMetadata(input: PromptComment) {
-  return {
-    opencodeComment: {
-      path: input.path,
-      selection: input.selection,
-      comment: input.comment,
-      preview: input.preview,
-      origin: input.origin,
-    },
-  }
-}
-
 export function readCommentMetadata(value: unknown) {
   if (!value || typeof value !== "object") return
   const meta = (value as { opencodeComment?: unknown }).opencodeComment
@@ -51,18 +39,6 @@ export function readCommentMetadata(value: unknown) {
     preview: typeof preview === "string" ? preview : undefined,
     origin: origin === "review" || origin === "file" ? origin : undefined,
   } satisfies PromptComment
-}
-
-export function formatCommentNote(input: { path: string; selection?: FileSelection; comment: string }) {
-  const start = input.selection ? Math.min(input.selection.startLine, input.selection.endLine) : undefined
-  const end = input.selection ? Math.max(input.selection.startLine, input.selection.endLine) : undefined
-  const range =
-    start === undefined || end === undefined
-      ? "this file"
-      : start === end
-        ? `line ${start}`
-        : `lines ${start} through ${end}`
-  return `The user made the following comment regarding ${range} of ${input.path}: ${input.comment}`
 }
 
 export function parseCommentNote(text: string) {

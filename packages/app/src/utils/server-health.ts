@@ -65,7 +65,7 @@ function retryable(error: unknown, signal?: AbortSignal) {
   return /network|fetch|econnreset|econnrefused|enotfound|timedout/i.test(error.message)
 }
 
-export async function checkServerHealth(
+async function checkServerHealth(
   server: ServerConnection.HttpBase,
   fetch: typeof globalThis.fetch,
   opts?: CheckServerHealthOptions,

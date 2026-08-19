@@ -13,7 +13,6 @@ import { usePermission } from "@/context/permission"
 import { type ContextItem, type Prompt, usePrompt } from "@/context/prompt"
 import { useSDK } from "@/context/sdk"
 import { useSync } from "@/context/sync"
-import { useDevice } from "@/context/device"
 import { Identifier } from "@/utils/id"
 import { Worktree as WorktreeState } from "@/utils/worktree"
 import { buildRequestParts } from "./build-request-parts"
@@ -48,7 +47,7 @@ type FollowupSendInput = {
 
 const draftText = (prompt: Prompt) => prompt.map((part) => ("content" in part ? part.content : "")).join("")
 
-export async function sendFollowupDraft(input: FollowupSendInput) {
+async function sendFollowupDraft(input: FollowupSendInput) {
   const text = draftText(input.draft.prompt)
   const [, setStore] = input.globalSync.child(input.draft.sessionDirectory)
 
@@ -172,7 +171,6 @@ export function createPromptSubmit(input: PromptSubmitInput) {
   const prompt = usePrompt()
   const layout = useLayout()
   const language = useLanguage()
-  const device = useDevice()
   const params = useParams()
 
   const errorMessage = (err: unknown) => {

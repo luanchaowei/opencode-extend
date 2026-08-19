@@ -132,7 +132,7 @@ export function Tooltip(props: TooltipProps) {
             as={"div"}
             data-component="tooltip-trigger"
             class={local.class}
-            onPointerDownCapture={(e: PointerEvent) => {
+            onPointerDownCapture={(_e: PointerEvent) => {
               if (local.interactive && state.open) return
               arm()
             }}

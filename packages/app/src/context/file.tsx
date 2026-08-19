@@ -12,12 +12,8 @@ import { createPathHelpers } from "./file/path"
 import {
   approxBytes,
   evictContentLru,
-  getFileContentBytesTotal,
-  getFileContentEntryCount,
   hasFileContent,
-  removeFileContentBytes,
   resetFileContentLru,
-  setFileContentBytes,
   touchFileContent,
 } from "./file/content-cache"
 import { createFileViewCache } from "./file/view-cache"
@@ -27,21 +23,11 @@ import {
   selectionFromLines,
   type FileState,
   type FileSelection,
-  type FileViewState,
   type SelectedLineRange,
 } from "./file/types"
 
-export type { FileSelection, SelectedLineRange, FileViewState, FileState }
+export type { FileSelection, SelectedLineRange, FileState }
 export { selectionFromLines }
-export {
-  evictContentLru,
-  getFileContentBytesTotal,
-  getFileContentEntryCount,
-  removeFileContentBytes,
-  resetFileContentLru,
-  setFileContentBytes,
-  touchFileContent,
-}
 
 function errorMessage(error: unknown, fallback: string) {
   if (error instanceof Error && error.message) return error.message
