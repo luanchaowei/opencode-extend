@@ -65,6 +65,7 @@ import { FeedbackWidget } from "@/components/feedback-widget"
 import { OnboardingTour } from "@/components/onboarding-tour"
 import { useServer } from "@/context/server"
 import { useLanguage, type Locale } from "@/context/language"
+import { createSignal } from "solid-js"
 import {
   displayName,
   effectiveWorkspaceOrder,
@@ -88,6 +89,29 @@ import {
 } from "./layout/sidebar-workspace"
 import { ProjectDragOverlay, SortableProject, type ProjectSidebarContext } from "./layout/sidebar-project"
 import { SidebarContent } from "./layout/sidebar-shell"
+
+function renderMarkdown(text: string): string {
+  let html = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+  html = html.replace(/```([\s\S]*?)```/g, '<pre style="background:rgba(0,0,0,0.1);padding:4px 8px;border-radius:4px;margin:4px 0;overflow-x:auto;display:inline-block"><code>$1</code></pre>')
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" style="color:#2563eb;font-weight:600;text-decoration:underline">$1</a>')
+  const lines = html.split("\n")
+  const result: string[] = []
+  let inList = false
+  for (const line of lines) {
+    if (/^&lt;li&gt;/.test(line) || /^[\-\*]\s+/.test(line)) {
+      if (!inList) { result.push('<ul style="margin:2px 0;padding-left:20px;display:inline-block;text-align:left">'); inList = true }
+      result.push('<li>' + line.replace(/^[\-\*]\s+/, "").replace(/^&lt;li&gt;/, "") + '</li>')
+    } else {
+      if (inList) { result.push('</ul>'); inList = false }
+      result.push(line)
+    }
+  }
+  if (inList) result.push('</ul>')
+  html = result.join('\n')
+  html = html.replace(/\n/g, '<br/>')
+  return html
+}
 
 export default function Layout(props: ParentProps) {
   const [store, setStore, , ready] = persisted(
@@ -128,6 +152,16 @@ export default function Layout(props: ParentProps) {
   const theme = useTheme()
   const language = useLanguage()
   const device = useDevice()
+  const [showBackendRecovered, setShowBackendRecovered] = createSignal(false)
+  let prevBackendHealthy: boolean | undefined = undefined
+  createEffect(() => {
+    const h = server.healthy()
+    if (prevBackendHealthy === false && h === true) {
+      setShowBackendRecovered(true)
+      setTimeout(() => setShowBackendRecovered(false), 3000)
+    }
+    prevBackendHealthy = h
+  })
   const [deviceInfoData] = createResource(async () => {
     try {
       const resp = await fetch("/device/info")
@@ -2095,7 +2129,19 @@ return (
       <Show when={deviceInfoData()?.announcementText}>
         <div data-component="announcement" class="flex items-center justify-center py-1.5 px-4 gap-2" style="background-color: #fbbf24; color: #78350f;">
           <Icon name="warning" class="size-4" />
-          <span class="text-12-medium font-bold">{deviceInfoData()?.announcementText}</span>
+          <span class="text-12-medium font-bold" innerHTML={renderMarkdown(deviceInfoData()?.announcementText || "")} />
+        </div>
+      </Show>
+      <Show when={server.healthy() === false}>
+        <div class="flex items-center justify-center py-1.5 px-4 gap-2" style="background-color: #ef4444; color: #fff;">
+          <Icon name="circle-alert" class="size-4" />
+          <span class="text-12-medium font-bold">后端服务异常，正在尝试重连...</span>
+        </div>
+      </Show>
+      <Show when={showBackendRecovered()}>
+        <div class="flex items-center justify-center py-1.5 px-4 gap-2" style="background-color: #22c55e; color: #fff;">
+          <Icon name="check-circle" class="size-4" />
+          <span class="text-12-medium font-bold">后端服务已恢复</span>
         </div>
       </Show>
       <Titlebar />

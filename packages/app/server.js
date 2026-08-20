@@ -2,6 +2,7 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync, unlinkSync, statSyn
 import { dirname, join, extname } from "node:path"
 import { execSync } from "node:child_process"
 import { fileURLToPath } from "url"
+import { homedir } from "node:os"
 import { createStatsDb } from "./stats-db.js"
 import { Database } from "bun:sqlite"
 import { randomUUID } from "node:crypto"
@@ -91,6 +92,7 @@ if (existsSync(envPath)) {
             (value.startsWith("'") && value.endsWith("'"))) {
           value = value.slice(1, -1)
         }
+        value = value.replace(/\\n/g, "\n")
         envVars[key] = value
         process.env[key] = process.env[key] ?? value
       }
@@ -577,7 +579,7 @@ async function handleAPI(req, server) {
       feedbackUrl: process.env.VITE_FEEDBACK_URL || "",
       caseLibraryDir: process.env.VITE_CASE_LIBRARY_DIR || "",
       helpDocUrl: process.env.VITE_HELP_DOC_URL || "",
-      announcementText: process.env.VITE_ANNOUNCEMENT_TEXT || "",
+      announcementText: (process.env.VITE_ANNOUNCEMENT_TEXT || "").replace(/\\n/g, "\n"),
       fileTreePollInterval: parseInt(process.env.VITE_FILE_TREE_POLL_INTERVAL || "5000", 10),
       heartbeatInterval: parseInt(process.env.VITE_HEARTBEAT_INTERVAL || "60000", 10),
       diskUsageThreshold: parseInt(process.env.VITE_DISK_USAGE_THRESHOLD || "90", 10),
@@ -1132,6 +1134,28 @@ async function handleAPI(req, server) {
     }
   }
 
+  if (url.pathname === "/api/logs" && method === "GET") {
+    if (!requireAdmin(req)) return jsonResponse({ error: "Forbidden" }, 403)
+    const type = url.searchParams.get("type") || "frontend"
+    const lines = parseInt(url.searchParams.get("lines") || "300")
+    let logFile
+    if (type === "backend") {
+      const rawPath = envVars.VITE_OPENCODE_SERVER_LOG || "~/.local/share/opencode/log/opencode.log"
+      logFile = rawPath.startsWith("~") ? rawPath.replace("~", homedir()) : rawPath
+    } else {
+      logFile = envVars.LOG_PATH || "/tmp/opencode-extend.log"
+    }
+    try {
+      if (!existsSync(logFile)) return jsonResponse({ lines: [], error: "日志文件不存在: " + logFile })
+      const content = readFileSync(logFile, "utf-8")
+      const allLines = content.split("\n").filter(l => l.trim())
+      const tail = allLines.slice(-lines)
+      return jsonResponse({ lines: tail, total: allLines.length })
+    } catch (err) {
+      return jsonResponse({ lines: [], error: err.message })
+    }
+  }
+
   if (url.pathname.startsWith("/api/system/monitor") && method === "GET") {
     if (!requireAdmin(req)) return jsonResponse({ error: "Forbidden" }, 403)
 
@@ -1147,7 +1171,7 @@ async function handleAPI(req, server) {
   if (url.pathname.startsWith("/api/config/runtime") && method === "GET") {
     if (!requireAdmin(req)) return jsonResponse({ error: "Forbidden" }, 403)
     return jsonResponse({
-      announcementText: process.env.VITE_ANNOUNCEMENT_TEXT || "",
+      announcementText: (process.env.VITE_ANNOUNCEMENT_TEXT || "").replace(/\\n/g, "\n"),
       contactAdmin: process.env.VITE_CONTACT_ADMIN || "",
       feedbackUrl: process.env.VITE_FEEDBACK_URL || "",
       helpDocUrl: process.env.VITE_HELP_DOC_URL || "",
@@ -1193,7 +1217,7 @@ async function handleAPI(req, server) {
       const updatedLines = [...envLines]
       for (const [key, envKey] of Object.entries(envMap)) {
         if (body[key] === undefined) continue
-        const value = String(body[key] ?? "")
+        const value = String(body[key] ?? "").replace(/\n/g, "\\n")
         const line = `${envKey}="${value}"`
         const idx = updatedLines.findIndex(l => l.startsWith(`${envKey}=`))
         if (idx >= 0) updatedLines[idx] = line

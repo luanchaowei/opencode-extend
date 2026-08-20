@@ -79,9 +79,9 @@
       <div class="sidebar-brand">管理面板</div>
       <div id="nav-stats" class="sidebar-item active" onclick="switchTab('stats')">使用统计</div>
       <div id="nav-monitor" class="sidebar-item" onclick="switchTab('monitor')">系统监控</div>
-      <div id="nav-settings" class="sidebar-item" onclick="switchTab('settings')">系统设置</div>
       <div id="nav-models" class="sidebar-item" onclick="switchTab('models')">模型管理</div>
       <div id="nav-users" class="sidebar-item" onclick="switchTab('users')" style="display:none">用户管理</div>
+      <div id="nav-settings" class="sidebar-item" onclick="switchTab('settings')">系统设置</div>
     </nav>
     <div class="content">
       <div style="display:flex;align-items:center;justify-content:flex-end;padding:8px 24px 8px 0;gap:12px">
@@ -222,11 +222,17 @@
         <div id="monitor-content">
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px">
             <div class="card">
-              <h2 style="font-size:14px;font-weight:600;color:#fff;margin-bottom:12px">后端进程</h2>
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+                <h2 style="font-size:14px;font-weight:600;color:#fff">后端进程</h2>
+                <button class="range-btn" onclick="viewLog('backend')">查看日志</button>
+              </div>
               <div id="monitor-backend"></div>
             </div>
             <div class="card">
-              <h2 style="font-size:14px;font-weight:600;color:#fff;margin-bottom:12px">前端进程</h2>
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+                <h2 style="font-size:14px;font-weight:600;color:#fff">前端进程</h2>
+                <button class="range-btn" onclick="viewLog('frontend')">查看日志</button>
+              </div>
               <div id="monitor-frontend"></div>
             </div>
           </div>
@@ -268,8 +274,12 @@
             <div class="settings-grid">
               <div class="field">
                 <label>公告</label>
-                <input id="announcementText" type="text" placeholder="为空则不显示公告">
-                <div class="hint">修改后刷新页面生效，为空则不显示公告条</div>
+                <div style="display:flex;gap:8px">
+                  <input id="announcementText" type="text" placeholder="为空则不显示公告" style="flex:1" readonly>
+                  <input id="announcementTextRaw" type="hidden">
+                  <button class="range-btn" onclick="openAnnouncementEditor()">编辑</button>
+                </div>
+                <div class="hint">支持 Markdown：**粗体** [链接](url) - 列表，修改后刷新页面生效</div>
               </div>
               <div class="field">
                 <label>支撑人员</label>
@@ -407,6 +417,31 @@
     </div>
   </div>
 
+  <div id="announcement-dialog-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:300;align-items:center;justify-content:center">
+    <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:12px;padding:24px;width:90%;max-width:500px;box-shadow:0 8px 32px rgba(0,0,0,0.4)">
+      <h2 style="font-size:16px;font-weight:600;color:#fff;margin-bottom:16px">编辑公告</h2>
+      <div class="hint" style="margin-bottom:8px">支持 Markdown：**粗体** [链接](url) - 列表项</div>
+      <textarea id="announcement-editor" rows="6" placeholder="输入公告内容..." style="width:100%;background:#0a0a0a;border:1px solid #2a2a2a;border-radius:6px;padding:8px 12px;font-size:13px;color:#e5e5e5;box-sizing:border-box;resize:vertical;font-family:monospace"></textarea>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
+        <button class="range-btn" onclick="closeAnnouncementEditor()">取消</button>
+        <button class="range-btn active" onclick="saveAnnouncementEditor()">确定</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="log-dialog-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:300;align-items:center;justify-content:center">
+    <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:12px;padding:24px;width:90%;max-width:900px;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 8px 32px rgba(0,0,0,0.4)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <h2 id="log-dialog-title" style="font-size:16px;font-weight:600;color:#fff">进程日志</h2>
+        <div style="display:flex;gap:8px">
+          <button class="range-btn" onclick="refreshLog()">刷新</button>
+          <button class="range-btn" onclick="closeLogDialog()">关闭</button>
+        </div>
+      </div>
+      <pre id="log-content" style="flex:1;overflow:auto;background:#0a0a0a;border:1px solid #2a2a2a;border-radius:6px;padding:12px;font-size:11px;color:#ccc;font-family:monospace;white-space:pre-wrap;word-break:break-all;min-height:300px"></pre>
+    </div>
+  </div>
+
   <script>
     let authed = false
     let currentUser = null
@@ -488,7 +523,9 @@
         if (resp.ok) {
           authed = true
           const data = await resp.json()
-          document.getElementById('announcementText').value = data.announcementText || ''
+          const rawAnnouncement = data.announcementText || ''
+          document.getElementById('announcementTextRaw').value = rawAnnouncement
+          document.getElementById('announcementText').value = rawAnnouncement.replace(/\n/g, ' ').slice(0, 80)
           document.getElementById('contactAdmin').value = data.contactAdmin || ''
           document.getElementById('feedbackUrl').value = data.feedbackUrl || ''
           document.getElementById('helpDocUrl').value = data.helpDocUrl || ''
@@ -527,7 +564,7 @@
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            announcementText: document.getElementById('announcementText').value,
+            announcementText: document.getElementById('announcementTextRaw').value,
             contactAdmin: document.getElementById('contactAdmin').value,
             feedbackUrl: document.getElementById('feedbackUrl').value,
             helpDocUrl: document.getElementById('helpDocUrl').value,
@@ -553,6 +590,52 @@
       }
       btn.disabled = false
       btn.textContent = '保存配置'
+    }
+
+    function openAnnouncementEditor() {
+      document.getElementById('announcement-editor').value = document.getElementById('announcementTextRaw').value
+      document.getElementById('announcement-dialog-overlay').style.display = 'flex'
+    }
+
+    function closeAnnouncementEditor() {
+      document.getElementById('announcement-dialog-overlay').style.display = 'none'
+    }
+
+    function saveAnnouncementEditor() {
+      const text = document.getElementById('announcement-editor').value
+      document.getElementById('announcementTextRaw').value = text
+      document.getElementById('announcementText').value = text.replace(/\n/g, ' ').slice(0, 80)
+      closeAnnouncementEditor()
+    }
+
+    let currentLogType = 'frontend'
+
+    function viewLog(type) {
+      currentLogType = type
+      document.getElementById('log-dialog-title').textContent = (type === 'backend' ? '后端' : '前端') + '进程日志'
+      document.getElementById('log-dialog-overlay').style.display = 'flex'
+      refreshLog()
+    }
+
+    function closeLogDialog() {
+      document.getElementById('log-dialog-overlay').style.display = 'none'
+    }
+
+    async function refreshLog() {
+      const el = document.getElementById('log-content')
+      el.textContent = '加载中...'
+      try {
+        const resp = await fetch('/api/logs?type=' + currentLogType + '&lines=300')
+        const data = await resp.json()
+        if (data.lines && data.lines.length > 0) {
+          el.textContent = data.lines.join('\n')
+          el.scrollTop = el.scrollHeight
+        } else {
+          el.textContent = data.error || '暂无日志'
+        }
+      } catch (err) {
+        el.textContent = '加载失败: ' + err.message
+      }
     }
 
     function statusSortOrder(status) {

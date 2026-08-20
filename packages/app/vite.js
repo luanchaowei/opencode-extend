@@ -1,6 +1,7 @@
 import { readFileSync, writeFileSync, createWriteStream, mkdirSync, existsSync, unlinkSync, statSync, readdirSync, rmdirSync, realpathSync, renameSync, copyFileSync } from "node:fs"
 import { dirname, join, extname } from "node:path"
 import { execSync } from "node:child_process"
+import { homedir } from "node:os"
 import solidPlugin from "vite-plugin-solid"
 import tailwindcss from "@tailwindcss/vite"
 import { fileURLToPath } from "url"
@@ -482,7 +483,7 @@ export default [
             const caseLibraryDir = process.env.VITE_CASE_LIBRARY_DIR || ""
             res.setHeader("Content-Type", "application/json")
             const helpDocUrl = process.env.VITE_HELP_DOC_URL || ""
-            const announcementText = process.env.VITE_ANNOUNCEMENT_TEXT || ""
+            const announcementText = (process.env.VITE_ANNOUNCEMENT_TEXT || "").replace(/\\n/g, "\n")
             const fileTreePollInterval = process.env.VITE_FILE_TREE_POLL_INTERVAL || "5000"
             const heartbeatInterval = process.env.VITE_HEARTBEAT_INTERVAL || "60000"
             const diskUsageThreshold = process.env.VITE_DISK_USAGE_THRESHOLD || "90"
@@ -1288,6 +1289,30 @@ export default [
           return
         }
 
+        if (req.url?.startsWith("/api/logs") && req.method === "GET") {
+          try {
+            if (!requireAdmin(req)) { sendJson(res, { error: "Forbidden" }, 403); return }
+            const url = new URL(req.url || "/", "http://localhost")
+            const type = url.searchParams.get("type") || "frontend"
+            const lines = parseInt(url.searchParams.get("lines") || "300")
+            let logFile
+            if (type === "backend") {
+              const rawPath = process.env.VITE_OPENCODE_SERVER_LOG || "~/.local/share/opencode/log/opencode.log"
+              logFile = rawPath.startsWith("~") ? rawPath.replace("~", homedir()) : rawPath
+            } else {
+              logFile = process.env.LOG_PATH || "/tmp/opencode-extend.log"
+            }
+            if (!existsSync(logFile)) { sendJson(res, { lines: [], error: "日志文件不存在: " + logFile }); return }
+            const content = readFileSync(logFile, "utf-8")
+            const allLines = content.split("\n").filter(l => l.trim())
+            const tail = allLines.slice(-lines)
+            sendJson(res, { lines: tail, total: allLines.length })
+          } catch (err) {
+            sendJson(res, { lines: [], error: err.message })
+          }
+          return
+        }
+
         if (req.url?.startsWith("/api/system/monitor") && req.method === "GET") {
           try {
             if (!requireAdmin(req)) { sendJson(res, { error: "Forbidden" }, 403); return }
@@ -1446,7 +1471,7 @@ export default [
             if (!requireAdmin(req)) { sendJson(res, { error: "Forbidden" }, 403); return }
             res.setHeader("Content-Type", "application/json")
             res.end(JSON.stringify({
-              announcementText: process.env.VITE_ANNOUNCEMENT_TEXT || "",
+              announcementText: (process.env.VITE_ANNOUNCEMENT_TEXT || "").replace(/\\n/g, "\n"),
               contactAdmin: process.env.VITE_CONTACT_ADMIN || "",
               feedbackUrl: process.env.VITE_FEEDBACK_URL || "",
               helpDocUrl: process.env.VITE_HELP_DOC_URL || "",
@@ -1501,7 +1526,7 @@ export default [
             const updatedLines = [...envLines]
             for (const [key, envKey] of Object.entries(envMap)) {
               if (body[key] === undefined) continue
-              const value = String(body[key] ?? "")
+              const value = String(body[key] ?? "").replace(/\n/g, "\\n")
               const line = `${envKey}="${value}"`
               const idx = updatedLines.findIndex(l => l.startsWith(`${envKey}=`))
               if (idx >= 0) {
