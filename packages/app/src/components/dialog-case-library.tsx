@@ -9,7 +9,8 @@ import { ResizeHandle } from "@opencode-ai/ui/resize-handle"
 import { Markdown } from "@opencode-ai/ui/markdown"
 import { Collapsible } from "@opencode-ai/ui/collapsible"
 import { MarkdownTOC } from "./markdown-toc"
-import mermaid from "mermaid"
+
+type Mermaid = typeof import("mermaid").default
 
 const DEFAULT_SIDEBAR_WIDTH = 300
 const MERMAID_PREFIX = "MERMAID_BLOCK_"
@@ -29,11 +30,16 @@ export function CaseLibraryDialog() {
   let observer: MutationObserver | undefined
   let debounceTimer: ReturnType<typeof setTimeout> | undefined
 
+  let mermaidLib: Mermaid | undefined
+
   onMount(() => {
-    mermaid.initialize({
-      startOnLoad: false,
-      theme: "default",
-      securityLevel: "loose",
+    void import("mermaid").then((m) => {
+      mermaidLib = m.default
+      mermaidLib.initialize({
+        startOnLoad: false,
+        theme: "default",
+        securityLevel: "loose",
+      })
     })
   })
 
@@ -94,7 +100,8 @@ export function CaseLibraryDialog() {
 
       try {
         const id = `mermaid-${Date.now()}-${idx}`
-        const { svg } = await mermaid.render(id, codeContent)
+        if (!mermaidLib) throw new Error("mermaid not loaded")
+        const { svg } = await mermaidLib.render(id, codeContent)
         mermaidSvgStore.set(placeholder, svg)
         result = result.replace(fullBlock, placeholder)
       } catch {

@@ -13,6 +13,7 @@ import { UserMessage } from "@opencode-ai/sdk/v2"
 import { useSessionLayout } from "@/pages/session/session-layout"
 import { decode64 } from "@/utils/base64"
 import { DialogNewSession } from "@/components/dialog-new-session"
+import { DialogSelectModel } from "@/components/dialog-select-model"
 
 export type SessionCommandContext = {
   navigateMessageByOffset: (offset: number) => void
@@ -143,9 +144,7 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
   }
 
   const chooseModel = () => {
-    void import("@/components/dialog-select-model").then((x) => {
-      dialog.show(() => <x.DialogSelectModel model={local.model} />)
-    })
+    dialog.show(() => <DialogSelectModel model={local.model} />)
   }
 
   const sessionCmds = () => [

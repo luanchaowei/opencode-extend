@@ -22,7 +22,7 @@ let known: Set<string> | undefined
 
 function getFiles(): Record<string, () => Promise<{ default: DesktopTheme }>> {
   if (files) return files
-  files = import.meta.glob<{ default: DesktopTheme }>("./themes/*.json")
+  files = import.meta.glob<{ default: DesktopTheme }>("./themes/!(oc-2).json")
   return files!
 }
 
