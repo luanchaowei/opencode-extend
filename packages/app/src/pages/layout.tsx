@@ -2135,13 +2135,13 @@ return (
       <Show when={server.healthy() === false}>
         <div class="flex items-center justify-center py-1.5 px-4 gap-2" style="background-color: #ef4444; color: #fff;">
           <Icon name="warning" class="size-4" />
-          <span class="text-12-medium font-bold">后端服务异常，正在尝试重连...</span>
+          <span class="text-12-medium font-bold">{language.t("backend.health.error")}</span>
         </div>
       </Show>
       <Show when={showBackendRecovered()}>
         <div class="flex items-center justify-center py-1.5 px-4 gap-2" style="background-color: #22c55e; color: #fff;">
           <Icon name="check" class="size-4" />
-          <span class="text-12-medium font-bold">后端服务已恢复</span>
+          <span class="text-12-medium font-bold">{language.t("backend.health.recovered")}</span>
         </div>
       </Show>
       <Titlebar />

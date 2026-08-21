@@ -95,7 +95,7 @@ export const DialogNewSession: Component<DialogNewSessionProps> = (props) => {
             const pad = (n: number) => String(n).padStart(2, "0")
             setTitle(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`)
           }}>
-            当前时间
+            {language.t("dialog.newSession.currentTime")}
           </Button>
           <Button variant="ghost" size="small" onClick={() => dialog.close()} disabled={creating()}>
             {language.t("common.cancel")}

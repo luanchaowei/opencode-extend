@@ -267,7 +267,7 @@ export function CaseLibraryDialog() {
     return (
       <Suspense fallback={<div class="px-2 py-1"><Spinner /></div>}>
         <Show when={items()?.dirs?.length === 0 && items()?.files?.length === 0 && props.level === 0}>
-          <div class="text-12-regular text-text-weak px-2 py-1">暂无内容</div>
+          <div class="text-12-regular text-text-weak px-2 py-1">{language.t("caseLibrary.empty")}</div>
         </Show>
         <For each={items()?.dirs || []}>
           {(dir: { name: string; path: string }) => {
@@ -329,7 +329,7 @@ export function CaseLibraryDialog() {
         >
           <div class="flex items-center gap-2 px-2 py-1 border-b border-border-weak-base min-h-[36px] shrink-0">
             <Icon name="folder" size="small" class="text-icon-weak" />
-            <span class="text-11-regular text-text-weak">知识库</span>
+            <span class="text-11-regular text-text-weak">{language.t("caseLibrary.title")}</span>
           </div>
           <div class="flex-1 overflow-y-auto p-1 min-h-0">
             <CaseLibraryTreeNode path="" level={0} />
@@ -360,7 +360,7 @@ export function CaseLibraryDialog() {
                   variant="ghost"
                   onClick={goBack}
                   disabled={historyIndex() <= 0}
-                  aria-label="后退"
+                  aria-label={language.t("caseLibrary.back")}
                 />
                 <IconButton
                   icon="arrow-right"
@@ -368,7 +368,7 @@ export function CaseLibraryDialog() {
                   variant="ghost"
                   onClick={goForward}
                   disabled={historyIndex() >= history().length - 1}
-                  aria-label="前进"
+                  aria-label={language.t("caseLibrary.forward")}
                 />
                 <span class="text-12-medium text-text-base">{selectedFile()}</span>
               </div>

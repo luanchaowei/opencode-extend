@@ -392,12 +392,12 @@ export function SessionHeader() {
                         <DropdownMenu.Content style={{ "min-width": "120px" }}>
                           <Show when={device.role() === "admin" || device.role() === "super_admin"}>
                             <DropdownMenu.Item onSelect={() => window.open("/admin.html", "_blank")}>
-                              <DropdownMenu.ItemLabel class="text-12-regular">管理面板</DropdownMenu.ItemLabel>
+                              <DropdownMenu.ItemLabel class="text-12-regular">{language.t("session.header.adminPanel")}</DropdownMenu.ItemLabel>
                             </DropdownMenu.Item>
                             <DropdownMenu.Separator />
                           </Show>
                           <DropdownMenu.Item onSelect={() => { fetch("/api/logout", { method: "POST" }).finally(() => { window.location.href = "/login" }) }}>
-                            <DropdownMenu.ItemLabel class="text-12-regular" style={{ color: "#f87171" }}>退出</DropdownMenu.ItemLabel>
+                            <DropdownMenu.ItemLabel class="text-12-regular" style={{ color: "#f87171" }}>{language.t("session.header.logout")}</DropdownMenu.ItemLabel>
                           </DropdownMenu.Item>
                         </DropdownMenu.Content>
                       </DropdownMenu.Portal>

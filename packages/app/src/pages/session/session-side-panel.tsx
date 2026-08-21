@@ -460,7 +460,7 @@ const isDesktop = createMediaQuery("(min-width: 768px)")
                         </div>
                       </div>
                       <div data-component="usage-guide" class="mt-2 px-1 text-12-regular text-text-weaker leading-4">
-                        <p class="text-12-medium text-text-weak mb-1">{language.t("enterprise.usageGuide.title")}（<span style="color:#f59e0b">黄区环境</span>）：</p>
+                        <p class="text-12-medium text-text-weak mb-1">{language.t("enterprise.usageGuide.title")}（<span style="color:#f59e0b">{language.t("session.sidePanel.huangquEnv")}</span>）：</p>
                         <p>{language.t("enterprise.usageGuide.scenario")}</p>
                         <p>{language.t("enterprise.usageGuide.reference")}</p>
                         <p>{language.t("enterprise.usageGuide.delete")}</p>
