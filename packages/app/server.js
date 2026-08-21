@@ -468,6 +468,7 @@ async function handleAPI(req, server) {
       const sessionId = createSession(user.id, user.username, user.role)
       return jsonResponse({ ok: true, username: user.username, role: user.role }, 200, { "Set-Cookie": sessionCookie(sessionId) })
     } catch (err) {
+      console.error(`[${getTzTime()}] POST /api/login error: ${err.message}\n${err.stack}`)
       return jsonResponse({ error: err.message }, 500)
     }
   }
@@ -490,6 +491,7 @@ async function handleAPI(req, server) {
       }
       return jsonResponse({ ok: true })
     } catch (err) {
+      console.error(`[${getTzTime()}] PATCH /api/users/:id error: ${err.message}\n${err.stack}`)
       return jsonResponse({ error: err.message }, 500)
     }
   }
@@ -531,6 +533,7 @@ async function handleAPI(req, server) {
       }
       return jsonResponse({ ok: true, user: result })
     } catch (err) {
+      console.error(`[${getTzTime()}] POST /api/users error: ${err.message}\n${err.stack}`)
       return jsonResponse({ error: err.message }, 500)
     }
   }
@@ -600,6 +603,7 @@ async function handleAPI(req, server) {
       if (!existsSync(targetPath)) mkdirSync(targetPath, { recursive: true })
       return jsonResponse({ success: true, path: targetPath })
     } catch (error) {
+      console.error(`[${getTzTime()}] POST /directory/create error: ${error.message}\n${error.stack}`)
       return jsonResponse({ error: error.message }, 500)
     }
   }
@@ -632,6 +636,7 @@ async function handleAPI(req, server) {
       }
       return jsonResponse({ files, dirs })
     } catch (error) {
+      console.error(`[${getTzTime()}] GET /api/case-library/list error: ${error.message}\n${error.stack}`)
       return jsonResponse({ error: error.message }, 500)
     }
   }
@@ -653,6 +658,7 @@ async function handleAPI(req, server) {
       const content = readFileSync(fullPath, "utf-8")
       return jsonResponse({ content })
     } catch (error) {
+      console.error(`[${getTzTime()}] GET /api/case-library/read error: ${error.message}\n${error.stack}`)
       return jsonResponse({ error: error.message }, 500)
     }
   }
@@ -671,6 +677,7 @@ async function handleAPI(req, server) {
       const buf = readFileSync(fullPath)
       return new Response(buf, { headers: { "Content-Type": mimeType, "Cache-Control": "public, max-age=3600" } })
     } catch (error) {
+      console.error(`[${getTzTime()}] GET /api/case-library/asset error: ${error.message}\n${error.stack}`)
       return jsonResponse({ error: error.message }, 500)
     }
   }
@@ -855,6 +862,7 @@ async function handleAPI(req, server) {
         },
       })
     } catch (error) {
+      console.error(`[${getTzTime()}] GET /file/download error: ${error.message}\n${error.stack}`)
       return jsonResponse({ error: error.message }, 500)
     }
   }
@@ -885,6 +893,7 @@ async function handleAPI(req, server) {
       }
       return jsonResponse({ success: true })
     } catch (error) {
+      console.error(`[${getTzTime()}] POST /file/delete error: ${error.message}\n${error.stack}`)
       return jsonResponse({ error: error.message }, 500)
     }
   }
@@ -898,6 +907,7 @@ async function handleAPI(req, server) {
       statsDb.heartbeat(clientIP, sessions, timestamp, userId)
       return jsonResponse({ ok: true, buildTime })
     } catch (err) {
+      console.error(`[${getTzTime()}] POST /api/stats/heartbeat error: ${err.message}\n${err.stack}`)
       return jsonResponse({ error: err.message }, 500)
     }
   }
@@ -916,6 +926,7 @@ async function handleAPI(req, server) {
       }
       return jsonResponse({ ok: true })
     } catch (err) {
+      console.error(`[${getTzTime()}] POST /api/stats/session-create error: ${err.message}\n${err.stack}`)
       return jsonResponse({ error: err.message }, 500)
     }
   }
@@ -928,6 +939,7 @@ async function handleAPI(req, server) {
       statsDb.sessionDelete(sessionID)
       return jsonResponse({ ok: true })
     } catch (err) {
+      console.error(`[${getTzTime()}] POST /api/stats/session-delete error: ${err.message}\n${err.stack}`)
       return jsonResponse({ error: err.message }, 500)
     }
   }
@@ -940,6 +952,7 @@ async function handleAPI(req, server) {
       statsDb.messageSend(timestamp)
       return jsonResponse({ ok: true })
     } catch (err) {
+      console.error(`[${getTzTime()}] POST /api/stats/message-send error: ${err.message}\n${err.stack}`)
       return jsonResponse({ error: err.message }, 500)
     }
   }
@@ -1119,6 +1132,7 @@ async function handleAPI(req, server) {
     } catch (err) {
       const durationMs = Date.now() - testStart
       const errMsg = err.name === "TimeoutError" ? `检测超时（${parseInt(process.env.VITE_MODEL_TEST_TIMEOUT || "30000", 10) / 1000}s）` : err.message
+      console.error(`[${getTzTime()}] POST /api/models/test error: ${errMsg}\n${err.stack}`)
       statsDb.saveModelTestResult(providerID || "", modelID || "", false, errMsg, durationMs)
       return jsonResponse({ success: false, error: errMsg, durationMs })
     } finally {
@@ -1152,6 +1166,7 @@ async function handleAPI(req, server) {
       const tail = allLines.slice(-lines)
       return jsonResponse({ lines: tail, total: allLines.length })
     } catch (err) {
+      console.error(`[${getTzTime()}] GET /api/logs error: ${err.message}\n${err.stack}`)
       return jsonResponse({ lines: [], error: err.message })
     }
   }
@@ -1226,6 +1241,7 @@ async function handleAPI(req, server) {
       writeFileSync(envPath, updatedLines.filter(l => l.trim()).join("\n") + "\n", "utf-8")
       return jsonResponse({ success: true })
     } catch (error) {
+      console.error(`[${getTzTime()}] PATCH /api/config/runtime error: ${error.message}\n${error.stack}`)
       return jsonResponse({ error: error.message }, 500)
     }
   }
@@ -1482,7 +1498,9 @@ Bun.serve({
 
       const apiRes = await handleAPI(req, server)
       if (apiRes) {
-        console.log(`[${getTzTime()}] ${req.method} ${url.pathname} -> middleware ${apiRes.status} ${Date.now() - start}ms`)
+        if (apiRes.status >= 400 || (url.pathname !== "/api/stats/heartbeat" && url.pathname !== "/api/auth/me" && url.pathname !== "/device/info")) {
+          console.log(`[${getTzTime()}] ${req.method} ${url.pathname} -> middleware ${apiRes.status} ${Date.now() - start}ms`)
+        }
         return apiRes
       }
 

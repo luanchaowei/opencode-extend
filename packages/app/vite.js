@@ -325,7 +325,7 @@ export default [
             if (!user) { sendJson(res, { error: "用户名或密码错误" }, 401); return }
             const sid = createSession(user.id, user.username, user.role)
             sendJson(res, { ok: true, username: user.username, role: user.role }, 200, { "Set-Cookie": sessionCookie(sid) })
-          } catch (err) { sendJson(res, { error: err.message }, 500) }
+          } catch (err) { console.error(`[${getTzTime()}] /api/login error: ${err.message}\n${err.stack}`); sendJson(res, { error: err.message }, 500) }
           return
         }
 
@@ -349,7 +349,7 @@ export default [
               return
             }
             sendJson(res, { ok: true })
-          } catch (err) { sendJson(res, { error: err.message }, 500) }
+          } catch (err) { console.error(`[${getTzTime()}] /api/register error: ${err.message}\n${err.stack}`); sendJson(res, { error: err.message }, 500) }
           return
         }
 
@@ -394,7 +394,7 @@ export default [
               return
             }
             sendJson(res, { ok: true, user: result })
-          } catch (err) { sendJson(res, { error: err.message }, 500) }
+          } catch (err) { console.error(`[${getTzTime()}] /api/users POST error: ${err.message}\n${err.stack}`); sendJson(res, { error: err.message }, 500) }
           return
         }
 
@@ -427,7 +427,7 @@ export default [
               if (result.error) { sendJson(res, { error: result.error }, 400); return }
             }
             sendJson(res, { ok: true })
-          } catch (err) { sendJson(res, { error: err.message }, 500) }
+          } catch (err) { console.error(`[${getTzTime()}] /api/users PATCH error: ${err.message}\n${err.stack}`); sendJson(res, { error: err.message }, 500) }
           return
         }
 
@@ -1199,6 +1199,7 @@ export default [
             res.setHeader("Content-Type", "application/json")
             res.end(JSON.stringify({ ok: true, buildTime }))
           } catch (err) {
+            console.error(`[${getTzTime()}] /api/stats/heartbeat error: ${err.message}\n${err.stack}`)
             res.statusCode = 500; res.end(JSON.stringify({ error: err.message }))
           }
           return
@@ -1214,6 +1215,7 @@ export default [
             res.setHeader("Content-Type", "application/json")
             res.end(JSON.stringify({ ok: true }))
           } catch (err) {
+            console.error(`[${getTzTime()}] /api/stats/session-create error: ${err.message}\n${err.stack}`)
             res.statusCode = 500; res.end(JSON.stringify({ error: err.message }))
           }
           return
@@ -1228,6 +1230,7 @@ export default [
             res.setHeader("Content-Type", "application/json")
             res.end(JSON.stringify({ ok: true }))
           } catch (err) {
+            console.error(`[${getTzTime()}] /api/stats/session-delete error: ${err.message}\n${err.stack}`)
             res.statusCode = 500; res.end(JSON.stringify({ error: err.message }))
           }
           return
@@ -1242,6 +1245,7 @@ export default [
             res.setHeader("Content-Type", "application/json")
             res.end(JSON.stringify({ ok: true }))
           } catch (err) {
+            console.error(`[${getTzTime()}] /api/stats/message-send error: ${err.message}\n${err.stack}`)
             res.statusCode = 500; res.end(JSON.stringify({ error: err.message }))
           }
           return
@@ -1308,6 +1312,7 @@ export default [
             const tail = allLines.slice(-lines)
             sendJson(res, { lines: tail, total: allLines.length })
           } catch (err) {
+            console.error(`[${getTzTime()}] GET /api/logs error: ${err.message}\n${err.stack}`)
             sendJson(res, { lines: [], error: err.message })
           }
           return
@@ -1671,6 +1676,7 @@ export default [
           const respBuffer = await proxyRes.arrayBuffer()
           res.end(Buffer.from(respBuffer))
         } catch (err) {
+          console.error(`[${getTzTime()}] backend-proxy error: ${err.message}\n${err.stack}`)
           sendJson(res, { error: err.message }, 502)
         }
       })

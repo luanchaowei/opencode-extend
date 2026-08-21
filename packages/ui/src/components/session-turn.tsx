@@ -432,7 +432,7 @@ export function SessionTurn(
                 <div data-slot="session-turn-thinking">
                   <TextShimmer text={i18n.t("ui.sessionTurn.status.thinking")} />
                   <Show when={elapsedText()}>
-                    <span style={{ color: "var(--text-interactive-base)", "font-size": "12px", "font-weight": "500", "margin-left": "4px" }}>
+                    <span style={{ color: "var(--text-interactive-base)", "font-size": "12px", "font-weight": "500", "margin-left": "4px", "white-space": "nowrap", "flex-shrink": "0" }}>
                       耗时 {elapsedText()}
                     </span>
                   </Show>
