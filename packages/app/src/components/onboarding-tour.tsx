@@ -279,27 +279,28 @@ export function OnboardingTour() {
           }}
         >
           <div
-            class="w-[340px] rounded-xl border border-border-weak-base shadow-2xl p-5"
-            style={{ background: "var(--bg-surface-panel, #fff)" }}
+            class="w-[340px] rounded-xl p-5 shadow-2xl"
+            style={{ background: "#ffffff", border: "1px solid #e5e5e5" }}
           >
             <div class="flex items-center gap-2 mb-3">
               <div
                 class="flex items-center justify-center w-7 h-7 rounded-full text-12-medium shrink-0"
-                style={{ background: "var(--bg-accent-subtle, #e0e7ff)", color: "var(--text-interactive-base, #4f46e5)" }}
+                style={{ background: "#2563eb", color: "#ffffff" }}
               >
                 {stepIndex() + 1}
               </div>
-              <h3 class="text-14-medium text-text-strong-base flex-1">
+              <h3 class="text-14-medium flex-1" style={{ color: "#171717" }}>
                 {language.t(currentStep()?.titleKey ?? "")}
               </h3>
             </div>
-            <p class="text-13-regular text-text-weak-base leading-relaxed mb-4">
+            <p class="text-13-regular leading-relaxed mb-4" style={{ color: "#666666" }}>
               {language.t(currentStep()?.descKey ?? "")}
             </p>
             <div class="flex items-center justify-between gap-2">
               <Show when={!isComplete()}>
                 <button
-                  class="text-12-regular text-text-weaker-base hover:text-text-weak-base transition-colors"
+                  class="text-12-regular transition-colors"
+                  style={{ color: "#999999" }}
                   onClick={handleSkip}
                 >
                   {language.t("onboarding.button.skip")}
@@ -311,8 +312,8 @@ export function OnboardingTour() {
               <div class="flex items-center gap-2">
                 <Show when={!isWelcome() && !isComplete()}>
                   <button
-                    class="px-3 py-1.5 rounded-lg text-12-medium border border-border-weak-base hover:bg-bg-surface-hover transition-colors"
-                    style={{ color: "var(--text-weak-base, #666)" }}
+                    class="px-3 py-1.5 rounded-lg text-12-medium transition-colors"
+                    style={{ color: "#666666", border: "1px solid #e5e5e5" }}
                     onClick={handlePrev}
                   >
                     {language.t("onboarding.button.prev")}
@@ -321,7 +322,7 @@ export function OnboardingTour() {
                 <Show when={isWelcome()}>
                   <button
                     class="px-4 py-1.5 rounded-lg text-12-medium transition-colors"
-                    style={{ background: "var(--bg-accent-subtle, #e0e7ff)", color: "var(--text-interactive-base, #4f46e5)" }}
+                    style={{ background: "#2563eb", color: "#ffffff" }}
                     onClick={handleNext}
                   >
                     {language.t("onboarding.button.start")}
@@ -330,7 +331,7 @@ export function OnboardingTour() {
                 <Show when={!isWelcome() && !isComplete()}>
                   <button
                     class="px-4 py-1.5 rounded-lg text-12-medium transition-colors"
-                    style={{ background: "var(--bg-accent-subtle, #e0e7ff)", color: "var(--text-interactive-base, #4f46e5)" }}
+                    style={{ background: "#2563eb", color: "#ffffff" }}
                     onClick={handleNext}
                   >
                     {language.t("onboarding.button.next")}
@@ -339,7 +340,7 @@ export function OnboardingTour() {
                 <Show when={isComplete()}>
                   <button
                     class="px-4 py-1.5 rounded-lg text-12-medium transition-colors"
-                    style={{ background: "var(--bg-accent-subtle, #e0e7ff)", color: "var(--text-interactive-base, #4f46e5)" }}
+                    style={{ background: "#2563eb", color: "#ffffff" }}
                     onClick={close}
                   >
                     {language.t("onboarding.button.done")}
@@ -348,7 +349,7 @@ export function OnboardingTour() {
               </div>
             </div>
             <Show when={!isWelcome() && !isComplete()}>
-              <div class="mt-3 pt-3 border-t border-border-weaker-base text-11-regular text-text-weaker-base">
+              <div class="mt-3 pt-3 text-11-regular" style={{ color: "#999999", "border-top": "1px solid #f0f0f0" }}>
                 {language.t("onboarding.step")} {stepIndex()}/{steps.length - 1}
               </div>
             </Show>
