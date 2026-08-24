@@ -94,13 +94,30 @@ export function createStatsDb(Database, dbPath, statsJsonPath) {
     CREATE TABLE IF NOT EXISTS model_test_results (
       provider_id TEXT NOT NULL,
       model_id TEXT NOT NULL,
-      success INTEGER NOT NULL,
+      status INTEGER NOT NULL,
       error TEXT,
       duration_ms INTEGER NOT NULL,
       tested_at INTEGER NOT NULL,
       PRIMARY KEY (provider_id, model_id)
     );
   `)
+
+  try {
+    const tableInfo = db.query("PRAGMA table_info(model_test_results)").all()
+    const hasOldColumn = tableInfo.some(col => col.name === "success")
+    if (hasOldColumn) {
+      db.exec("DROP TABLE model_test_results")
+      db.exec(`CREATE TABLE IF NOT EXISTS model_test_results (
+        provider_id TEXT NOT NULL,
+        model_id TEXT NOT NULL,
+        status INTEGER NOT NULL,
+        error TEXT,
+        duration_ms INTEGER NOT NULL,
+        tested_at INTEGER NOT NULL,
+        PRIMARY KEY (provider_id, model_id)
+      )`)
+    }
+  } catch {}
 
   db.query("INSERT OR IGNORE INTO counters VALUES ('totalSessionsEverCreated', 0)").run()
   db.query("INSERT OR IGNORE INTO counters VALUES ('totalMessagesEver', 0)").run()
@@ -495,14 +512,24 @@ export function createStatsDb(Database, dbPath, statsJsonPath) {
     return { success: true }
   }
 
-  function saveModelTestResult(providerID, modelID, success, error, durationMs) {
-    db.query("INSERT OR REPLACE INTO model_test_results VALUES (?, ?, ?, ?, ?, ?)").run(
-      providerID, modelID, success ? 1 : 0, error || "", durationMs, Date.now()
+  function saveModelTestResult(providerID, modelID, status, error, durationMs) {
+    db.query("INSERT OR REPLACE INTO model_test_results (provider_id, model_id, status, error, duration_ms, tested_at) VALUES (?, ?, ?, ?, ?, ?)").run(
+      providerID, modelID, status, error || "", durationMs, Date.now()
     )
   }
 
+  function setModelTesting(providerID, modelID) {
+    db.query("INSERT OR REPLACE INTO model_test_results (provider_id, model_id, status, error, duration_ms, tested_at) VALUES (?, ?, 0, '', 0, ?)").run(
+      providerID, modelID, Date.now()
+    )
+  }
+
+  function hasTestingModels() {
+    return db.query("SELECT COUNT(*) as c FROM model_test_results WHERE status = 0").get().c > 0
+  }
+
   function getModelTestResults() {
-    return db.query("SELECT provider_id, model_id, success, error, duration_ms, tested_at FROM model_test_results").all()
+    return db.query("SELECT provider_id, model_id, status, error, duration_ms, tested_at FROM model_test_results").all()
   }
 
   function getUsernameById(userId) {
@@ -535,6 +562,8 @@ export function createStatsDb(Database, dbPath, statsJsonPath) {
     updateUserRole,
     validatePassword,
     saveModelTestResult,
+    setModelTesting,
+    hasTestingModels,
     getModelTestResults,
     getUsernameById,
     close,

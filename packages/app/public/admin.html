@@ -1012,12 +1012,15 @@
         const data = await resp.json()
         modelsCache = data.models || []
         renderModelsTable()
+        const hasTesting = modelsCache.some(m => m.testResult && m.testResult.status === 0)
+        if (hasTesting) startModelPolling()
       } catch (err) {
         document.getElementById('models-table').innerHTML = '<tr><td colspan="7" style="color:#f87171">获取模型列表失败: ' + err.message + '</td></tr>'
       }
     }
 
     function fmtDuration(ms) {
+      if (!ms || isNaN(ms)) return '-'
       if (ms < 1000) return ms + 'ms'
       return (ms / 1000).toFixed(1) + 's'
     }
@@ -1042,16 +1045,24 @@
         timeEl.textContent = '-'
         return
       }
-      if (tr.success) {
+      if (tr.status === 0) {
+        resultEl.textContent = '检测中...'
+        resultEl.style.color = '#f59e0b'
+        durationEl.textContent = '-'
+        timeEl.textContent = '-'
+      } else if (tr.status === 1) {
         resultEl.textContent = '✓ 可用'
         resultEl.style.color = '#22c55e'
+        durationEl.textContent = fmtDuration(tr.durationMs)
+        durationEl.style.color = tr.durationMs > 10000 ? '#f87171' : tr.durationMs > 5000 ? '#f59e0b' : '#888'
+        timeEl.textContent = fmtTime(tr.testedAt)
       } else {
         resultEl.textContent = '✗ ' + (tr.error || '不可用')
         resultEl.style.color = '#f87171'
+        durationEl.textContent = fmtDuration(tr.durationMs)
+        durationEl.style.color = '#888'
+        timeEl.textContent = fmtTime(tr.testedAt)
       }
-      durationEl.textContent = fmtDuration(tr.durationMs)
-      durationEl.style.color = tr.durationMs > 10000 ? '#f87171' : tr.durationMs > 5000 ? '#f59e0b' : '#888'
-      timeEl.textContent = fmtTime(tr.testedAt)
     }
 
     function renderModelsTable() {
@@ -1062,6 +1073,7 @@
       }
       tbody.innerHTML = modelsCache.map((m, i) => {
         const statusColor = m.status === 'active' ? '#22c55e' : m.status === 'beta' ? '#f59e0b' : '#888'
+        const isTesting = m.testResult && m.testResult.status === 0
         return `<tr id="model-row-${i}">
           <td>${m.providerName}</td>
           <td>${m.modelName}</td>
@@ -1069,41 +1081,42 @@
           <td id="model-result-${i}" style="color:#888">-</td>
           <td id="model-duration-${i}" style="color:#888">-</td>
           <td id="model-time-${i}" style="color:#888;font-size:11px">-</td>
-          <td><button class="range-btn" onclick="testModel(${i})">检测</button></td>
+          <td><button class="range-btn" onclick="testModel(${i})" ${isTesting ? 'disabled style="opacity:0.5;cursor:not-allowed"' : ''}>检测</button></td>
         </tr>`
       }).join('')
       for (let i = 0; i < modelsCache.length; i++) renderTestResult(i)
     }
 
+    let modelPollTimer = null
+
+    function startModelPolling() {
+      if (modelPollTimer) return
+      modelPollTimer = setInterval(async () => {
+        await fetchModels()
+        const hasTesting = modelsCache.some(m => m.testResult && m.testResult.status === 0)
+        if (!hasTesting) {
+          clearInterval(modelPollTimer)
+          modelPollTimer = null
+          const btn = document.getElementById('test-all-btn')
+          if (btn) { btn.disabled = false; btn.textContent = '检测全部' }
+          testingAll = false
+        }
+      }, 5000)
+    }
+
     async function testModel(index) {
       const m = modelsCache[index]
       if (!m) return
-      const resultEl = document.getElementById('model-result-' + index)
-      const durationEl = document.getElementById('model-duration-' + index)
-      const timeEl = document.getElementById('model-time-' + index)
-      resultEl.textContent = '检测中...'
-      resultEl.style.color = '#f59e0b'
-      durationEl.textContent = '-'
-      timeEl.textContent = '-'
+      if (m.testResult && m.testResult.status === 0) return
       try {
-        const resp = await fetch('/api/models/test', {
+        await fetch('/api/models/test', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ providerID: m.providerID, modelID: m.modelID }),
-          signal: AbortSignal.timeout(65000),
         })
-        const data = await resp.json()
-        if (data.success) {
-          m.testResult = { success: true, error: '', durationMs: data.durationMs, testedAt: Date.now() }
-        } else {
-          m.testResult = { success: false, error: data.error || '不可用', durationMs: data.durationMs || 0, testedAt: Date.now() }
-        }
-        renderTestResult(index)
-      } catch (err) {
-        const errMsg = err.name === 'TimeoutError' ? '检测超时' : err.message
-        m.testResult = { success: false, error: errMsg, durationMs: 0, testedAt: Date.now() }
-        renderTestResult(index)
-      }
+      } catch (err) {}
+      await fetchModels()
+      startModelPolling()
     }
 
     async function testAllModels() {
@@ -1112,17 +1125,11 @@
       const btn = document.getElementById('test-all-btn')
       btn.disabled = true
       btn.textContent = '检测中...'
-      const progress = document.getElementById('test-progress')
-      progress.style.display = 'block'
-      const total = modelsCache.length
-      for (let i = 0; i < total; i++) {
-        progress.textContent = `正在检测 ${i + 1}/${total}: ${modelsCache[i].providerName} / ${modelsCache[i].modelName}`
-        await testModel(i)
-      }
-      progress.style.display = 'none'
-      btn.disabled = false
-      btn.textContent = '检测全部'
-      testingAll = false
+      try {
+        await fetch('/api/models/test-all', { method: 'POST' })
+      } catch (err) {}
+      await fetchModels()
+      startModelPolling()
     }
 
     async function fetchUsers() {

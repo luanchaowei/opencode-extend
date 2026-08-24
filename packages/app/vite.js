@@ -2,7 +2,25 @@ import { readFileSync, writeFileSync, createWriteStream, mkdirSync, existsSync, 
 import { dirname, join, extname } from "node:path"
 import { execSync } from "node:child_process"
 import { homedir } from "node:os"
+import { dict as enDict } from "./src/i18n/en.ts"
+import { dict as zhDict } from "./src/i18n/zh.ts"
 import solidPlugin from "vite-plugin-solid"
+
+function getLang(req) {
+  const acceptLang = req.headers["accept-language"] || ""
+  return acceptLang.toLowerCase().startsWith("zh") ? "zh" : "en"
+}
+
+function t(lang, key, params) {
+  const dict = lang === "zh" ? zhDict : enDict
+  let val = dict[key] || enDict[key] || key
+  if (params) {
+    for (const [k, v] of Object.entries(params)) {
+      val = val.replace(new RegExp(`{{${k}}}`, "g"), v)
+    }
+  }
+  return val
+}
 import tailwindcss from "@tailwindcss/vite"
 import { fileURLToPath } from "url"
 import { randomUUID } from "node:crypto"
@@ -278,6 +296,70 @@ function getAllowedDir(req) {
   return `${baseDir}/${s.username}`
 }
 
+async function doViteModelTest(providerID, modelID, backendUrl, authHeader, defaultDir, timeout) {
+  const lang = "zh"
+  let sessionID = null
+  if (!defaultDir) {
+    statsDbRef.saveModelTestResult(providerID, modelID, 2, t(lang, "model.test.missingDir"), 0)
+    return
+  }
+  console.log(`[${getTzTime()}] model test start: ${providerID}/${modelID}`)
+  try {
+    const sessionRes = await fetch(`${backendUrl}/session`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...(authHeader ? { Authorization: authHeader } : {}) },
+      body: JSON.stringify({ directory: defaultDir, title: "model-test" }),
+    })
+    if (!sessionRes.ok) {
+      const errText = await sessionRes.text()
+      console.error(`[${getTzTime()}] model test ${providerID}/${modelID}: session create failed ${sessionRes.status}`)
+      statsDbRef.saveModelTestResult(providerID, modelID, 2, t(lang, "model.test.sessionCreateFailed", { status: sessionRes.status, text: errText }), 0)
+      return
+    }
+    const sessionData = await sessionRes.json()
+    sessionID = sessionData.id
+    if (!sessionID) {
+      console.error(`[${getTzTime()}] model test ${providerID}/${modelID}: no sessionID returned`)
+      statsDbRef.saveModelTestResult(providerID, modelID, 2, t(lang, "model.test.sessionNoId"), 0)
+      return
+    }
+    console.log(`[${getTzTime()}] model test ${providerID}/${modelID}: session ${sessionID} created, sending message...`)
+    const testStart = Date.now()
+    const msgRes = await fetch(`${backendUrl}/session/${sessionID}/message`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...(authHeader ? { Authorization: authHeader } : {}) },
+      body: JSON.stringify({ model: { providerID, modelID }, parts: [{ type: "text", text: "hi" }] }),
+      signal: AbortSignal.timeout(timeout),
+    })
+    const durationMs = Date.now() - testStart
+    if (msgRes.ok) {
+      console.log(`[${getTzTime()}] model test ${providerID}/${modelID}: success (${durationMs}ms)`)
+      statsDbRef.saveModelTestResult(providerID, modelID, 1, "", durationMs)
+    } else {
+      const errText = await msgRes.text()
+      let errMsg = errText
+      try { errMsg = JSON.parse(errText).error || errMsg } catch {}
+      console.error(`[${getTzTime()}] model test ${providerID}/${modelID}: failed (${durationMs}ms) ${errMsg}`)
+      statsDbRef.saveModelTestResult(providerID, modelID, 2, errMsg, durationMs)
+    }
+  } catch (err) {
+    const errMsg = err.name === "TimeoutError" ? t(lang, "model.test.timeout", { sec: timeout / 1000 }) : err.message
+    console.error(`[${getTzTime()}] model test ${providerID}/${modelID}: error: ${errMsg}\n${err.stack}`)
+    statsDbRef.saveModelTestResult(providerID, modelID, 2, errMsg, 0)
+  } finally {
+    if (sessionID) {
+      console.log(`[${getTzTime()}] model test ${providerID}/${modelID}: cleanup session ${sessionID}`)
+      try {
+        await fetch(`${backendUrl}/session/${sessionID}?directory=${encodeURIComponent(defaultDir)}`, {
+          method: "DELETE",
+          headers: authHeader ? { Authorization: authHeader } : {},
+          signal: AbortSignal.timeout(5000),
+        })
+      } catch {}
+    }
+  }
+}
+
 let statsDbRef = null
 
 /**
@@ -320,9 +402,9 @@ export default [
             for await (const chunk of req) chunks.push(chunk)
             const body = JSON.parse(Buffer.concat(chunks).toString())
             const { username, password } = body
-            if (!username || !password) { sendJson(res, { error: "请输入用户名和密码" }, 400); return }
+            if (!username || !password) { sendJson(res, { error: t(getLang(req), "api.login.missingFields") }, 400); return }
             const user = statsDbRef.verifyUser(username, password)
-            if (!user) { sendJson(res, { error: "用户名或密码错误" }, 401); return }
+            if (!user) { sendJson(res, { error: t(getLang(req), "api.login.invalidCredentials") }, 401); return }
             const sid = createSession(user.id, user.username, user.role)
             sendJson(res, { ok: true, username: user.username, role: user.role }, 200, { "Set-Cookie": sessionCookie(sid) })
           } catch (err) { console.error(`[${getTzTime()}] /api/login error: ${err.message}\n${err.stack}`); sendJson(res, { error: err.message }, 500) }
@@ -330,20 +412,21 @@ export default [
         }
 
         if (url.pathname === "/api/register" && req.method === "POST") {
-          if (!authEnabled || process.env.VITE_REGISTRATION_ENABLED !== "true") { sendJson(res, { error: "注册功能未开放" }, 403); return }
+          if (!authEnabled || process.env.VITE_REGISTRATION_ENABLED !== "true") { sendJson(res, { error: t(getLang(req), "api.register.disabled") }, 403); return }
           try {
             const chunks = []
             for await (const chunk of req) chunks.push(chunk)
             const body = JSON.parse(Buffer.concat(chunks).toString())
             const { username, password } = body
-            if (!username || !password) { sendJson(res, { error: "请填写用户名和密码" }, 400); return }
+            if (!username || !password) { sendJson(res, { error: t(getLang(req), "api.register.missingFields") }, 400); return }
             const result = statsDbRef.createUser(username, password, "user")
             if (result.error) {
-              const msg = result.error === "Username already exists" ? "用户名已存在"
-                : result.error === "Missing required fields" ? "用户名不能为空"
-                : result.error === "Invalid username" ? "用户名无效：至少3个字符，只允许大小写字母、数字、中文、下划线"
+              const lang = getLang(req)
+              const msg = result.error === "Username already exists" ? t(lang, "api.register.usernameExists")
+                : result.error === "Missing required fields" ? t(lang, "api.register.usernameEmpty")
+                : result.error === "Invalid username" ? t(lang, "api.register.usernameInvalid")
                 : result.error === "Password must be at least 8 chars with 3 of: digits, lowercase, uppercase, special chars"
-                ? "密码不符合规则：至少8位，需包含数字/大写/小写/特殊字符中的3种"
+                ? t(lang, "api.register.passwordInvalid")
                 : result.error
               sendJson(res, { error: msg }, 400)
               return
@@ -383,12 +466,13 @@ export default [
             const body = JSON.parse(Buffer.concat(chunks).toString())
             const result = statsDbRef.createUser(body.username, body.password, body.role)
             if (result.error) {
-              const msg = result.error === "Username already exists" ? "用户名已存在"
-                : result.error === "Missing required fields" ? "用户名和密码不能为空"
-                : result.error === "Invalid username" ? "用户名无效：至少3个字符，只允许大小写字母、数字、中文、下划线"
-                : result.error === "Invalid role" ? "角色无效"
+              const lang = getLang(req)
+              const msg = result.error === "Username already exists" ? t(lang, "api.user.usernameExists")
+                : result.error === "Missing required fields" ? t(lang, "api.user.missingFields")
+                : result.error === "Invalid username" ? t(lang, "api.user.usernameInvalid")
+                : result.error === "Invalid role" ? t(lang, "api.user.roleInvalid")
                 : result.error === "Password must be at least 8 chars with 3 of: digits, lowercase, uppercase, special chars"
-                ? "密码不符合规则：至少8位，需包含数字/大写/小写/特殊字符中的3种"
+                ? t(lang, "api.user.passwordInvalid")
                 : result.error
               sendJson(res, { error: msg }, 400)
               return
@@ -704,7 +788,7 @@ export default [
                 if (usePercent >= 90) {
                   clearTimeout(timeoutId)
                   res.statusCode = 507
-                  res.end(JSON.stringify({ error: `磁盘使用率 ${usePercent}%，超过90%阈值，无法上传文件，请联系管理员！` }))
+                  res.end(JSON.stringify({ error: t(getLang(req), "api.file.diskThreshold", { percent: usePercent, threshold: 90 }) }))
                   return
                 }
               } catch {}
@@ -1306,7 +1390,7 @@ export default [
             } else {
               logFile = process.env.LOG_PATH || "/tmp/opencode-extend.log"
             }
-            if (!existsSync(logFile)) { sendJson(res, { lines: [], error: "日志文件不存在: " + logFile }); return }
+            if (!existsSync(logFile)) { sendJson(res, { lines: [], error: t(getLang(req), "api.proxy.logNotFound", { path: logFile }) }); return }
             const content = readFileSync(logFile, "utf-8")
             const allLines = content.split("\n").filter(l => l.trim())
             const tail = allLines.slice(-lines)
@@ -1361,7 +1445,7 @@ export default [
                 const tr = testResults.get(`${p.id}:${modelID}`)
                 models.push({
                   providerID: p.id, providerName: p.name || p.id, modelID, modelName: model.name || modelID, status: model.status || "active",
-                  testResult: tr ? { success: !!tr.success, error: tr.error || "", durationMs: tr.duration_ms, testedAt: tr.tested_at } : null,
+                  testResult: tr ? { status: tr.status, error: tr.error || "", durationMs: tr.duration_ms, testedAt: tr.tested_at } : null,
                 })
               }
             }
@@ -1374,85 +1458,74 @@ export default [
           return
         }
 
+        if (req.url?.startsWith("/api/models/test-all") && req.method === "POST") {
+          try {
+            if (!requireAdmin(req)) { sendJson(res, { error: "Forbidden" }, 403); return }
+            const serverHost = process.env.VITE_OPENCODE_SERVER_HOST || "127.0.0.1"
+            const serverPort = process.env.VITE_OPENCODE_SERVER_PORT || "4096"
+            const backendUrl = `http://${serverHost}:${serverPort}`
+            const serverPassword = process.env.VITE_OPENCODE_SERVER_PASSWORD || ""
+            const serverUsername = process.env.VITE_OPENCODE_SERVER_USERNAME || "opencode"
+            const authHeader = serverPassword ? `Basic ${Buffer.from(`${serverUsername}:${serverPassword}`).toString("base64")}` : ""
+            const r = await fetch(`${backendUrl}/config/providers`, { headers: authHeader ? { Authorization: authHeader } : {} })
+            if (!r.ok) { sendJson(res, { error: `Backend returned ${r.status}` }, r.status); return }
+            const data = await r.json()
+            const hiddenSet = new Set((process.env.VITE_HIDDEN_PROVIDERS || "").split(",").map(s => s.trim()).filter(Boolean))
+            const models = []
+            for (const p of (data.providers || []).filter(p => !hiddenSet.has(p.id))) {
+              for (const [modelID, model] of Object.entries(p.models || {})) {
+                if (model.status === "deprecated") continue
+                models.push({ providerID: p.id, modelID })
+              }
+            }
+            for (const m of models) {
+              const existing = statsDb.getModelTestResults().find(r => r.provider_id === m.providerID && r.model_id === m.modelID)
+              if (existing && existing.status === 0) continue
+              statsDb.setModelTesting(m.providerID, m.modelID)
+            }
+            const defaultDir = process.env.VITE_OPENCODE_DEFAULT_DIR || ""
+            const timeout = parseInt(process.env.VITE_MODEL_TEST_TIMEOUT || "30000", 10)
+            ;(async () => {
+              for (const m of models) {
+                const existing = statsDb.getModelTestResults().find(r => r.provider_id === m.providerID && r.model_id === m.modelID)
+                if (existing && existing.status !== 0) continue
+                await doViteModelTest(m.providerID, m.modelID, backendUrl, authHeader, defaultDir, timeout)
+              }
+            })()
+            sendJson(res, { success: true, count: models.length })
+          } catch (error) {
+            console.error(`[${getTzTime()}] POST /api/models/test-all error: ${error.message}\n${error.stack}`)
+            sendJson(res, { error: error.message }, 500)
+          }
+          return
+        }
+
         if (req.url?.startsWith("/api/models/test") && req.method === "POST") {
           try {
             if (!requireAdmin(req)) { sendJson(res, { error: "Forbidden" }, 403); return }
             const body = JSON.parse(await readBody())
             const { providerID, modelID } = body
-            if (!providerID || !modelID) { sendJson(res, { error: "Missing providerID or modelID" }, 400); return }
+            const lang = getLang(req)
+            if (!providerID || !modelID) { sendJson(res, { error: t(lang, "model.test.missingProviderOrModel") }, 400); return }
+            const existing = statsDbRef.getModelTestResults().find(r => r.provider_id === providerID && r.model_id === modelID)
+            if (existing && existing.status === 0) { sendJson(res, { error: t(lang, "model.test.modelBeingTested") }, 400); return }
+            statsDb.setModelTesting(providerID, modelID)
             const serverHost = process.env.VITE_OPENCODE_SERVER_HOST || "127.0.0.1"
             const serverPort = process.env.VITE_OPENCODE_SERVER_PORT || "4096"
-            const serverUrl = `http://${serverHost}:${serverPort}`
+            const backendUrl = `http://${serverHost}:${serverPort}`
             const serverPassword = process.env.VITE_OPENCODE_SERVER_PASSWORD || ""
             const serverUsername = process.env.VITE_OPENCODE_SERVER_USERNAME || "opencode"
             const authHeader = serverPassword ? `Basic ${Buffer.from(`${serverUsername}:${serverPassword}`).toString("base64")}` : ""
             const defaultDir = process.env.VITE_OPENCODE_DEFAULT_DIR || ""
-            if (!defaultDir) { sendJson(res, { error: "VITE_OPENCODE_DEFAULT_DIR not configured" }, 500); return }
-
-            let sessionID = null
-            const testStart = Date.now()
-            try {
-              const sessionRes = await fetch(`${serverUrl}/session`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json", ...(authHeader ? { Authorization: authHeader } : {}) },
-                body: JSON.stringify({ directory: defaultDir, title: "model-test" }),
-              })
-              if (!sessionRes.ok) {
-                const errText = await sessionRes.text()
-                const durationMs = Date.now() - testStart
-                const errorMsg = `创建会话失败: ${sessionRes.status} ${errText}`
-                statsDb.saveModelTestResult(providerID, modelID, false, errorMsg, durationMs)
-                sendJson(res, { success: false, error: errorMsg, durationMs })
-                return
-              }
-              const sessionData = await sessionRes.json()
-              sessionID = sessionData.id
-              if (!sessionID) {
-                const durationMs = Date.now() - testStart
-                const errorMsg = "创建会话失败: 未返回 sessionID"
-                statsDb.saveModelTestResult(providerID, modelID, false, errorMsg, durationMs)
-                sendJson(res, { success: false, error: errorMsg, durationMs })
-                return
-              }
-
-              const msgRes = await fetch(`${serverUrl}/session/${sessionID}/message`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json", ...(authHeader ? { Authorization: authHeader } : {}) },
-                body: JSON.stringify({ model: { providerID, modelID }, parts: [{ type: "text", text: "hi" }] }),
-                signal: AbortSignal.timeout(parseInt(process.env.VITE_MODEL_TEST_TIMEOUT || "30000", 10)),
-              })
-
-              const durationMs = Date.now() - testStart
-              if (msgRes.ok) {
-                statsDb.saveModelTestResult(providerID, modelID, true, "", durationMs)
-                sendJson(res, { success: true, durationMs })
-              } else {
-                const errText = await msgRes.text()
-                let errMsg = errText
-                try { errMsg = JSON.parse(errText).error || errMsg } catch {}
-                statsDb.saveModelTestResult(providerID, modelID, false, errMsg, durationMs)
-                sendJson(res, { success: false, error: errMsg, durationMs })
-              }
-            } catch (err) {
-              const durationMs = Date.now() - testStart
-              const errMsg = err.name === "TimeoutError" ? `检测超时（${parseInt(process.env.VITE_MODEL_TEST_TIMEOUT || "30000", 10) / 1000}s）` : err.message
-              statsDb.saveModelTestResult(providerID, modelID, false, errMsg, durationMs)
-              sendJson(res, { success: false, error: errMsg, durationMs })
-            } finally {
-              if (sessionID) {
-                try {
-                  await fetch(`${serverUrl}/session/${sessionID}?directory=${encodeURIComponent(defaultDir)}`, {
-                    method: "DELETE",
-                    headers: authHeader ? { Authorization: authHeader } : {},
-                    signal: AbortSignal.timeout(5000),
-                  })
-                } catch {}
-              }
-            }
+            const timeout = parseInt(process.env.VITE_MODEL_TEST_TIMEOUT || "30000", 10)
+            doViteModelTest(providerID, modelID, backendUrl, authHeader, defaultDir, timeout).catch(err => {
+              console.error(`[${getTzTime()}] doViteModelTest error: ${err.message}\n${err.stack}`)
+              statsDb.saveModelTestResult(providerID, modelID, 2, err.message, 0)
+            })
+            sendJson(res, { success: true, async: true })
           } catch (error) {
-            res.statusCode = 500
-            res.setHeader("Content-Type", "application/json")
-            res.end(JSON.stringify({ error: error.message }))
+            console.error(`[${getTzTime()}] POST /api/models/test error: ${error.message}\n${error.stack}`)
+            sendJson(res, { error: error.message }, 500)
           }
           return
         }
@@ -1593,11 +1666,11 @@ export default [
               const sessionData = await checkRes.json()
               const sessionDir = sessionData.metadata?.directory || sessionData.directory || sessionData.location?.directory || ""
               if (allowedDir !== "*" && sessionDir && sessionDir !== allowedDir) {
-                sendJson(res, { error: "无权访问该会话" }, 403)
+                sendJson(res, { error: t(getLang(req), "api.proxy.sessionForbidden") }, 403)
                 return
               }
             } else if (checkRes.status === 404) {
-              sendJson(res, { error: "会话不存在" }, 404)
+              sendJson(res, { error: t(getLang(req), "api.proxy.sessionNotFound") }, 404)
               return
             }
           } catch {}
@@ -1607,7 +1680,7 @@ export default [
         const requestedDir = url.searchParams.get("directory")
           || (dirHeader ? decodeURIComponent(dirHeader) : "")
         if (requestedDir && allowedDir !== "*" && requestedDir !== allowedDir) {
-          sendJson(res, { error: "无权访问该目录" }, 403)
+          sendJson(res, { error: t(getLang(req), "api.proxy.directoryForbidden") }, 403)
           return
         }
 
