@@ -102,28 +102,13 @@ export function createStatsDb(Database, dbPath, statsJsonPath) {
     );
   `)
 
-  try {
-    const tableInfo = db.query("PRAGMA table_info(model_test_results)").all()
-    const hasOldColumn = tableInfo.some(col => col.name === "success")
-    if (hasOldColumn) {
-      db.exec("DROP TABLE model_test_results")
-      db.exec(`CREATE TABLE IF NOT EXISTS model_test_results (
-        provider_id TEXT NOT NULL,
-        model_id TEXT NOT NULL,
-        status INTEGER NOT NULL,
-        error TEXT,
-        duration_ms INTEGER NOT NULL,
-        tested_at INTEGER NOT NULL,
-        PRIMARY KEY (provider_id, model_id)
-      )`)
-    }
-  } catch {}
-
   db.query("INSERT OR IGNORE INTO counters VALUES ('totalSessionsEverCreated', 0)").run()
   db.query("INSERT OR IGNORE INTO counters VALUES ('totalMessagesEver', 0)").run()
 
   try { db.exec("ALTER TABLE heartbeats ADD COLUMN user_id INTEGER DEFAULT NULL") } catch {}
   try { db.exec("ALTER TABLE heartbeat_sessions ADD COLUMN user_id INTEGER DEFAULT NULL") } catch {}
+
+  try { db.exec("UPDATE model_test_results SET status = 2, error = 'Service restarted during testing' WHERE status = 0") } catch {}
 
   migrateFromJson(statsJsonPath)
 
