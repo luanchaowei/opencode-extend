@@ -223,10 +223,9 @@ function serveStatic(urlPath) {
 }
 
 const statsDir = envVars.VITE_STATS_DATA_PATH || __dirname
-const statsPath = join(statsDir, "stats.json")
 const dbPath = join(statsDir, "stats.db")
 
-const statsDb = createStatsDb(Database, dbPath, statsPath)
+const statsDb = createStatsDb(Database, dbPath)
 
 const authEnabled = envVars.AUTH_ENABLED === "true"
 

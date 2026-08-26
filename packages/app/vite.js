@@ -1052,7 +1052,6 @@ export default [
       const { DatabaseSync: Database } = await import("node:sqlite")
       const { createStatsDb } = await import("./stats-db.js")
       const statsDir = process.env.VITE_STATS_DATA_PATH || dirname(fileURLToPath(import.meta.url))
-      const statsPath = join(statsDir, "stats.json")
       const dbPath = join(statsDir, "stats.db")
 
       async function collectMonitorData(serverPort, env) {
@@ -1241,7 +1240,7 @@ export default [
         }
       }
 
-      const statsDb = createStatsDb(Database, dbPath, statsPath)
+      const statsDb = createStatsDb(Database, dbPath)
       statsDbRef = statsDb
 
       const adminUsername = process.env.ADMIN_USERNAME || "admin"

@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, renameSync } from "node:fs"
+import { existsSync } from "node:fs"
 import { dirname } from "node:path"
 import { mkdirSync } from "node:fs"
 import { randomBytes, createHash } from "node:crypto"
@@ -10,7 +10,7 @@ const getDayKey = (ts) => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
 }
 
-export function createStatsDb(Database, dbPath, statsJsonPath) {
+export function createStatsDb(Database, dbPath) {
   const dir = dirname(dbPath)
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
 
@@ -110,67 +110,8 @@ export function createStatsDb(Database, dbPath, statsJsonPath) {
 
   try { db.exec("UPDATE model_test_results SET status = 2, error = 'Service restarted during testing' WHERE status = 0") } catch {}
 
-  migrateFromJson(statsJsonPath)
-
   function ensureDayStats(dayKey) {
     db.query("INSERT OR IGNORE INTO daily_stats (day_key) VALUES (?)").run(dayKey)
-  }
-
-  function migrateFromJson(jsonPath) {
-    const hbCount = db.query("SELECT COUNT(*) as c FROM heartbeats").get().c
-    if (hbCount > 0) return
-    if (!existsSync(jsonPath)) return
-
-    let data
-    try {
-      data = JSON.parse(readFileSync(jsonPath, "utf8"))
-    } catch {
-      console.error(`[${getTzTime()}] migration: failed to parse ${jsonPath}, skipping`)
-      return
-    }
-
-    db.exec("PRAGMA foreign_keys = OFF")
-    const txn = db.transaction(() => {
-      for (const [ip, hb] of Object.entries(data.heartbeats || {})) {
-        db.query("INSERT OR REPLACE INTO heartbeats (client_ip, last_seen) VALUES (?, ?)").run(ip, hb.lastSeen)
-        for (const [sid, s] of Object.entries(hb.sessions || {})) {
-          db.query("INSERT OR REPLACE INTO heartbeat_sessions (client_ip, session_id, status, last_seen) VALUES (?, ?, ?, ?)").run(ip, sid, s.status, s.lastSeen)
-        }
-      }
-      for (const [day, val] of Object.entries(data.dailyStats || {})) {
-        db.query("INSERT OR REPLACE INTO daily_stats VALUES (?,?,?,?,?,?)").run(
-          day,
-          val.activeClients || 0,
-          val.activeSessions || 0,
-          val.newSessions || 0,
-          val.newClients || 0,
-          val.messagesSent || 0,
-        )
-      }
-      for (const key of Object.keys(data.clientDaySeen || {})) {
-        const parts = key.split(":")
-        const day = parts.pop()
-        const ip = parts.join(":")
-        db.query("INSERT OR IGNORE INTO client_day_seen VALUES (?, ?)").run(ip, day)
-      }
-      for (const key of Object.keys(data.sessionDaySeen || {})) {
-        const parts = key.split(":")
-        const day = parts.pop()
-        const sid = parts.join(":")
-        db.query("INSERT OR IGNORE INTO session_day_seen VALUES (?, ?)").run(sid, day)
-      }
-      db.query("INSERT OR REPLACE INTO counters VALUES (?, ?)").run("totalSessionsEverCreated", data.totalSessionsEverCreated || 0)
-      db.query("INSERT OR REPLACE INTO counters VALUES (?, ?)").run("totalMessagesEver", data.totalMessagesEver || 0)
-    })
-    txn()
-    db.exec("PRAGMA foreign_keys = ON")
-
-    try {
-      renameSync(jsonPath, jsonPath + ".bak")
-      console.log(`[${getTzTime()}] migration: stats.json -> stats.db complete, backup saved as ${jsonPath}.bak`)
-    } catch (err) {
-      console.error(`[${getTzTime()}] migration: failed to backup stats.json: ${err.message}`)
-    }
   }
 
   function heartbeat(clientIP, sessions, timestamp, userId) {
