@@ -139,7 +139,7 @@ const SessionRow = (props: {
           </Switch>
         </div>
       </Show>
-      <span class="text-14-regular text-text-strong min-w-0 flex-1 truncate">{title()}</span>
+      <span class="text-14-regular text-text-strong min-w-0 flex-1 truncate" title={title() ?? ""}>{title()}</span>
     </A>
   )
 }

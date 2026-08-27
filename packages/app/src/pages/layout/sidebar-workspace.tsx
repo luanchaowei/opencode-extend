@@ -1,5 +1,5 @@
 import { useParams } from "@solidjs/router"
-import { createEffect, createMemo, For, Show, type Accessor, type JSX } from "solid-js"
+import { createEffect, createMemo, createSignal, For, Show, type Accessor, type JSX } from "solid-js"
 import { createStore } from "solid-js/store"
 import { createSortable } from "@thisbeyond/solid-dnd"
 import { createMediaQuery } from "@solid-primitives/media"
@@ -12,6 +12,7 @@ import { Icon } from "@opencode-ai/ui/icon"
 import { IconButton } from "@opencode-ai/ui/icon-button"
 import { Spinner } from "@opencode-ai/ui/spinner"
 import { Tooltip } from "@opencode-ai/ui/tooltip"
+import { TextField } from "@opencode-ai/ui/text-field"
 import { type Session } from "@opencode-ai/sdk/v2/client"
 import { type LocalProject } from "@/context/layout"
 import { useDevice } from "@/context/device"
@@ -247,55 +248,83 @@ const WorkspaceSessionList = (props: {
   loadMore: () => Promise<void>
   language: ReturnType<typeof useLanguage>
   isOwnProject?: Accessor<boolean>
-}): JSX.Element => (
-  <nav class="flex flex-col gap-1">
-    <Show when={props.showNew() && props.isOwnProject?.()}>
-      <NewSessionItem
-        slug={props.slug()}
-        mobile={props.mobile}
-        sidebarExpanded={props.ctx.sidebarExpanded}
-        clearHoverProjectSoon={props.ctx.clearHoverProjectSoon}
-        showNewSessionDialog={props.ctx.showNewSessionDialog}
-      />
-    </Show>
-    <Show when={props.loading()}>
-      <SessionSkeleton />
-    </Show>
-    <For each={props.sessions()}>
-      {(session) => (
-        <SessionItem
-          session={session}
-          list={props.sessions()}
-          navList={props.ctx.navList}
+}): JSX.Element => {
+  const [search, setSearch] = createSignal("")
+  const searching = createMemo(() => search().toLowerCase().trim().length > 0)
+  const filtered = createMemo(() => {
+    const q = search().toLowerCase().trim()
+    if (!q) return props.sessions()
+    return props.sessions().filter(s => (s.title || "").toLowerCase().includes(q))
+  })
+  const showSearch = createMemo(() =>
+    (props.isOwnProject?.() ?? true) && !props.loading() && props.sessions().length > 0
+  )
+
+  return (
+    <nav class="flex flex-col gap-1">
+      <Show when={showSearch()}>
+        <div class="px-2">
+          <TextField
+            placeholder={props.language.t("session.search.placeholder")}
+            value={search()}
+            onChange={setSearch}
+            class="w-full h-6 text-12-regular"
+          />
+        </div>
+      </Show>
+      <Show when={props.showNew() && props.isOwnProject?.() && !searching()}>
+        <NewSessionItem
           slug={props.slug()}
           mobile={props.mobile}
-          showChild
           sidebarExpanded={props.ctx.sidebarExpanded}
           clearHoverProjectSoon={props.ctx.clearHoverProjectSoon}
-          prefetchSession={props.ctx.prefetchSession}
-          deleteSession={props.ctx.deleteSession}
-          isOwnProject={props.isOwnProject}
-          isLastSession={() => props.sessions().length <= 1}
+          showNewSessionDialog={props.ctx.showNewSessionDialog}
         />
-      )}
-    </For>
-    <Show when={props.hasMore()}>
-      <div class="relative w-full py-1">
-        <Button
-          variant="ghost"
-          class="flex w-full text-left justify-start text-14-regular text-text-weak pl-2 pr-10"
-          size="large"
-          onClick={(e: MouseEvent) => {
-            void props.loadMore()
-            ;(e.currentTarget as HTMLButtonElement).blur()
-          }}
-        >
-          {props.language.t("common.loadMore")}
-        </Button>
-      </div>
-    </Show>
-  </nav>
-)
+      </Show>
+      <Show when={props.loading()}>
+        <SessionSkeleton />
+      </Show>
+      <Show when={searching() && filtered().length === 0}>
+        <div class="text-14-regular text-text-weaker text-center py-4">
+          {props.language.t("session.search.empty")}
+        </div>
+      </Show>
+      <For each={filtered()}>
+        {(session) => (
+          <SessionItem
+            session={session}
+            list={filtered()}
+            navList={props.ctx.navList}
+            slug={props.slug()}
+            mobile={props.mobile}
+            showChild
+            sidebarExpanded={props.ctx.sidebarExpanded}
+            clearHoverProjectSoon={props.ctx.clearHoverProjectSoon}
+            prefetchSession={props.ctx.prefetchSession}
+            deleteSession={props.ctx.deleteSession}
+            isOwnProject={props.isOwnProject}
+            isLastSession={() => props.sessions().length <= 1}
+          />
+        )}
+      </For>
+      <Show when={props.hasMore() && !searching()}>
+        <div class="relative w-full py-1">
+          <Button
+            variant="ghost"
+            class="flex w-full text-left justify-start text-14-regular text-text-weak pl-2 pr-10"
+            size="large"
+            onClick={(e: MouseEvent) => {
+              void props.loadMore()
+              ;(e.currentTarget as HTMLButtonElement).blur()
+            }}
+          >
+            {props.language.t("common.loadMore")}
+          </Button>
+        </div>
+      </Show>
+    </nav>
+  )
+}
 
 export const SortableWorkspace = (props: {
   ctx: WorkspaceSidebarContext

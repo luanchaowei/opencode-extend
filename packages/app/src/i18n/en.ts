@@ -210,8 +210,8 @@ export const dict = {
   "error.page.action.checkUpdates": "Check for updates",
   "error.page.action.updateTo": "Update to {{version}}",
   "error.page.circular": "[Circular]",
-  "error.page.report.prefix": "Please report this error to the OpenCode team",
-  "error.page.report.discord": "on Discord",
+  "error.page.report.prefix": "Please report this error to opencode-extend",
+  "error.page.report.discord": "on GitCode",
   "error.page.version": "Version: {{version}}",
 
   "error.dev.rootNotFound":

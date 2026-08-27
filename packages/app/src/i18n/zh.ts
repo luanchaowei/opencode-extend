@@ -3,7 +3,7 @@ import { dict as en } from "./en"
 type Keys = keyof typeof en
 
 export const dict = {
-  "session.search.placeholder": "搜索会话...",
+  "session.search.placeholder": "搜索...",
   "session.search.empty": "未找到会话",
   "command.category.suggested": "建议",
   "command.category.view": "视图",
@@ -197,8 +197,8 @@ export const dict = {
   "error.page.action.checking": "检查中...",
   "error.page.action.checkUpdates": "检查更新",
   "error.page.action.updateTo": "更新到 {{version}}",
-  "error.page.report.prefix": "请将此错误报告给 OpenCode 团队",
-  "error.page.report.discord": "在 Discord 上",
+  "error.page.report.prefix": "请将此错误报告给 opencode-extend",
+  "error.page.report.discord": "在 GitCode 上",
   "error.page.version": "版本：{{version}}",
   "error.dev.rootNotFound": "未找到根元素。你是不是忘了把它添加到 index.html？或者 id 属性拼写错了？",
 

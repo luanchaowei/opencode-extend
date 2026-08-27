@@ -15,7 +15,6 @@ import { useDevice } from "@/context/device"
 
 import { decode64 } from "@/utils/base64"
 import { DialogNewSession } from "@/components/dialog-new-session"
-import { SessionSearchPopover } from "@/components/session-search-popover"
 
 type TauriDesktopWindow = {
   startDragging?: () => Promise<void>
@@ -226,11 +225,6 @@ export function Titlebar() {
       </div>
 
       <div class="min-w-0 flex items-center justify-center pointer-events-none">
-        <Show when={params.dir}>
-          <div class="pointer-events-auto">
-            <SessionSearchPopover />
-          </div>
-        </Show>
         <div id="opencode-titlebar-center" class="pointer-events-auto min-w-0 flex justify-center w-fit max-w-full" />
       </div>
 
