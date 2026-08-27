@@ -323,6 +323,9 @@ export const dict = {
   "onboarding.button.next": "Next",
   "onboarding.button.prev": "Previous",
   "onboarding.button.skip": "Skip",
+  "onboarding.skip.confirm.title": "Confirm Skip",
+  "onboarding.skip.confirm.description": "If you skip, the guide will reappear on page refresh. After completing the guide, it will no longer appear on refresh.",
+  "onboarding.skip.confirm.button": "Confirm Skip",
   "onboarding.button.done": "Done",
   "onboarding.step": "Step",
 

@@ -297,6 +297,9 @@ export const dict = {
   "onboarding.button.next": "下一步",
   "onboarding.button.prev": "上一步",
   "onboarding.button.skip": "跳过",
+  "onboarding.skip.confirm.title": "确认跳过",
+  "onboarding.skip.confirm.description": "跳过后刷新页面还会弹出指引，引导结束后刷新浏览器不再出现",
+  "onboarding.skip.confirm.button": "确认跳过",
   "onboarding.button.done": "完成",
   "onboarding.step": "步骤",
 

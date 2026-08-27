@@ -184,7 +184,10 @@ export function OnboardingTour() {
 
   const handleNext = () => goToStep(stepIndex() + 1)
   const handlePrev = () => goToStep(stepIndex() - 1)
-  const handleSkip = () => {
+  const [showSkipConfirm, setShowSkipConfirm] = createSignal(false)
+  const handleSkip = () => setShowSkipConfirm(true)
+  const confirmSkip = () => {
+    setShowSkipConfirm(false)
     setActive(false)
     if (rafId) cancelAnimationFrame(rafId)
   }
@@ -355,6 +358,42 @@ export function OnboardingTour() {
             </Show>
           </div>
         </div>
+        <Show when={showSkipConfirm()}>
+          <div
+            class="fixed inset-0 flex items-center justify-center"
+            style={{ "z-index": 1001 }}
+            onClick={(e) => { e.stopPropagation(); setShowSkipConfirm(false) }}
+          >
+            <div
+              class="w-[320px] rounded-xl p-5 shadow-2xl"
+              style={{ background: "#ffffff", border: "1px solid #e5e5e5" }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 class="text-14-medium mb-3" style={{ color: "#171717" }}>
+                {language.t("onboarding.skip.confirm.title")}
+              </h3>
+              <p class="text-13-regular leading-relaxed mb-4" style={{ color: "#666666" }}>
+                {language.t("onboarding.skip.confirm.description")}
+              </p>
+              <div class="flex justify-end gap-2">
+                <button
+                  class="px-3 py-1.5 rounded-lg text-12-medium transition-colors"
+                  style={{ color: "#666666", border: "1px solid #e5e5e5" }}
+                  onClick={() => setShowSkipConfirm(false)}
+                >
+                  {language.t("common.cancel")}
+                </button>
+                <button
+                  class="px-4 py-1.5 rounded-lg text-12-medium transition-colors"
+                  style={{ background: "#2563eb", color: "#ffffff" }}
+                  onClick={confirmSkip}
+                >
+                  {language.t("onboarding.skip.confirm.button")}
+                </button>
+              </div>
+            </div>
+          </div>
+        </Show>
       </div>
     </Show>
   )
