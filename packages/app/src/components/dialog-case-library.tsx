@@ -9,12 +9,14 @@ import { ResizeHandle } from "@opencode-ai/ui/resize-handle"
 import { Markdown } from "@opencode-ai/ui/markdown"
 import { Collapsible } from "@opencode-ai/ui/collapsible"
 import { MarkdownTOC } from "./markdown-toc"
-
-type Mermaid = typeof import("mermaid").default
+import {
+  processMermaidBlocks,
+  injectMermaidSvgs,
+  mermaidSvgStore,
+  type Mermaid,
+} from "@/utils/mermaid"
 
 const DEFAULT_SIDEBAR_WIDTH = 300
-const MERMAID_PREFIX = "MERMAID_BLOCK_"
-const mermaidSvgStore = new Map<string, string>()
 const MAX_DEPTH = 128
 
 export function CaseLibraryDialog() {
@@ -72,7 +74,8 @@ export function CaseLibraryDialog() {
 
       if (isMarkdown) {
         const withImages = processImagePaths(text, filePath)
-        const processedText = await processMermaidBlocks(withImages)
+        if (!mermaidLib) throw new Error("mermaid not loaded")
+        const processedText = await processMermaidBlocks(withImages, mermaidLib)
         return { text: processedText, isMarkdown, isImage: false }
       }
 
@@ -82,73 +85,6 @@ export function CaseLibraryDialog() {
     }
   })
 
-  const processMermaidBlocks = async (text: string): Promise<string> => {
-    mermaidSvgStore.clear()
-    let result = text
-    let idx = 0
-
-    for (;;) {
-      const start = result.indexOf("```mermaid")
-      if (start === -1) break
-      const end = result.indexOf("```", start + 10)
-      if (end === -1) break
-
-      const fullBlock = result.substring(start, end + 3)
-      const codeContent = result.substring(start + 10, end).trim()
-      const placeholder = `${MERMAID_PREFIX}${idx}`
-      idx++
-
-      try {
-        const id = `mermaid-${Date.now()}-${idx}`
-        if (!mermaidLib) throw new Error("mermaid not loaded")
-        const { svg } = await mermaidLib.render(id, codeContent)
-        mermaidSvgStore.set(placeholder, svg)
-        result = result.replace(fullBlock, placeholder)
-      } catch {
-        result = result.replace(fullBlock, `\`\`\`mermaid\n${codeContent}\n\`\`\``)
-      }
-    }
-
-    return result
-  }
-
-  const injectMermaidSvgs = (): boolean => {
-    if (!wrapperRef) return false
-    if (mermaidSvgStore.size === 0) return true
-
-    const markdownEl = wrapperRef.querySelector('[data-component="markdown"]')
-    if (!markdownEl) return false
-
-    const allText = markdownEl.textContent ?? ""
-    let hasRemaining = false
-    for (const [placeholder] of mermaidSvgStore) {
-      if (allText.includes(placeholder)) hasRemaining = true
-    }
-
-    if (!hasRemaining) return true
-
-    for (const [placeholder, svg] of mermaidSvgStore) {
-      if (!allText.includes(placeholder)) continue
-
-      const walker = document.createTreeWalker(markdownEl, NodeFilter.SHOW_TEXT)
-      while (walker.nextNode()) {
-        const node = walker.currentNode as Text
-        if (!node.textContent?.includes(placeholder)) continue
-
-        const parent = node.parentElement
-        if (!parent) continue
-
-        const wrapper = document.createElement("div")
-        wrapper.className = "mermaid-diagram"
-        wrapper.innerHTML = svg
-        parent.replaceChild(wrapper, node)
-        break
-      }
-    }
-
-    return !hasRemaining
-  }
-
   createEffect(() => {
     const text = content()?.text
     if (!text || !content()?.isMarkdown || mermaidSvgStore.size === 0) return
@@ -157,7 +93,7 @@ export function CaseLibraryDialog() {
 
     observer = new MutationObserver(() => {
       if (debounceTimer) clearTimeout(debounceTimer)
-      debounceTimer = setTimeout(injectMermaidSvgs, 50)
+      debounceTimer = setTimeout(() => injectMermaidSvgs(wrapperRef), 50)
     })
 
     const markdownEl = wrapperRef?.querySelector('[data-component="markdown"]')
@@ -165,7 +101,7 @@ export function CaseLibraryDialog() {
       observer.observe(markdownEl, { childList: true, subtree: true, characterData: true })
     }
 
-    setTimeout(injectMermaidSvgs, 100)
+    setTimeout(() => injectMermaidSvgs(wrapperRef), 100)
   })
 
   onCleanup(() => {
