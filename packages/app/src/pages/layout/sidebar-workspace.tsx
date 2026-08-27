@@ -263,8 +263,9 @@ const WorkspaceSessionList = (props: {
   return (
     <nav class="flex flex-col gap-1">
       <Show when={showSearch()}>
-        <div class="px-2">
+        <div class="w-full rounded-md pl-2 pr-3 transition-colors focus-within:bg-surface-raised-base-hover">
           <TextField
+            variant="ghost"
             placeholder={props.language.t("session.search.placeholder")}
             value={search()}
             onChange={setSearch}
