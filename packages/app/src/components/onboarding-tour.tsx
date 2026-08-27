@@ -65,15 +65,9 @@ export function OnboardingTour() {
       skipIf: () => !document.querySelector('[data-component="usage-guide"]'),
     },
     {
-      selector: "#opencode-titlebar-left button",
-      titleKey: "onboarding.help.title",
-      descKey: "onboarding.help.description",
-      skipIf: () => !device.helpDocUrl(),
-    },
-    {
-      selector: "#onboarding-button",
-      titleKey: "onboarding.onboardingButton.title",
-      descKey: "onboarding.onboardingButton.description",
+      selector: "#opencode-titlebar-left",
+      titleKey: "onboarding.helpAndGuide.title",
+      descKey: "onboarding.helpAndGuide.description",
     },
     {
       selector: ".fixed.right-4",
