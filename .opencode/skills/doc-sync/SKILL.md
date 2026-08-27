@@ -20,13 +20,14 @@ description: 功能变更后同步更新对应文档。当对 opencode-extend �
 
 | 文档 | 路径 | 覆盖范围 |
 |------|------|---------|
+| 安装指南 | `doc/install-guide.md` | 环境要求、部署说明、安装、配置、启动方法 |
 | 使用指南 | `doc/user-guide.md` | 面向终端用户，描述页面上可见的功能 |
 | 运维指南 | `doc/admin-guide.md` | 面向管理员，描述管理面板各 Tab 的功能 |
 | API 接口文档 | `doc/api-reference.md` | 全部 HTTP API 接口的路径、参数、响应、权限 |
 | 数据库表结构 | `doc/database-schema.md` | stats.db 的表结构、字段、索引、外键、写入时机、清理规则 |
 | 工具脚本指南 | `doc/tools-guide.md` | 命令行工具脚本用法 |
 | 编译打包指南 | `doc/build-guide.md` | 编译为可执行文件 |
-| README | `README.md` | 项目总览、部署、配置、启动 |
+| README | `README.md` | 项目总览、文档目录、项目结构 |
 
 ## 同步规则
 
@@ -47,9 +48,10 @@ description: 功能变更后同步更新对应文档。当对 opencode-extend �
 | API 接口变更（新增/修改/删除路由、参数、响应） | `api-reference.md` |
 | 数据库表结构变更（新增/修改/删除表、字段、索引） | `database-schema.md` |
 | 脚本工具变更（session-cleanup / query-stats） | `tools-guide.md` |
-| 配置项变更（.env 新增/删除/重命名） | `README.md` + `admin-guide.md`（如可在设置页配置） + `api-reference.md`（如影响 /device/info 或 /api/config/runtime 响应） |
+| 配置项变更（.env 新增/删除/重命名） | `install-guide.md` + `admin-guide.md`（如可在设置页配置） + `api-reference.md`（如影响 /device/info 或 /api/config/runtime 响应） |
 | 命令行参数变更 | `build-guide.md` |
 | 编译流程变更 | `build-guide.md` |
+| 部署/启动流程变更 | `install-guide.md` |
 | 认证机制变更（角色/权限/中间件） | `api-reference.md` + `admin-guide.md` + `user-guide.md` |
 | 数据清理规则变更（保留天数/清理对象） | `database-schema.md` |
 
@@ -61,7 +63,7 @@ description: 功能变更后同步更新对应文档。当对 opencode-extend �
 
 ### 4. 配置项同步
 
-- `.env` 中的配置项变更后，需同步更新 `README.md` 的配置示例和 `admin-guide.md` 的系统设置表
+- `.env` 中的配置项变更后，需同步更新 `install-guide.md` 的配置示例和 `admin-guide.md` 的系统设置表
 - 如配置项出现在 `/device/info` 或 `/api/config/runtime` 的响应中，需同步更新 `api-reference.md`
 - 命令行参数变更后，需同步更新 `build-guide.md` 的参数表
 
@@ -98,6 +100,6 @@ description: 功能变更后同步更新对应文档。当对 opencode-extend �
 - [ ] API 接口文档中权限级别标注正确（公开/已登录/管理员/超级管理员）
 - [ ] 数据库表结构文档中每张表的字段、类型、主键、外键、索引与 stats-db.js 建表语句一致
 - [ ] 数据库表结构文档中「数据写入时机」表覆盖所有写入事件
-- [ ] 配置项在 README、admin-guide、api-reference 中保持一致
+- [ ] 配置项在 install-guide、admin-guide、api-reference 中保持一致
 - [ ] 被裁剪的功能已从所有相关文档中移除
 - [ ] 被裁剪的功能对应的代码也已删除（不仅是文档移除）
