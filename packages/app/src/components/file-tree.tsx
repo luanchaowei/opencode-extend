@@ -16,6 +16,7 @@ import {
   For,
   Match,
   on,
+  onCleanup,
   onMount,
   Show,
   splitProps,
@@ -33,6 +34,10 @@ import { useSDK } from "@/context/sdk"
 import { useLanguage } from "@/context/language"
 
 const MAX_DEPTH = 128
+
+type Mermaid = typeof import("mermaid").default
+const MERMAID_PREFIX = "MERMAID_BLOCK_"
+const mermaidSvgStore = new Map<string, string>()
 
 function pathToFileUrl(filepath: string): string {
   return `file://${encodeFilePath(filepath)}`
@@ -375,17 +380,124 @@ export default function FileTree(props: {
   const dialog = useDialog()
 
   function PreviewMarkdownDialog(props: { node: FileNode }) {
+    let mermaidLib: Mermaid | undefined
+    let wrapperRef: HTMLDivElement | undefined
+    let observer: MutationObserver | undefined
+    let debounceTimer: ReturnType<typeof setTimeout> | undefined
+
     const [content] = createResource(async () => {
       try {
         const response = await fetch(`/file/download?directory=${sdk.directory}&path=${encodeURIComponent(props.node.path)}`)
         if (!response.ok) throw new Error("Failed to read file")
-        return await response.text()
+        const text = await response.text()
+        return await processMermaidBlocks(text)
       } catch (e) {
         console.error("Failed to read file:", e)
         return ""
       }
     })
-    let wrapperRef: HTMLDivElement | undefined
+
+    onMount(() => {
+      void import("mermaid").then((m) => {
+        mermaidLib = m.default
+        mermaidLib.initialize({
+          startOnLoad: false,
+          theme: "default",
+          securityLevel: "loose",
+        })
+      })
+    })
+
+    onCleanup(() => {
+      if (observer) observer.disconnect()
+      if (debounceTimer) clearTimeout(debounceTimer)
+    })
+
+    const processMermaidBlocks = async (text: string): Promise<string> => {
+      mermaidSvgStore.clear()
+      let result = text
+      let idx = 0
+
+      for (;;) {
+        const start = result.indexOf("```mermaid")
+        if (start === -1) break
+        const end = result.indexOf("```", start + 10)
+        if (end === -1) break
+
+        const fullBlock = result.substring(start, end + 3)
+        const codeContent = result.substring(start + 10, end).trim()
+        const placeholder = `${MERMAID_PREFIX}${idx}`
+        idx++
+
+        try {
+          const id = `mermaid-${Date.now()}-${idx}`
+          if (!mermaidLib) throw new Error("mermaid not loaded")
+          const { svg } = await mermaidLib.render(id, codeContent)
+          mermaidSvgStore.set(placeholder, svg)
+          result = result.replace(fullBlock, placeholder)
+        } catch {
+          result = result.replace(fullBlock, `\`\`\`mermaid\n${codeContent}\n\`\`\``)
+        }
+      }
+
+      return result
+    }
+
+    const injectMermaidSvgs = (): boolean => {
+      if (!wrapperRef) return false
+      if (mermaidSvgStore.size === 0) return true
+
+      const markdownEl = wrapperRef.querySelector('[data-component="markdown"]')
+      if (!markdownEl) return false
+
+      const allText = markdownEl.textContent ?? ""
+      let hasRemaining = false
+      for (const [placeholder] of mermaidSvgStore) {
+        if (allText.includes(placeholder)) hasRemaining = true
+      }
+
+      if (!hasRemaining) return true
+
+      for (const [placeholder, svg] of mermaidSvgStore) {
+        if (!allText.includes(placeholder)) continue
+
+        const walker = document.createTreeWalker(markdownEl, NodeFilter.SHOW_TEXT)
+        while (walker.nextNode()) {
+          const node = walker.currentNode as Text
+          if (!node.textContent?.includes(placeholder)) continue
+
+          const parent = node.parentElement
+          if (!parent) continue
+
+          const wrapper = document.createElement("div")
+          wrapper.className = "mermaid-diagram"
+          wrapper.innerHTML = svg
+          parent.replaceChild(wrapper, node)
+          break
+        }
+      }
+
+      return !hasRemaining
+    }
+
+    createEffect(() => {
+      const text = content()
+      if (!text || mermaidSvgStore.size === 0) return
+
+      if (observer) observer.disconnect()
+
+      observer = new MutationObserver(() => {
+        if (debounceTimer) clearTimeout(debounceTimer)
+        debounceTimer = setTimeout(injectMermaidSvgs, 50)
+      })
+
+      const markdownEl = wrapperRef?.querySelector('[data-component="markdown"]')
+      if (markdownEl) {
+        observer.observe(markdownEl, { childList: true, subtree: true, characterData: true })
+      }
+
+      setTimeout(injectMermaidSvgs, 100)
+    })
 
     return (
       <Dialog title={props.node.name} class="min-w-[600px]" fullscreen>

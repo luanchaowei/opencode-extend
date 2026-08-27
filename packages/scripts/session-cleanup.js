@@ -180,7 +180,7 @@ if (mode === "inactive") {
     sessions = db.query(`
       SELECT id, directory, title, time_updated 
       FROM session 
-      WHERE time_archived IS NULL AND time_updated < ? and directory like '%ge_agent%'
+      WHERE time_archived IS NULL AND time_updated < ?
     `).all(threshold)
   }
 } else if (mode === "archived") {
