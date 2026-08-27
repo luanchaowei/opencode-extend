@@ -16,7 +16,6 @@ import {
   For,
   Match,
   on,
-  onCleanup,
   onMount,
   Show,
   splitProps,
@@ -382,8 +381,6 @@ export default function FileTree(props: {
   function PreviewMarkdownDialog(props: { node: FileNode }) {
     let mermaidLib: Mermaid | undefined
     let wrapperRef: HTMLDivElement | undefined
-    let observer: MutationObserver | undefined
-    let debounceTimer: ReturnType<typeof setTimeout> | undefined
 
     const [content] = createResource(async () => {
       try {
@@ -406,11 +403,6 @@ export default function FileTree(props: {
           securityLevel: "loose",
         })
       })
-    })
-
-    onCleanup(() => {
-      if (observer) observer.disconnect()
-      if (debounceTimer) clearTimeout(debounceTimer)
     })
 
     const processMermaidBlocks = async (text: string): Promise<string> => {
@@ -443,24 +435,13 @@ export default function FileTree(props: {
       return result
     }
 
-    const injectMermaidSvgs = (): boolean => {
-      if (!wrapperRef) return false
-      if (mermaidSvgStore.size === 0) return true
+    const injectMermaidSvgs = () => {
+      if (!wrapperRef || mermaidSvgStore.size === 0) return
 
       const markdownEl = wrapperRef.querySelector('[data-component="markdown"]')
-      if (!markdownEl) return false
-
-      const allText = markdownEl.textContent ?? ""
-      let hasRemaining = false
-      for (const [placeholder] of mermaidSvgStore) {
-        if (allText.includes(placeholder)) hasRemaining = true
-      }
-
-      if (!hasRemaining) return true
+      if (!markdownEl) return
 
       for (const [placeholder, svg] of mermaidSvgStore) {
-        if (!allText.includes(placeholder)) continue
-
         const walker = document.createTreeWalker(markdownEl, NodeFilter.SHOW_TEXT)
         while (walker.nextNode()) {
           const node = walker.currentNode as Text
@@ -476,27 +457,12 @@ export default function FileTree(props: {
           break
         }
       }
-
-      return !hasRemaining
     }
 
     createEffect(() => {
       const text = content()
       if (!text || mermaidSvgStore.size === 0) return
-
-      if (observer) observer.disconnect()
-
-      observer = new MutationObserver(() => {
-        if (debounceTimer) clearTimeout(debounceTimer)
-        debounceTimer = setTimeout(injectMermaidSvgs, 50)
-      })
-
-      const markdownEl = wrapperRef?.querySelector('[data-component="markdown"]')
-      if (markdownEl) {
-        observer.observe(markdownEl, { childList: true, subtree: true, characterData: true })
-      }
-
-      setTimeout(injectMermaidSvgs, 100)
+      setTimeout(injectMermaidSvgs, 200)
     })
 
     return (
