@@ -3,6 +3,14 @@ import type { Mermaid } from "./mermaid-types"
 export type { Mermaid }
 
 export const MERMAID_PREFIX = "MERMAID_BLOCK_"
+
+export function escapeTildes(text: string): string {
+  const parts = text.split(/(```[\s\S]*?```|`[^`]+`)/g)
+  return parts.map((part, i) => {
+    if (i % 2 === 1) return part
+    return part.replace(/(?<!~)~(?!~)/g, "\\~")
+  }).join("")
+}
 export const mermaidSvgStore = new Map<string, string>()
 
 export function fixMermaidParens(code: string): string {

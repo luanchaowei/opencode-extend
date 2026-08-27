@@ -33,6 +33,7 @@ import { useSDK } from "@/context/sdk"
 import { useLanguage } from "@/context/language"
 import {
   processMermaidBlocks,
+  escapeTildes,
   injectMermaidSvgs,
   mermaidSvgStore,
   type Mermaid,
@@ -402,7 +403,7 @@ export default function FileTree(props: {
         const response = await fetch(`/file/download?directory=${sdk.directory}&path=${encodeURIComponent(props.node.path)}`)
         if (!response.ok) throw new Error("Failed to read file")
         const text = await response.text()
-        return await processMermaidBlocks(text, mermaidLib)
+        return await processMermaidBlocks(escapeTildes(text), mermaidLib)
       } catch (e) {
         console.error("Failed to read file:", e)
         return ""

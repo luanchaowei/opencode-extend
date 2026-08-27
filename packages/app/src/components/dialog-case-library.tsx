@@ -11,6 +11,7 @@ import { Collapsible } from "@opencode-ai/ui/collapsible"
 import { MarkdownTOC } from "./markdown-toc"
 import {
   processMermaidBlocks,
+  escapeTildes,
   injectMermaidSvgs,
   mermaidSvgStore,
   type Mermaid,
@@ -75,7 +76,7 @@ export function CaseLibraryDialog() {
       if (isMarkdown) {
         const withImages = processImagePaths(text, filePath)
         if (!mermaidLib) throw new Error("mermaid not loaded")
-        const processedText = await processMermaidBlocks(withImages, mermaidLib)
+        const processedText = await processMermaidBlocks(escapeTildes(withImages), mermaidLib)
         return { text: processedText, isMarkdown, isImage: false }
       }
 
