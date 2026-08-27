@@ -5,20 +5,43 @@ set -e
 cd "$(dirname "$0")"
 
 # === 解析目标平台参数 ===
-# 用法: bash build.sh [--target=linux-x64|linux-arm64|windows-x64|windows-arm64]
-# 默认: linux-x64
-TARGET="linux-x64"
+# 用法: bash build.sh [--all] [--target=<平台>]
+# 默认: --all (构建全部4个平台)
+ALL_TARGETS=("linux-x64" "linux-arm64" "windows-x64" "windows-arm64")
+TARGETS=()
 for arg in "$@"; do
   case "$arg" in
-    --target=*) TARGET="${arg#--target=}";;
+    --all)          TARGETS=("${ALL_TARGETS[@]}");;
+    --target=*)
+      local_target="${arg#--target=}"
+      valid=false
+      for t in "${ALL_TARGETS[@]}"; do
+        if [[ "$t" == "$local_target" ]]; then valid=true; break; fi
+      done
+      if [[ "$valid" == false ]]; then
+        echo "错误: 未知平台 '$local_target'"
+        echo "可选平台: ${ALL_TARGETS[*]}"
+        exit 1
+      fi
+      TARGETS=("$local_target")
+      ;;
     --help|-h)
-      echo "用法: bash build.sh [--target=<平台>]"
+      echo "用法: bash build.sh [--all] [--target=<平台>]"
+      echo ""
+      echo "选项:"
+      echo "  --all              构建全部4个平台 (默认)"
+      echo "  --target=<平台>    只构建指定平台"
       echo ""
       echo "可选平台:"
-      echo "  linux-x64       Linux x86_64 (默认)"
+      echo "  linux-x64       Linux x86_64"
       echo "  linux-arm64     Linux ARM64"
       echo "  windows-x64     Windows x86_64"
       echo "  windows-arm64   Windows ARM64"
+      echo ""
+      echo "示例:"
+      echo "  bash build.sh                          # 构建全部平台"
+      echo "  bash build.sh --all                    # 构建全部平台"
+      echo "  bash build.sh --target=linux-arm64     # 只构建 linux-arm64"
       exit 0
       ;;
     *)
@@ -29,13 +52,12 @@ for arg in "$@"; do
   esac
 done
 
-BUN_TARGET="bun-${TARGET}"
-case "$TARGET" in
-  windows-*) OUTPUT_NAME="opencode-extend.exe";;
-  *)         OUTPUT_NAME="opencode-extend";;
-esac
+# 无参数时默认构建全部
+if [[ ${#TARGETS[@]} -eq 0 ]]; then
+  TARGETS=("${ALL_TARGETS[@]}")
+fi
 
-echo "=== 目标平台: $TARGET ==="
+echo "=== 目标平台: ${TARGETS[*]} ==="
 echo ""
 
 echo "=== 1. 安装依赖 ==="
@@ -75,21 +97,10 @@ await Bun.write('$MANIFEST_FILE', output)
 console.log('Generated manifest with', Object.keys(files).length, 'files')
 "
 
-echo "=== 4. 编译可执行文件 ($BUN_TARGET) ==="
 OUTPUT_DIR="dist-bin"
 mkdir -p "$OUTPUT_DIR"
 
-bun build --compile --minify \
-  --target "$BUN_TARGET" \
-  --outfile "$OUTPUT_DIR/$OUTPUT_NAME" \
-  "$APP_DIR/server.js"
-
-echo "=== 5. 清理临时文件 ==="
-rm -f "$MANIFEST_FILE"
-
-echo "=== 6. 打包 ==="
-
-# 生成 .env.example 模板
+# 生成 .env.example 模板 (只需一次)
 cat > "$OUTPUT_DIR/.env.example" << 'ENV_EXAMPLE'
 # === 服务配置 ===
 WEB_HOST=0.0.0.0                          # 前端监听地址
@@ -137,21 +148,56 @@ VITE_MODEL_TEST_TIMEOUT=30000            # 模型检测超时时间（毫秒）�
 VITE_OPENCODE_SERVER_LOG=~/.local/share/opencode/log/opencode.log  # 后端日志路径
 ENV_EXAMPLE
 
-tar czf "$OUTPUT_DIR/opencode-extend-$TARGET.tar.gz" \
-  -C "$OUTPUT_DIR" \
-  "$OUTPUT_NAME" \
-  .env.example
+# === 4. 逐平台编译并打包 ===
+INDEX=1
+TOTAL=${#TARGETS[@]}
+declare -a RESULTS
 
-BIN_SIZE=$(du -h "$OUTPUT_DIR/$OUTPUT_NAME" | cut -f1)
-TAR_SIZE=$(du -h "$OUTPUT_DIR/opencode-extend-$TARGET.tar.gz" | cut -f1)
+for target in "${TARGETS[@]}"; do
+  bun_target="bun-${target}"
+  case "$target" in
+    windows-*) output_name="opencode-extend.exe";;
+    *)         output_name="opencode-extend";;
+  esac
 
+  echo ""
+  echo "=== [$INDEX/$TOTAL] 编译 $target ($bun_target) ==="
+
+  bun build --compile --minify \
+    --target "$bun_target" \
+    --outfile "$OUTPUT_DIR/$output_name" \
+    "$APP_DIR/server.js"
+
+  tar czf "$OUTPUT_DIR/opencode-extend-$target.tar.gz" \
+    -C "$OUTPUT_DIR" \
+    "$output_name" \
+    .env.example
+
+  bin_size=$(du -h "$OUTPUT_DIR/$output_name" | cut -f1)
+  tar_size=$(du -h "$OUTPUT_DIR/opencode-extend-$target.tar.gz" | cut -f1)
+  RESULTS+=("$target|$output_name|$bin_size|$tar_size")
+
+  INDEX=$((INDEX + 1))
+done
+
+# === 5. 清理临时文件 ===
+rm -f "$MANIFEST_FILE"
+
+# === 6. 汇总 ===
 echo ""
 echo "=== 编译完成 ==="
-echo "目标平台:   $TARGET"
-echo "可执行文件: $OUTPUT_DIR/$OUTPUT_NAME ($BIN_SIZE)"
-echo "安装包:     $OUTPUT_DIR/opencode-extend-$TARGET.tar.gz ($TAR_SIZE)"
+echo "目标平台: ${TARGETS[*]}"
+echo ""
+echo "平台             | 可执行文件              | 大小   | 安装包                                     | 大小"
+echo "---------------- | ----------------------- | ------ | ------------------------------------------ | ------"
+for result in "${RESULTS[@]}"; do
+  IFS='|' read -r target output_name bin_size tar_size <<< "$result"
+  printf "%-16s | %-23s | %-6s | %-42s | %s\n" "$target" "$output_name" "$bin_size" "opencode-extend-$target.tar.gz" "$tar_size"
+done
+echo ""
+echo "输出目录: $OUTPUT_DIR/"
 echo ""
 echo "部署方式:"
-echo "  1. 解压: tar xzf opencode-extend-$TARGET.tar.gz"
+echo "  1. 解压: tar xzf opencode-extend-<平台>.tar.gz"
 echo "  2. 配置: cp .env.example .env && vim .env"
-echo "  3. 启动: ./$OUTPUT_NAME"
+echo "  3. 启动: ./opencode-extend"
