@@ -182,6 +182,8 @@ export const dict = {
   "file.delete.confirm": "确定要删除 {{filename}} 吗？",
   "file.delete.label": "删除文件",
   "file.download.label": "下载文件",
+  "file.preview.label": "预览文件",
+  "file.preview.loading": "加载中...",
   "toast.session.nameRequired.title": "会话名称必填",
   "toast.session.nameRequired.description": "请输入会话名称",
   "toast.session.listFailed.title": "无法加载 {{project}} 的会话",

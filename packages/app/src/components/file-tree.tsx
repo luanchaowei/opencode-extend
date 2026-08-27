@@ -1,18 +1,25 @@
 import { useFile } from "@/context/file"
 import { encodeFilePath } from "@/context/file/path"
 import { Collapsible } from "@opencode-ai/ui/collapsible"
+import { Dialog } from "@opencode-ai/ui/dialog"
+import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { DropdownMenu } from "@opencode-ai/ui/dropdown-menu"
 import { FileIcon } from "@opencode-ai/ui/file-icon"
 import { Icon } from "@opencode-ai/ui/icon"
+import { Markdown } from "@opencode-ai/ui/markdown"
+import { MarkdownTOC } from "./markdown-toc"
 import { showToast } from "@opencode-ai/ui/toast"
 import {
   createEffect,
   createMemo,
+  createResource,
   For,
   Match,
   on,
+  onMount,
   Show,
   splitProps,
+  Suspense,
   Switch,
   untrack,
   createSignal,
@@ -114,6 +121,7 @@ const FileTreeNode = (
       marks?: Set<string>
       onDelete?: (node: FileNode) => void
       onDownload?: (node: FileNode) => void
+      onPreview?: (node: FileNode) => void
       isOwnProject?: boolean
       language?: { t: (key: string, params?: any) => string }
       as?: string | Component
@@ -132,6 +140,7 @@ const FileTreeNode = (
     "classList",
     "onDelete",
     "onDownload",
+    "onPreview",
     "isOwnProject",
     "language",
     "as",
@@ -219,6 +228,17 @@ const FileTreeNode = (
               style={`position: fixed; left: ${menuPosition().x}px; top: ${menuPosition().y}px;`}
               onOpenAutoFocus={(e) => e.preventDefault()}
             >
+              <Show when={local.node.type === "file" && local.node.path.endsWith(".md") && local.onPreview}>
+                <DropdownMenu.Item onSelect={() => {
+                  local.onPreview?.(local.node)
+                  setMenuOpen(false)
+                }}>
+                  <div class="flex items-center gap-2">
+                    <Icon name="eye" size="small" class="text-icon-weak" />
+                    <DropdownMenu.ItemLabel>{local.language?.t("file.preview.label") || "Preview"}</DropdownMenu.ItemLabel>
+                  </div>
+                </DropdownMenu.Item>
+              </Show>
               <Show when={local.node.type === "file" && local.onDownload}>
                 <DropdownMenu.Item onSelect={() => {
                   local.onDownload?.(local.node)
@@ -350,6 +370,49 @@ export default function FileTree(props: {
         description: language.t("toast.file.deleteFailed.description", { filename: node.name, error: errorMsg }),
       })
     }
+  }
+
+  const dialog = useDialog()
+
+  function PreviewMarkdownDialog(props: { node: FileNode }) {
+    const [content] = createResource(async () => {
+      try {
+        const response = await fetch(`/file/download?directory=${sdk.directory}&path=${encodeURIComponent(props.node.path)}`)
+        if (!response.ok) throw new Error("Failed to read file")
+        return await response.text()
+      } catch (e) {
+        console.error("Failed to read file:", e)
+        return ""
+      }
+    })
+    let wrapperRef: HTMLDivElement | undefined
+
+    return (
+      <Dialog title={props.node.name} class="min-w-[600px]" fullscreen>
+        <div class="flex gap-0 flex-1 min-h-0">
+          <Suspense fallback={<div class="flex-1 flex items-center justify-center text-text-weak">{language.t("file.preview.loading")}</div>}>
+            <div
+              ref={wrapperRef}
+              class="flex-1 min-h-0 overflow-auto p-4"
+              onClick={(e) => {
+                const link = (e.target as HTMLElement).closest("a")
+                if (link) {
+                  e.preventDefault()
+                  e.stopPropagation()
+                }
+              }}
+            >
+              <Markdown text={content() || ""} class="prose prose-sm" />
+            </div>
+            <MarkdownTOC containerRef={wrapperRef} />
+          </Suspense>
+        </div>
+      </Dialog>
+    )
+  }
+
+  const handlePreview = (node: FileNode) => {
+    dialog.show(() => <PreviewMarkdownDialog node={node} />)
   }
 
   const key = (p: string) =>
@@ -612,6 +675,7 @@ export default function FileTree(props: {
                   language={language}
                   onDelete={props.showDelete ? handleDelete : undefined}
                   onDownload={handleDownload}
+                  onPreview={handlePreview}
                   isOwnProject={props.isOwnProject}
                   onDblClick={() => props.onFileDoubleClick?.(node)}
                 >

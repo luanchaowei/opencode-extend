@@ -190,6 +190,8 @@ export const dict = {
   "file.delete.confirm": "Are you sure you want to delete {{filename}}?",
   "file.delete.label": "Delete file",
   "file.download.label": "Download file",
+  "file.preview.label": "Preview file",
+  "file.preview.loading": "Loading...",
 
   "toast.session.nameRequired.title": "Session name required",
   "toast.session.nameRequired.description": "Please enter a session name",
