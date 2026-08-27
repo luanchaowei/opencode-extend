@@ -16,7 +16,7 @@ import {
   For,
   Match,
   on,
-  onMount,
+  onCleanup,
   Show,
   splitProps,
   Suspense,
@@ -36,6 +36,7 @@ const MAX_DEPTH = 128
 
 type Mermaid = typeof import("mermaid").default
 const MERMAID_PREFIX = "MERMAID_BLOCK_"
+const svgStore = new Map<string, string>()
 
 function pathToFileUrl(filepath: string): string {
   return `file://${encodeFilePath(filepath)}`
@@ -377,38 +378,48 @@ export default function FileTree(props: {
 
   const dialog = useDialog()
 
+  function fixMermaidParens(code: string): string {
+    return code
+      .replace(/(\w+)\[([^\]]+)\]/g, (match, id: string, label: string) => {
+        if (label.startsWith('"') || !/[()]/.test(label)) return match
+        return `${id}["${label}"]`
+      })
+      .replace(/(\w+)\{([^\}]+)\}/g, (match, id: string, label: string) => {
+        if (label.startsWith('"') || !/[()]/.test(label)) return match
+        return `${id}{"${label}"}`
+      })
+  }
+
   function PreviewMarkdownDialog(props: { node: FileNode }) {
     let wrapperRef: HTMLDivElement | undefined
-    const svgStore = new Map<string, string>()
+    let observer: MutationObserver | undefined
+    let debounceTimer: ReturnType<typeof setTimeout> | undefined
 
-    const mermaidPromise = import("mermaid").then((m) => {
+    const mermaidReady = import("mermaid").then((m) => {
       const lib = m.default
       lib.initialize({ startOnLoad: false, theme: "default", securityLevel: "loose" })
       return lib
     })
 
+    onCleanup(() => {
+      if (observer) observer.disconnect()
+      if (debounceTimer) clearTimeout(debounceTimer)
+    })
+
     const [content] = createResource(async () => {
       try {
-        const mermaidLib = await mermaidPromise
+        const mermaidLib = await mermaidReady
         const response = await fetch(`/file/download?directory=${sdk.directory}&path=${encodeURIComponent(props.node.path)}`)
         if (!response.ok) throw new Error("Failed to read file")
         const text = await response.text()
-        return processMermaidBlocks(escapeTildes(text), mermaidLib)
+        return await processMermaidBlocks(text, mermaidLib)
       } catch (e) {
         console.error("Failed to read file:", e)
         return ""
       }
     })
 
-    function escapeTildes(text: string): string {
-      const parts = text.split(/(```[\s\S]*?```|`[^`]+`)/g)
-      return parts.map((part, i) => {
-        if (i % 2 === 1) return part
-        return part.replace(/(?<!~)~(?!~)/g, "\\~")
-      }).join("")
-    }
-
-    async function processMermaidBlocks(text: string, mermaidLib: Mermaid): Promise<string> {
+    const processMermaidBlocks = async (text: string, mermaidLib: Mermaid): Promise<string> => {
       svgStore.clear()
       let result = text
       let idx = 0
@@ -420,9 +431,11 @@ export default function FileTree(props: {
         if (end === -1) break
 
         const fullBlock = result.substring(start, end + 3)
-        const codeContent = result.substring(start + 10, end).trim()
+        let codeContent = result.substring(start + 10, end).trim()
         const placeholder = `${MERMAID_PREFIX}${idx}`
         idx++
+
+        codeContent = fixMermaidParens(codeContent)
 
         try {
           const id = `mermaid-${Date.now()}-${idx}`
@@ -438,14 +451,24 @@ export default function FileTree(props: {
       return result
     }
 
-    function injectMermaidSvgs(): boolean {
-      if (!wrapperRef || svgStore.size === 0) return false
+    const injectMermaidSvgs = (): boolean => {
+      if (!wrapperRef) return false
+      if (svgStore.size === 0) return true
 
       const markdownEl = wrapperRef.querySelector('[data-component="markdown"]')
       if (!markdownEl) return false
 
-      let injected = false
+      const allText = markdownEl.textContent ?? ""
+      let hasRemaining = false
+      for (const [placeholder] of svgStore) {
+        if (allText.includes(placeholder)) hasRemaining = true
+      }
+
+      if (!hasRemaining) return true
+
       for (const [placeholder, svg] of svgStore) {
+        if (!allText.includes(placeholder)) continue
+
         const walker = document.createTreeWalker(markdownEl, NodeFilter.SHOW_TEXT)
         while (walker.nextNode()) {
           const node = walker.currentNode as Text
@@ -458,35 +481,30 @@ export default function FileTree(props: {
           wrapper.className = "mermaid-diagram"
           wrapper.innerHTML = svg
           parent.replaceChild(wrapper, node)
-          injected = true
           break
         }
       }
-      return injected
-    }
 
-    function hasRemainingPlaceholders(): boolean {
-      const markdownEl = wrapperRef?.querySelector('[data-component="markdown"]')
-      if (!markdownEl) return true
-      const allText = markdownEl.textContent ?? ""
-      for (const [placeholder] of svgStore) {
-        if (allText.includes(placeholder)) return true
-      }
-      return false
-    }
-
-    function tryInject(retries: number) {
-      if (svgStore.size === 0) return
-      injectMermaidSvgs()
-      if (hasRemainingPlaceholders() && retries > 0) {
-        setTimeout(() => tryInject(retries - 1), 100)
-      }
+      return !hasRemaining
     }
 
     createEffect(() => {
       const text = content()
       if (!text || svgStore.size === 0) return
-      setTimeout(() => tryInject(15), 200)
+
+      if (observer) observer.disconnect()
+
+      observer = new MutationObserver(() => {
+        if (debounceTimer) clearTimeout(debounceTimer)
+        debounceTimer = setTimeout(injectMermaidSvgs, 50)
+      })
+
+      const markdownEl = wrapperRef?.querySelector('[data-component="markdown"]')
+      if (markdownEl) {
+        observer.observe(markdownEl, { childList: true, subtree: true, characterData: true })
+      }
+
+      setTimeout(injectMermaidSvgs, 100)
     })
 
     return (
