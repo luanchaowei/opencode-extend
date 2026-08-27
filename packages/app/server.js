@@ -666,6 +666,7 @@ async function handleAPI(req, server) {
     const hiddenProviders = (process.env.VITE_HIDDEN_PROVIDERS || "").split(",").map(s => s.trim()).filter(Boolean)
     const session = authEnabled ? getSession(req) : null
     const clientIP = authEnabled ? (session?.username || "unknown") : getClientIP(req, server)
+    const onboardingCompleted = statsDb.getOnboardingStatus(clientIP)
     return jsonResponse({
       clientIP,
       authEnabled,
@@ -683,6 +684,7 @@ async function handleAPI(req, server) {
       serverUsername: process.env.VITE_OPENCODE_SERVER_USERNAME || "",
       serverPassword: process.env.VITE_OPENCODE_SERVER_PASSWORD || "",
       hiddenProviders,
+      onboardingCompleted,
     })
   }
 
@@ -999,6 +1001,21 @@ async function handleAPI(req, server) {
       return jsonResponse({ ok: true, buildTime })
     } catch (err) {
       console.error(`[${getTzTime()}] POST /api/stats/heartbeat error: ${err.message}\n${err.stack}`)
+      return jsonResponse({ error: err.message }, 500)
+    }
+  }
+
+  if (url.pathname === "/api/onboarding/complete" && method === "POST") {
+    try {
+      const body = JSON.parse(await readBody(req))
+      const { clientIP } = body
+      if (!clientIP) return jsonResponse({ error: "Missing clientIP" }, 400)
+      const userId = authEnabled ? (getSession(req)?.userId || null) : null
+      const ip = authEnabled ? (getSession(req)?.username || "unknown") : clientIP
+      statsDb.setOnboardingCompleted(ip)
+      return jsonResponse({ ok: true })
+    } catch (err) {
+      console.error(`[${getTzTime()}] POST /api/onboarding/complete error: ${err.message}\n${err.stack}`)
       return jsonResponse({ error: err.message }, 500)
     }
   }

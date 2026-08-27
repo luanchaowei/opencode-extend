@@ -107,6 +107,7 @@ export function createStatsDb(Database, dbPath) {
 
   try { db.exec("ALTER TABLE heartbeats ADD COLUMN user_id INTEGER DEFAULT NULL") } catch {}
   try { db.exec("ALTER TABLE heartbeat_sessions ADD COLUMN user_id INTEGER DEFAULT NULL") } catch {}
+  try { db.exec("ALTER TABLE heartbeats ADD COLUMN onboarding_completed INTEGER DEFAULT 0") } catch {}
 
   try { db.exec("UPDATE model_test_results SET status = 2, error = 'Service restarted during testing' WHERE status = 0") } catch {}
 
@@ -463,6 +464,15 @@ export function createStatsDb(Database, dbPath) {
     return row?.username || null
   }
 
+  function getOnboardingStatus(clientIP) {
+    const row = db.query("SELECT onboarding_completed FROM heartbeats WHERE client_ip = ?").get(clientIP)
+    return row ? (row.onboarding_completed || 0) : 0
+  }
+
+  function setOnboardingCompleted(clientIP) {
+    db.query("UPDATE heartbeats SET onboarding_completed = 1 WHERE client_ip = ?").run(clientIP)
+  }
+
   function close() {
     rawDb.close()
   }
@@ -492,6 +502,8 @@ export function createStatsDb(Database, dbPath) {
     hasTestingModels,
     getModelTestResults,
     getUsernameById,
+    getOnboardingStatus,
+    setOnboardingCompleted,
     close,
   }
 }

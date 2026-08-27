@@ -294,11 +294,12 @@ Set-Cookie: `session_id=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax`
   "serverUsername": "opencode",
   "serverPassword": "",
   "hiddenProviders": ["opencode", "alibaba-cn"],
-  "authEnabled": false
+  "authEnabled": false,
+  "onboardingCompleted": 0
 }
 ```
 
-> `clientIP` 为客户端 IP 地址，`.` 替换为 `_`。当 `AUTH_ENABLED=true` 时，`clientIP` 返回当前登录用户名（`username`）而非 IP 地址。`hiddenProviders` 为隐藏的供应商 ID 列表，前端模型选择器和模型管理 Tab 会过滤掉这些供应商。`authEnabled` 为布尔值，表示是否启用了登录认证。
+> `clientIP` 为客户端 IP 地址，`.` 替换为 `_`。当 `AUTH_ENABLED=true` 时，`clientIP` 返回当前登录用户名（`username`）而非 IP 地址。`hiddenProviders` 为隐藏的供应商 ID 列表，前端模型选择器和模型管理 Tab 会过滤掉这些供应商。`authEnabled` 为布尔值，表示是否启用了登录认证。`onboardingCompleted` 为 0 或 1，表示该客户端是否已完成新手指引，前端据此和 `localStorage` 共同判断是否需要再次弹出引导。
 
 ---
 
@@ -641,6 +642,30 @@ Set-Cookie: `session_id=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax`
 
 > `buildTime` 为服务端构建时间戳。前端检测到变化时自动刷新页面（热部署感知）。
 > 此接口不会续期会话。
+
+---
+
+### POST /api/onboarding/complete
+
+标记客户端已完成新手指引。完成后 `heartbeats.onboarding_completed` 更新为 1。
+
+**权限**：已登录
+
+**请求体**：
+
+```json
+{
+  "clientIP": "192_168_1_100"
+}
+```
+
+**成功响应** `200`：
+
+```json
+{ "ok": true }
+```
+
+> 前端在新手指引完成（点击"完成"按钮）时调用此接口。跳过引导不调用此接口，刷新后重新弹出。`GET /device/info` 的 `onboardingCompleted` 字段反映此状态。
 
 ---
 

@@ -577,7 +577,8 @@ export default [
             const serverUsername = process.env.VITE_OPENCODE_SERVER_USERNAME || ""
             const serverPassword = process.env.VITE_OPENCODE_SERVER_PASSWORD || ""
             const hiddenProviders = (process.env.VITE_HIDDEN_PROVIDERS || "").split(",").map(s => s.trim()).filter(Boolean)
-            res.end(JSON.stringify({ clientIP, authEnabled, contactAdmin: contactList, feedbackUrl, caseLibraryDir, helpDocUrl, announcementText, fileTreePollInterval, heartbeatInterval, diskUsageThreshold, defaultDir, serverHost, serverPort, serverUsername, serverPassword, hiddenProviders }))
+            const onboardingCompleted = statsDb.getOnboardingStatus(clientIP)
+            res.end(JSON.stringify({ clientIP, authEnabled, contactAdmin: contactList, feedbackUrl, caseLibraryDir, helpDocUrl, announcementText, fileTreePollInterval, heartbeatInterval, diskUsageThreshold, defaultDir, serverHost, serverPort, serverUsername, serverPassword, hiddenProviders, onboardingCompleted }))
           } catch (error) {
             res.statusCode = 500
             res.end(JSON.stringify({ error: error.message }))
@@ -1283,6 +1284,22 @@ export default [
             res.end(JSON.stringify({ ok: true, buildTime }))
           } catch (err) {
             console.error(`[${getTzTime()}] /api/stats/heartbeat error: ${err.message}\n${err.stack}`)
+            res.statusCode = 500; res.end(JSON.stringify({ error: err.message }))
+          }
+          return
+        }
+
+        if (req.url === "/api/onboarding/complete" && req.method === "POST") {
+          try {
+            const body = JSON.parse(await readBody())
+            const { clientIP } = body
+            if (!clientIP) { res.statusCode = 400; res.end(JSON.stringify({ error: "Missing clientIP" })); return }
+            const ip = authEnabled ? (getSessionFromReq(req)?.username || "unknown") : clientIP
+            statsDb.setOnboardingCompleted(ip)
+            res.setHeader("Content-Type", "application/json")
+            res.end(JSON.stringify({ ok: true }))
+          } catch (err) {
+            console.error(`[${getTzTime()}] /api/onboarding/complete error: ${err.message}\n${err.stack}`)
             res.statusCode = 500; res.end(JSON.stringify({ error: err.message }))
           }
           return

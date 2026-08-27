@@ -39,8 +39,11 @@
 | `client_ip` | TEXT PRIMARY KEY | 客户端 IP（`.` 和 `:` 替换为 `_`） |
 | `last_seen` | INTEGER | 最后一次心跳时间戳（毫秒） |
 | `user_id` | INTEGER DEFAULT NULL | 关联用户 ID（预留字段） |
+| `onboarding_completed` | INTEGER DEFAULT 0 | 是否已完成新手指引：0=未完成，1=已完成 |
 
 > `user_id` 为预留字段，通过 `ALTER TABLE` 动态添加。当 `AUTH_ENABLED=true` 时，心跳接口会从会话中提取 `userId` 并写入此字段；`AUTH_ENABLED=false` 时该字段为 `NULL`。
+>
+> `onboarding_completed` 通过 `ALTER TABLE` 动态添加。新手指引完成时调用 `POST /api/onboarding/complete` 将此字段更新为 1。`GET /device/info` 返回此字段供前端判断是否需要再次弹出引导。
 
 会话心跳记录，记录每个客户端下的会话状态。
 
@@ -158,7 +161,7 @@
 ## 表关系
 
 ```
-heartbeats (client_ip PK)
+heartbeats (client_ip PK, onboarding_completed)
   └── heartbeat_sessions (client_ip + session_id PK, FK → heartbeats.client_ip CASCADE)
 
 daily_stats (day_key PK)
@@ -185,6 +188,7 @@ users (id PK)            独立表，无外键关联
 | 状态对齐 | `GET /api/stats`（服务端内部） | `heartbeat_sessions.status` 更新为后端实际状态 |
 | 用户注册 | `POST /api/register` | `users` 插入（role=user） |
 | 管理员创建用户 | `POST /api/users` | `users` 插入（role=user/admin） |
+| 新手指引完成 | `POST /api/onboarding/complete` | `heartbeats.onboarding_completed` 更新为 1 |
 
 > **userId 写入说明**：当 `AUTH_ENABLED=true` 时，心跳接口（`POST /api/stats/heartbeat`）和会话创建接口（`POST /api/stats/session-create`）会从登录会话中提取 `userId`，并写入 `heartbeats.user_id` 和 `heartbeat_sessions.user_id` 字段；`AUTH_ENABLED=false` 时这些字段为 `NULL`。
 

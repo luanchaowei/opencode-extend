@@ -173,6 +173,14 @@ export function OnboardingTour() {
   const close = () => {
     setActive(false)
     localStorage.setItem("onboarding-completed", "true")
+    const ip = device.clientIP()
+    if (ip && ip !== "localhost" && ip !== "unknown") {
+      fetch("/api/onboarding/complete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clientIP: ip }),
+      }).catch(() => {})
+    }
     if (rafId) cancelAnimationFrame(rafId)
   }
 
@@ -206,6 +214,7 @@ export function OnboardingTour() {
     if (dirName !== ip) return
     if (started) return
     if (localStorage.getItem("onboarding-completed")) return
+    if (device.onboardingCompleted()) return
     setTimeout(() => start(), 1500)
   })
 
