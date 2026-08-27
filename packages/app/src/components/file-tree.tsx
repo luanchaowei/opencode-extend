@@ -36,7 +36,6 @@ const MAX_DEPTH = 128
 
 type Mermaid = typeof import("mermaid").default
 const MERMAID_PREFIX = "MERMAID_BLOCK_"
-const mermaidSvgStore = new Map<string, string>()
 
 function pathToFileUrl(filepath: string): string {
   return `file://${encodeFilePath(filepath)}`
@@ -379,34 +378,30 @@ export default function FileTree(props: {
   const dialog = useDialog()
 
   function PreviewMarkdownDialog(props: { node: FileNode }) {
-    let mermaidLib: Mermaid | undefined
     let wrapperRef: HTMLDivElement | undefined
+    const svgStore = new Map<string, string>()
+
+    const mermaidPromise = import("mermaid").then((m) => {
+      const lib = m.default
+      lib.initialize({ startOnLoad: false, theme: "default", securityLevel: "loose" })
+      return lib
+    })
 
     const [content] = createResource(async () => {
       try {
+        const mermaidLib = await mermaidPromise
         const response = await fetch(`/file/download?directory=${sdk.directory}&path=${encodeURIComponent(props.node.path)}`)
         if (!response.ok) throw new Error("Failed to read file")
         const text = await response.text()
-        return await processMermaidBlocks(text)
+        return processMermaidBlocks(text, mermaidLib)
       } catch (e) {
         console.error("Failed to read file:", e)
         return ""
       }
     })
 
-    onMount(() => {
-      void import("mermaid").then((m) => {
-        mermaidLib = m.default
-        mermaidLib.initialize({
-          startOnLoad: false,
-          theme: "default",
-          securityLevel: "loose",
-        })
-      })
-    })
-
-    const processMermaidBlocks = async (text: string): Promise<string> => {
-      mermaidSvgStore.clear()
+    async function processMermaidBlocks(text: string, mermaidLib: Mermaid): Promise<string> {
+      svgStore.clear()
       let result = text
       let idx = 0
 
@@ -423,25 +418,26 @@ export default function FileTree(props: {
 
         try {
           const id = `mermaid-${Date.now()}-${idx}`
-          if (!mermaidLib) throw new Error("mermaid not loaded")
           const { svg } = await mermaidLib.render(id, codeContent)
-          mermaidSvgStore.set(placeholder, svg)
+          svgStore.set(placeholder, svg)
           result = result.replace(fullBlock, placeholder)
         } catch {
-          result = result.replace(fullBlock, `\`\`\`mermaid\n${codeContent}\n\`\`\``)
+          svgStore.set(placeholder, `<div style="padding:8px;border:1px solid var(--border-critical-base);border-radius:4px;color:var(--text-diff-delete-base);font-size:13px;">Mermaid render error</div>`)
+          result = result.replace(fullBlock, placeholder)
         }
       }
 
       return result
     }
 
-    const injectMermaidSvgs = () => {
-      if (!wrapperRef || mermaidSvgStore.size === 0) return
+    function injectMermaidSvgs(): boolean {
+      if (!wrapperRef || svgStore.size === 0) return false
 
       const markdownEl = wrapperRef.querySelector('[data-component="markdown"]')
-      if (!markdownEl) return
+      if (!markdownEl) return false
 
-      for (const [placeholder, svg] of mermaidSvgStore) {
+      let injected = false
+      for (const [placeholder, svg] of svgStore) {
         const walker = document.createTreeWalker(markdownEl, NodeFilter.SHOW_TEXT)
         while (walker.nextNode()) {
           const node = walker.currentNode as Text
@@ -454,15 +450,25 @@ export default function FileTree(props: {
           wrapper.className = "mermaid-diagram"
           wrapper.innerHTML = svg
           parent.replaceChild(wrapper, node)
+          injected = true
           break
         }
+      }
+      return injected
+    }
+
+    function tryInject(retries: number) {
+      if (svgStore.size === 0) return
+      const result = injectMermaidSvgs()
+      if (result === false && retries > 0) {
+        setTimeout(() => tryInject(retries - 1), 100)
       }
     }
 
     createEffect(() => {
       const text = content()
-      if (!text || mermaidSvgStore.size === 0) return
-      setTimeout(injectMermaidSvgs, 200)
+      if (!text || svgStore.size === 0) return
+      setTimeout(() => tryInject(5), 200)
     })
 
     return (
