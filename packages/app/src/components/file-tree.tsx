@@ -393,12 +393,20 @@ export default function FileTree(props: {
         const response = await fetch(`/file/download?directory=${sdk.directory}&path=${encodeURIComponent(props.node.path)}`)
         if (!response.ok) throw new Error("Failed to read file")
         const text = await response.text()
-        return processMermaidBlocks(text, mermaidLib)
+        return processMermaidBlocks(escapeTildes(text), mermaidLib)
       } catch (e) {
         console.error("Failed to read file:", e)
         return ""
       }
     })
+
+    function escapeTildes(text: string): string {
+      const parts = text.split(/(```[\s\S]*?```|`[^`]+`)/g)
+      return parts.map((part, i) => {
+        if (i % 2 === 1) return part
+        return part.replace(/(?<!~)~(?!~)/g, "\\~")
+      }).join("")
+    }
 
     async function processMermaidBlocks(text: string, mermaidLib: Mermaid): Promise<string> {
       svgStore.clear()
@@ -457,10 +465,20 @@ export default function FileTree(props: {
       return injected
     }
 
+    function hasRemainingPlaceholders(): boolean {
+      const markdownEl = wrapperRef?.querySelector('[data-component="markdown"]')
+      if (!markdownEl) return true
+      const allText = markdownEl.textContent ?? ""
+      for (const [placeholder] of svgStore) {
+        if (allText.includes(placeholder)) return true
+      }
+      return false
+    }
+
     function tryInject(retries: number) {
       if (svgStore.size === 0) return
-      const result = injectMermaidSvgs()
-      if (result === false && retries > 0) {
+      injectMermaidSvgs()
+      if (hasRemainingPlaceholders() && retries > 0) {
         setTimeout(() => tryInject(retries - 1), 100)
       }
     }
@@ -468,7 +486,7 @@ export default function FileTree(props: {
     createEffect(() => {
       const text = content()
       if (!text || svgStore.size === 0) return
-      setTimeout(() => tryInject(5), 200)
+      setTimeout(() => tryInject(15), 200)
     })
 
     return (
