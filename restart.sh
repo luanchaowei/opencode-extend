@@ -38,6 +38,12 @@ set -a
 source .env
 set +a
 
+# 构建前端（在停止服务前执行，缩短故障窗口；构建失败时旧服务保持运行）
+if [ "$MODE" = "prod" ] && [ "$BUILD" = true ]; then
+  echo "构建前端..."
+  bun --cwd packages/app build
+fi
+
 bash stop.sh
 while ss -tlnp | grep -q ":${WEB_PORT:-3000} "; do sleep 0.5; done
 
@@ -52,10 +58,6 @@ done
 [ -f "${LOG_FILE}" ] && mv "${LOG_FILE}" "${LOG_FILE}.1" 2>/dev/null || true
 
 if [ "$MODE" = "prod" ]; then
-  if [ "$BUILD" = true ]; then
-    echo "构建前端..."
-    bun --cwd packages/app build
-  fi
   echo "启动生产模式: http://${WEB_HOST:-0.0.0.0}:${WEB_PORT:-3000}"
   nohup bun packages/app/server.js > "${LOG_PATH:-/tmp/opencode-extend.log}" 2>&1 &
 else

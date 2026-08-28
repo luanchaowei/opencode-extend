@@ -476,12 +476,12 @@ async function doModelTest(providerID, modelID) {
   let sessionID = null
   const modelTestDir = process.env.VITE_MODEL_TEST_DIR || "/tmp/opencode-model-test"
   if (!existsSync(modelTestDir)) mkdirSync(modelTestDir, { recursive: true })
-  console.log(`[${getTzTime()}] model test start: ${providerID}/${modelID}`)
+  console.log(`[${getTzTime()}] model test start: ${providerID}/${modelID}, dir=${modelTestDir}`)
   try {
-    const sessionRes = await fetch(`${serverUrl}/session`, {
+    const sessionRes = await fetch(`${serverUrl}/session?directory=${encodeURIComponent(modelTestDir)}`, {
       method: "POST",
       headers: { "Content-Type": "application/json", ...(serverAuthHeader ? { Authorization: serverAuthHeader } : {}) },
-      body: JSON.stringify({ directory: modelTestDir, title: "model-test" }),
+      body: JSON.stringify({ title: "model-test" }),
     })
     if (!sessionRes.ok) {
       const errText = await sessionRes.text()
@@ -496,7 +496,7 @@ async function doModelTest(providerID, modelID) {
       statsDb.saveModelTestResult(providerID, modelID, 2, t(lang, "model.test.sessionNoId"), 0)
       return
     }
-    console.log(`[${getTzTime()}] model test ${providerID}/${modelID}: session ${sessionID} created, sending message...`)
+    console.log(`[${getTzTime()}] model test ${providerID}/${modelID}: session ${sessionID} created (dir=${modelTestDir}), sending message...`)
 
     const testStart = Date.now()
     const msgRes = await fetch(`${serverUrl}/session/${sessionID}/message`, {

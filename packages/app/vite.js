@@ -303,12 +303,12 @@ async function doViteModelTest(providerID, modelID, backendUrl, authHeader, defa
     statsDbRef.saveModelTestResult(providerID, modelID, 2, t(lang, "model.test.missingDir"), 0)
     return
   }
-  console.log(`[${getTzTime()}] model test start: ${providerID}/${modelID}`)
+  console.log(`[${getTzTime()}] model test start: ${providerID}/${modelID}, dir=${defaultDir}`)
   try {
-    const sessionRes = await fetch(`${backendUrl}/session`, {
+    const sessionRes = await fetch(`${backendUrl}/session?directory=${encodeURIComponent(defaultDir)}`, {
       method: "POST",
       headers: { "Content-Type": "application/json", ...(authHeader ? { Authorization: authHeader } : {}) },
-      body: JSON.stringify({ directory: defaultDir, title: "model-test" }),
+      body: JSON.stringify({ title: "model-test" }),
     })
     if (!sessionRes.ok) {
       const errText = await sessionRes.text()
@@ -323,7 +323,7 @@ async function doViteModelTest(providerID, modelID, backendUrl, authHeader, defa
       statsDbRef.saveModelTestResult(providerID, modelID, 2, t(lang, "model.test.sessionNoId"), 0)
       return
     }
-    console.log(`[${getTzTime()}] model test ${providerID}/${modelID}: session ${sessionID} created, sending message...`)
+    console.log(`[${getTzTime()}] model test ${providerID}/${modelID}: session ${sessionID} created (dir=${defaultDir}), sending message...`)
     const testStart = Date.now()
     const msgRes = await fetch(`${backendUrl}/session/${sessionID}/message`, {
       method: "POST",
