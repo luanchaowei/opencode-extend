@@ -1499,7 +1499,7 @@ export default [
               if (existing && existing.status === 0) continue
               statsDb.setModelTesting(m.providerID, m.modelID)
             }
-            const modelTestDir = "/tmp/opencode-model-test"
+            const modelTestDir = process.env.VITE_MODEL_TEST_DIR || "/tmp/opencode-model-test"
             if (!existsSync(modelTestDir)) mkdirSync(modelTestDir, { recursive: true })
             const timeout = parseInt(process.env.VITE_MODEL_TEST_TIMEOUT || "30000", 10)
             ;(async () => {
@@ -1533,7 +1533,7 @@ export default [
             const serverPassword = process.env.VITE_OPENCODE_SERVER_PASSWORD || ""
             const serverUsername = process.env.VITE_OPENCODE_SERVER_USERNAME || "opencode"
             const authHeader = serverPassword ? `Basic ${Buffer.from(`${serverUsername}:${serverPassword}`).toString("base64")}` : ""
-            const modelTestDir = "/tmp/opencode-model-test"
+            const modelTestDir = process.env.VITE_MODEL_TEST_DIR || "/tmp/opencode-model-test"
             if (!existsSync(modelTestDir)) mkdirSync(modelTestDir, { recursive: true })
             const timeout = parseInt(process.env.VITE_MODEL_TEST_TIMEOUT || "30000", 10)
             doViteModelTest(providerID, modelID, backendUrl, authHeader, modelTestDir, timeout).catch(err => {
@@ -1580,6 +1580,7 @@ export default [
               monitorFrontendPattern: process.env.VITE_MONITOR_FRONTEND_PATTERN || "",
               hiddenProviders: process.env.VITE_HIDDEN_PROVIDERS || "",
               modelTestTimeout: process.env.VITE_MODEL_TEST_TIMEOUT || "30000",
+              modelTestDir: process.env.VITE_MODEL_TEST_DIR || "/tmp/opencode-model-test",
               authEnabled: process.env.AUTH_ENABLED === "true",
               registrationEnabled: process.env.VITE_REGISTRATION_ENABLED === "true",
             }))
@@ -1609,6 +1610,7 @@ export default [
               monitorFrontendPattern: "VITE_MONITOR_FRONTEND_PATTERN",
               hiddenProviders: "VITE_HIDDEN_PROVIDERS",
               modelTestTimeout: "VITE_MODEL_TEST_TIMEOUT",
+              modelTestDir: "VITE_MODEL_TEST_DIR",
               registrationEnabled: "VITE_REGISTRATION_ENABLED",
             }
             for (const [key, envKey] of Object.entries(envMap)) {

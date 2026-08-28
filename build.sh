@@ -145,6 +145,7 @@ VITE_MONITOR_FRONTEND_PATTERN=           # 前端进程匹配规则，为空默�
 VITE_HIDDEN_PROVIDERS=                   # 隐藏的供应商 ID，逗号分隔
 VITE_REGISTRATION_ENABLED=false          # 是否开放用户自助注册，true=开放注册页面
 VITE_MODEL_TEST_TIMEOUT=30000            # 模型检测超时时间（毫秒），默认 30000
+VITE_MODEL_TEST_DIR=/tmp/opencode-model-test  # 模型检测临时会话路径，使用干净目录避免 skill 干扰
 VITE_OPENCODE_SERVER_LOG=~/.local/share/opencode/log/opencode.log  # 后端日志路径
 ENV_EXAMPLE
 

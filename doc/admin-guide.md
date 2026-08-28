@@ -217,6 +217,7 @@ http://<WEB_HOST>:<WEB_PORT>/admin.html
 | 前端进程匹配规则 | `VITE_MONITOR_FRONTEND_PATTERN` | 系统监控中匹配前端进程的 pgrep 模式，为空时默认 `bun.*packages/app` |
 | 允许自助注册 | `VITE_REGISTRATION_ENABLED` | 是否开放用户注册页面，`true`=开放，`false`=关闭（默认）。仅在 `AUTH_ENABLED=true` 时显示此配置项 |
 | 模型检测超时（毫秒） | `VITE_MODEL_TEST_TIMEOUT` | 单个模型检测的超时时间，默认 30000 毫秒（30秒） |
+| 模型检测临时会话路径 | `VITE_MODEL_TEST_DIR` | 模型检测创建临时会话的工作目录，使用无 .opencode 配置的干净目录避免 skill 干扰检测结果，默认 `/tmp/opencode-model-test` |
 
 ### 注意事项
 

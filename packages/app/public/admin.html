@@ -352,6 +352,11 @@
                 <input id="modelTestTimeout" type="number" placeholder="30000" min="5000" max="120000">
                 <div class="hint">单个模型检测的超时时间，默认 30000 毫秒（30秒）</div>
               </div>
+              <div class="field">
+                <label>模型检测临时会话路径</label>
+                <input id="modelTestDir" type="text" placeholder="/tmp/opencode-model-test">
+                <div class="hint">模型检测创建临时会话的工作目录，使用无 .opencode 配置的干净目录避免 skill 干扰检测结果，默认 /tmp/opencode-model-test</div>
+              </div>
             </div>
           </div>
           <button id="save-btn" class="save-btn" onclick="save()">保存配置</button>
@@ -538,6 +543,7 @@
           document.getElementById('monitorFrontendPattern').value = data.monitorFrontendPattern || ''
           document.getElementById('hiddenProviders').value = data.hiddenProviders || ''
           document.getElementById('modelTestTimeout').value = data.modelTestTimeout || '30000'
+          document.getElementById('modelTestDir').value = data.modelTestDir || '/tmp/opencode-model-test'
           if (data.authEnabled) {
             document.getElementById('field-registrationEnabled').style.display = ''
             document.getElementById('registrationEnabled').value = data.registrationEnabled ? 'true' : 'false'
@@ -577,6 +583,7 @@
             monitorFrontendPattern: document.getElementById('monitorFrontendPattern').value,
             hiddenProviders: document.getElementById('hiddenProviders').value,
             modelTestTimeout: document.getElementById('modelTestTimeout').value,
+            modelTestDir: document.getElementById('modelTestDir').value,
             ...(document.getElementById('field-registrationEnabled').style.display !== 'none' ? { registrationEnabled: document.getElementById('registrationEnabled').value } : {}),
           })
         })

@@ -474,7 +474,7 @@ async function readBody(req) {
 async function doModelTest(providerID, modelID) {
   const lang = "zh"
   let sessionID = null
-  const modelTestDir = "/tmp/opencode-model-test"
+  const modelTestDir = process.env.VITE_MODEL_TEST_DIR || "/tmp/opencode-model-test"
   if (!existsSync(modelTestDir)) mkdirSync(modelTestDir, { recursive: true })
   console.log(`[${getTzTime()}] model test start: ${providerID}/${modelID}`)
   try {
@@ -1293,6 +1293,7 @@ async function handleAPI(req, server) {
       monitorFrontendPattern: process.env.VITE_MONITOR_FRONTEND_PATTERN || "",
       hiddenProviders: process.env.VITE_HIDDEN_PROVIDERS || "",
       modelTestTimeout: process.env.VITE_MODEL_TEST_TIMEOUT || "30000",
+      modelTestDir: process.env.VITE_MODEL_TEST_DIR || "/tmp/opencode-model-test",
       authEnabled: envVars.AUTH_ENABLED === "true",
       registrationEnabled: process.env.VITE_REGISTRATION_ENABLED === "true",
     })
@@ -1316,6 +1317,7 @@ async function handleAPI(req, server) {
         monitorFrontendPattern: "VITE_MONITOR_FRONTEND_PATTERN",
         hiddenProviders: "VITE_HIDDEN_PROVIDERS",
         modelTestTimeout: "VITE_MODEL_TEST_TIMEOUT",
+        modelTestDir: "VITE_MODEL_TEST_DIR",
         registrationEnabled: "VITE_REGISTRATION_ENABLED",
       }
       for (const [key, envKey] of Object.entries(envMap)) {

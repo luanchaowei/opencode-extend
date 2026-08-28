@@ -327,7 +327,8 @@ Set-Cookie: `session_id=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax`
   "hiddenProviders": "opencode,alibaba-cn",
   "authEnabled": true,
   "registrationEnabled": "true",
-  "modelTestTimeout": "30000"
+  "modelTestTimeout": "30000",
+  "modelTestDir": "/tmp/opencode-model-test"
 }
 ```
 
@@ -368,6 +369,7 @@ Set-Cookie: `session_id=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax`
 | `hiddenProviders` | `VITE_HIDDEN_PROVIDERS` |
 | `registrationEnabled` | `VITE_REGISTRATION_ENABLED` |
 | `modelTestTimeout` | `VITE_MODEL_TEST_TIMEOUT` |
+| `modelTestDir` | `VITE_MODEL_TEST_DIR` |
 
 **成功响应** `200`：`{ "success": true }`
 
