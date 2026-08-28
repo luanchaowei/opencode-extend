@@ -474,17 +474,14 @@ async function readBody(req) {
 async function doModelTest(providerID, modelID) {
   const lang = "zh"
   let sessionID = null
-  const defaultDir = envVars.VITE_OPENCODE_DEFAULT_DIR || ""
-  if (!defaultDir) {
-    statsDb.saveModelTestResult(providerID, modelID, 2, t(lang, "model.test.missingDir"), 0)
-    return
-  }
+  const modelTestDir = "/tmp/opencode-model-test"
+  if (!existsSync(modelTestDir)) mkdirSync(modelTestDir, { recursive: true })
   console.log(`[${getTzTime()}] model test start: ${providerID}/${modelID}`)
   try {
     const sessionRes = await fetch(`${serverUrl}/session`, {
       method: "POST",
       headers: { "Content-Type": "application/json", ...(serverAuthHeader ? { Authorization: serverAuthHeader } : {}) },
-      body: JSON.stringify({ directory: defaultDir, title: "model-test" }),
+      body: JSON.stringify({ directory: modelTestDir, title: "model-test" }),
     })
     if (!sessionRes.ok) {
       const errText = await sessionRes.text()
@@ -533,7 +530,7 @@ async function doModelTest(providerID, modelID) {
     if (sessionID) {
       console.log(`[${getTzTime()}] model test ${providerID}/${modelID}: cleanup session ${sessionID}`)
       try {
-        await fetch(`${serverUrl}/session/${sessionID}?directory=${encodeURIComponent(defaultDir)}`, {
+        await fetch(`${serverUrl}/session/${sessionID}?directory=${encodeURIComponent(modelTestDir)}`, {
           method: "DELETE",
           headers: serverAuthHeader ? { Authorization: serverAuthHeader } : {},
           signal: AbortSignal.timeout(5000),

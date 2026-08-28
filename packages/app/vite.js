@@ -1499,13 +1499,14 @@ export default [
               if (existing && existing.status === 0) continue
               statsDb.setModelTesting(m.providerID, m.modelID)
             }
-            const defaultDir = process.env.VITE_OPENCODE_DEFAULT_DIR || ""
+            const modelTestDir = "/tmp/opencode-model-test"
+            if (!existsSync(modelTestDir)) mkdirSync(modelTestDir, { recursive: true })
             const timeout = parseInt(process.env.VITE_MODEL_TEST_TIMEOUT || "30000", 10)
             ;(async () => {
               for (const m of models) {
                 const existing = statsDb.getModelTestResults().find(r => r.provider_id === m.providerID && r.model_id === m.modelID)
                 if (existing && existing.status !== 0) continue
-                await doViteModelTest(m.providerID, m.modelID, backendUrl, authHeader, defaultDir, timeout)
+                await doViteModelTest(m.providerID, m.modelID, backendUrl, authHeader, modelTestDir, timeout)
               }
             })()
             sendJson(res, { success: true, count: models.length })
@@ -1532,9 +1533,10 @@ export default [
             const serverPassword = process.env.VITE_OPENCODE_SERVER_PASSWORD || ""
             const serverUsername = process.env.VITE_OPENCODE_SERVER_USERNAME || "opencode"
             const authHeader = serverPassword ? `Basic ${Buffer.from(`${serverUsername}:${serverPassword}`).toString("base64")}` : ""
-            const defaultDir = process.env.VITE_OPENCODE_DEFAULT_DIR || ""
+            const modelTestDir = "/tmp/opencode-model-test"
+            if (!existsSync(modelTestDir)) mkdirSync(modelTestDir, { recursive: true })
             const timeout = parseInt(process.env.VITE_MODEL_TEST_TIMEOUT || "30000", 10)
-            doViteModelTest(providerID, modelID, backendUrl, authHeader, defaultDir, timeout).catch(err => {
+            doViteModelTest(providerID, modelID, backendUrl, authHeader, modelTestDir, timeout).catch(err => {
               console.error(`[${getTzTime()}] doViteModelTest error: ${err.message}\n${err.stack}`)
               statsDb.saveModelTestResult(providerID, modelID, 2, err.message, 0)
             })
