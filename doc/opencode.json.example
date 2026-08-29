@@ -1,0 +1,456 @@
+{
+  // ═══════════════════════════════════════════════════════════════
+  // 基础配置
+  // ═══════════════════════════════════════════════════════════════
+
+  // JSON Schema 引用，用于编辑器校验和自动补全
+  "$schema": "https://opencode.ai/config.json",
+
+  // 用户名，显示在会话消息中（不配则取系统用户名 os.userInfo().username，失败时为 "user"）
+  // 示例: "luanchaowei"
+  "username": "",
+
+  // 默认终端和 bash 工具使用的 shell（不配则取系统默认）
+  // 示例: "/bin/bash"、"/bin/zsh"
+  "shell": "",
+
+  // 日志级别：DEBUG | INFO | WARN | ERROR（不配则不开启日志）
+  // 示例: "INFO"
+  "logLevel": "",
+
+  // 自动更新：true=自动更新 | false=禁用 | "notify"=仅通知（不配则不自动更新）
+  // 示例: "notify"
+  "autoupdate": "",
+
+  // 文件快照，用于 undo/revert 文件变更（默认 true，false 禁用快照记录）
+  "snapshot": true,
+
+
+  // ═══════════════════════════════════════════════════════════════
+  // 模型配置
+  // ═══════════════════════════════════════════════════════════════
+
+  // 默认模型，格式 "provider/model"（不配则取最近使用记录，再 fallback 到第一个可用模型）
+  // 示例: "cannbot/glm-5"
+  "model": "",
+
+  // 轻量模型，用于标题生成等低负载任务（不配则用默认模型）
+  // 示例: "cannbot/glm-5-air"
+  "small_model": "",
+
+  // 默认 agent，必须是 primary 类型（默认 "build"）
+  "default_agent": "build",
+
+  // 子 agent 最大嵌套深度（0=禁止子 agent，默认 1=仅一层）
+  "subagent_depth": 1,
+
+  // 禁用的 provider 列表（与 enabled_providers 互斥，不要同时配）
+  // 示例: ["opencode-go"]
+  "disabled_providers": [],
+
+  // 启用的 provider 白名单（配了后只有这些 provider 生效，不配则全部允许）
+  // 示例: ["cannbot", "anthropic"]
+  "enabled_providers": [],
+
+  // ── Provider 配置（自定义供应商 + 模型元数据覆盖）──
+  "provider": {
+    "your-provider-id": {
+
+      // 连接层（npm + baseURL + apiKey 三件套必须配套）
+      "npm": "@ai-sdk/openai-compatible",   // AI SDK 适配包，决定请求协议格式。示例: "@ai-sdk/anthropic"
+      // 示例: "GLM-5"
+      "name": "",                            // UI 显示的供应商名称
+      // 示例: ["ARK_API_KEY"]
+      "env": [],                             // apiKey 的环境变量名列表（apiKey 未配时从此探测）
+      "api": "",                             // API 规范类型（一般不用手动设）
+
+      "options": {
+        // 示例: "vk-****"
+        "apiKey": "",                        // API 密钥（优先级最高：> auth.json > 环境变量）
+        // 示例: "https://ark.cn-beijing.volces.com/api/v3"
+        "baseURL": "",                       // API 端点地址
+        // 示例: "https://github.example.com"
+        "enterpriseUrl": "",                 // GitHub Enterprise URL（仅 copilot 认证用）
+        "setCacheKey": false,                // 启用 promptCacheKey（默认 false）
+
+        // 超时三兄弟（独立调优，无默认值，不配则用 AI SDK 适配包内部默认值）
+        // 示例: 60000
+        "timeout": 0,                        // 整个请求最大耗时（毫秒），0=不配 | false=禁用超时
+        // 示例: 300000
+        "headerTimeout": 0,                  // 等首字节超时（毫秒），0=不配 | false=禁用；OpenAI 兼容适配器默认 300000（5分钟）
+        // 示例: 60000
+        "chunkTimeout": 0                    // 流式 SSE chunk 间隔上限（毫秒），0=不配，超时中断请求
+      },
+
+      // 模型黑白名单（二选一，不要同时配）
+      // 示例: ["glm-5", "glm-5-air"]
+      "whitelist": [],                       // 只显示列出的模型
+      // 示例: ["glm-4-legacy"]
+      "blacklist": [],                       // 隐藏列出的模型
+
+      // 模型定义/覆盖（目录里有的模型只需写要改的字段，目录里没有的自定义模型必须写全）
+      "models": {
+        "your-model-id": {
+
+          // ── 基础信息 ──
+          // 示例: "glm-5"
+          "id": "",                          // 模型 ID（一般与 key 相同，可省略）
+          // 示例: "GLM-5"
+          "name": "",                        // UI 显示名（不配则取 modelID）
+          // 示例: "glm"
+          "family": "",                      // 模型家族（信息性，默认 ""）
+          // 示例: "2025-06"
+          "release_date": "",                // 发布日期（信息性，默认 ""）
+          "status": "active",                // alpha(实验,默认隐藏) | beta(测试) | active(正式,默认) | deprecated(隐藏)
+          "experimental": false,             // 是否实验性模型
+
+          // ── 能力开关（agent 行为依据，自定义模型必配）──
+          "reasoning": false,                // 支持推理/思考模式（默认 false）
+          "tool_call": true,                 // 支持工具调用（默认 true；false 则 agent 无法使用任何工具！）
+          "attachment": false,               // 支持文件附件（默认 false）
+          "temperature": false,              // 支持 temperature 参数（默认 false）
+
+          // ── 推理配置（reasoning=true 时才生效）──
+          // 示例: { "field": "reasoning_content" }
+          "interleaved": false,              // 推理与文本交错输出：true | { "field": "reasoning_content" }
+          // field 可选值：reasoning | reasoning_content | reasoning_details（必须匹配上游返回的字段名）
+
+          // ── 模态（tooltip "允许输入" 行的来源）──
+          "modalities": {
+            "input": ["text"],               // 支持的输入类型: text | audio | image | video | pdf。示例: ["text", "image"]
+            "output": ["text"]               // 支持的输出类型。示例: ["text"]
+          },
+
+          // ── 上下文限制（tooltip "上下文" 行，也是压缩触发依据，自定义模型必配！）──
+          "limit": {
+            // 示例: 131072
+            "context": 0,                    // 上下文窗口（tokens，默认 0 —— 自定义模型必须配！）
+            // 示例: 131072
+            "input": 0,                      // 最大输入 tokens（0=不配，不限制）
+            // 示例: 16384
+            "output": 0                      // 最大输出 tokens（默认 0）
+          },
+
+          // ── 计费（美元/百万 tokens，默认全部 0）──
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cache_read": 0,                 // 缓存读取价（可选，默认 0）
+            "cache_write": 0,                // 缓存写入价（可选，默认 0）
+            "context_over_200k": {           // 仅 limit.context > 200000 时才需要配
+              "input": 0,
+              "output": 0,
+              "cache_read": 0,
+              "cache_write": 0
+            }
+          },
+
+          // ── 请求级覆盖（仅此模型生效）──
+          // 示例: { "temperature": 0.6 }
+          "options": {},                     // 覆盖 provider.options（深合并），透传给 AI SDK
+          // 示例: { "X-Custom-Header": "value" }
+          "headers": {},                     // 仅此模型附加的 HTTP 头
+
+          // ── 变体（reasoning effort 等档位，仅 reasoning=true 时有意义）──
+          "variants": {
+            "high": {                        // 变体名（UI 中可选的档位）
+              "disabled": false,             // 禁用此变体
+              "reasoning_effort": "high"     // 透传给 AI SDK 的参数
+            }
+          },
+
+          // ── 协议适配覆盖（极少用）──
+          "provider": {
+            // 示例: "@ai-sdk/anthropic"
+            "npm": "",                       // 覆盖该模型使用的 AI SDK 适配包（默认 @ai-sdk/openai-compatible）
+            // 示例: "anthropic"
+            "api": ""                        // 覆盖 API 规范类型
+          }
+        }
+      }
+    }
+  },
+
+
+  // ═══════════════════════════════════════════════════════════════
+  // Agent 配置
+  // ═══════════════════════════════════════════════════════════════
+
+  // 额外指令文件（多个配置源间此数组会拼接去重）
+  // 示例: ["AGENTS.md", ".opencode/instructions.md"]
+  "instructions": [],
+
+  // Agent 配置（也会从 agent/*.md 文件自动加载，无配置时为 {}）
+  // 内置 agent：build(primary), plan(primary), general(subagent), explore(subagent), title(hidden,temperature=0.5), summary(hidden), compaction(hidden)
+  "agent": {
+    "build": {                               // agent 名称
+      // 示例: "cannbot/glm-5"
+      "model": "",                           // 该 agent 使用的模型（格式 "provider/model"，不配则用全局 model）
+      // 示例: "high"
+      "variant": "",                         // 默认模型变体（仅 agent 自身配置的模型时生效）
+      // 示例: 0.6
+      "temperature": 0,                      // 采样温度（0=不配）
+      // 示例: 0.9
+      "top_p": 0,                            // top-p 采样（0=不配）
+      // 示例: "You are a helpful assistant"
+      "prompt": "",                          // 系统提示词
+      "mode": "primary",                     // primary(主 agent) | subagent(子 agent) | all（新定义 agent 默认 "all"）
+      // 示例: "Main build agent"
+      "description": "",                     // 描述（@ 菜单中显示）
+      "hidden": false,                       // 从 @ 菜单隐藏（默认 false，仅 subagent 有效）
+      // 示例: "#FF5733"
+      "color": "",                           // 十六进制色值 或主题色名(primary/secondary/accent/success/warning/error/info)
+      // 示例: 50
+      "steps": 0,                            // 最大迭代步数（0=不配，默认 Infinity 不限制）
+      "disable": false,                      // 禁用此 agent
+      // 示例: { "bash": "ask" }
+      "permission": {},                      // 该 agent 的权限覆盖（格式同全局 permission）
+      "options": {}                          // 透传给 provider 的额外选项
+    },
+    "plan": {
+      "model": "",
+      "variant": "",
+      "temperature": 0,
+      "top_p": 0,
+      "prompt": "",
+      "mode": "subagent",
+      "description": "",
+      "hidden": false,
+      "color": "",
+      "steps": 0,
+      "disable": false,
+      "permission": {},
+      "options": {}
+    }
+  },
+
+
+  // ═══════════════════════════════════════════════════════════════
+  // 权限配置
+  // ═══════════════════════════════════════════════════════════════
+
+  // 运行时默认权限（不配时自动生效，无需重复配置）：
+  //   "*": "allow"                          ← 所有工具默认允许
+  //   doom_loop: "ask"                      ← 死循环检测默认询问
+  //   external_directory: { "*": "ask" }     ← 外部目录默认询问
+  //   question: "deny"                      ← Question 工具默认拒绝（build agent 覆盖为 allow）
+  //   read: { "*": "allow", "*.env": "ask", "*.env.*": "ask", "*.env.example": "allow" }
+  //
+  // 每个工具可配 "ask" | "allow" | "deny"，或按路径配 { "pattern": "action" }
+  // 不配某个工具时，默认值由上面的 "*": "allow" 通配规则决定
+  "permission": {
+    "read": "allow",                         // 文件读取（默认 allow，.env 文件为 ask）
+    "edit": "allow",                         // 文件写入/编辑/补丁（默认 allow）
+    "glob": "allow",                         // 文件通配搜索（默认 allow）
+    "grep": "allow",                         // 文件内容搜索（默认 allow）
+    "list": "allow",                         // 目录列表（默认 allow）
+    "bash": "allow",                         // Bash 命令执行（默认 allow）
+    "task": "allow",                         // 子 agent 任务（默认 allow）
+    "todowrite": "allow",                    // TodoWrite 工具（默认 allow）
+    "question": "deny",                      // Question 工具（默认 deny，build agent 覆盖为 allow）
+    "webfetch": "allow",                     // WebFetch 工具（默认 allow）
+    "websearch": "allow",                    // WebSearch 工具（默认 allow）
+    "lsp": "allow",                          // LSP 工具（默认 allow）
+    "doom_loop": "ask",                      // Doom loop 检测（默认 ask）
+    "skill": "allow",                        // Skill 工具（默认 allow）
+    "external_directory": {                  // 外部目录访问规则（默认 ask）
+      "*": "ask"
+      // 示例: "~/code/**": "allow", "/tmp/**": "allow"
+    }
+  },
+
+  // 工具启用/禁用（legacy，已迁移到 permission，建议用 permission 代替）
+  // 示例: { "bash": true, "webfetch": false }
+  "tools": {},
+
+
+  // ═══════════════════════════════════════════════════════════════
+  // 服务配置
+  // ═══════════════════════════════════════════════════════════════
+
+  "server": {
+    // 示例: 4096
+    "port": 0,                               // 监听端口（0=不配）
+    // 示例: "127.0.0.1"
+    "hostname": "",                          // 监听地址
+    "mdns": false,                           // 启用 mDNS 服务发现（默认 false）
+    "mdnsDomain": "opencode.local",          // mDNS 域名（默认 "opencode.local"）
+    // 示例: ["http://172.17.0.1:3000"]
+    "cors": []                               // CORS 允许的来源列表
+  },
+
+  // 会话分享行为：manual(手动) | auto(自动) | disabled(禁用)（不配则无分享行为）
+  // 示例: "manual"
+  "share": "",
+
+  // 企业配置
+  "enterprise": {
+    // 示例: "https://enterprise.example.com"
+    "url": ""
+  },
+
+
+  // ═══════════════════════════════════════════════════════════════
+  // 插件 / 扩展
+  // ═══════════════════════════════════════════════════════════════
+
+  // 插件列表（也会从 plugin/*.ts|js 文件自动加载，默认 []）
+  // 支持字符串 "file:///path/to/plugin.js" 或元组 ["plugin-name", { "option": "value" }]
+  // 示例: ["file:///home/user/.config/opencode/plugins/cannbot-auth.js"]
+  "plugin": [],
+
+  // 自定义命令（也会从 command/*.md 文件自动加载）
+  "command": {
+    "your-command": {
+      // 示例: "Deploy the application to production"
+      "template": "",                        // 命令模板文本（必填）
+      // 示例: "Deploy to prod"
+      "description": "",                     // 命令描述
+      // 示例: "build"
+      "agent": "",                           // 使用的 agent
+      // 示例: "cannbot/glm-5"
+      "model": "",                           // 使用的模型
+      // 示例: "high"
+      "variant": "",                         // 模型变体
+      "subtask": false                       // 是否作为子任务运行
+    }
+  },
+
+  // 额外 skill 目录
+  "skills": {
+    // 示例: ["/path/to/skills"]
+    "paths": [],                             // 额外 skill 文件夹路径列表
+    // 示例: ["https://example.com/.well-known/skills/"]
+    "urls": []                               // 远程 skill URL 列表
+  },
+
+  // MCP (Model Context Protocol) 服务器
+  "mcp": {
+    "your-local-mcp": {                      // 本地 MCP
+      "type": "local",                       // 类型：local
+      // 示例: ["npx", "@anthropic/mcp-filesystem", "/tmp"]
+      "command": [],                         // 启动命令及参数（必填）
+      // 示例: "/workspace"
+      "cwd": "",                             // 工作目录（相对路径从 workspace 解析）
+      // 示例: { "NODE_ENV": "production" }
+      "environment": {},                     // 环境变量
+      "enabled": true,                      // 启用/禁用（默认 true，仅显式 false 才禁用）
+      "timeout": 30000                       // 请求超时（毫秒，运行时默认 30000）
+    },
+    "your-remote-mcp": {                     // 远程 MCP
+      "type": "remote",                      // 类型：remote
+      // 示例: "https://mcp.example.com/sse"
+      "url": "",                             // 远程 MCP 服务器 URL（必填）
+      // 示例: { "Authorization": "Bearer xxx" }
+      "headers": {},                         // 自定义请求头
+      "enabled": true,                      // 启用/禁用（默认 true，仅显式 false 才禁用）
+      "timeout": 30000,                      // 请求超时（毫秒，运行时默认 30000）
+      "oauth": false                         // false=禁用 OAuth 自动探测；或配 OAuth 对象
+      // "oauth": {
+      //   "clientId": "",                   // OAuth 客户端 ID（不配则尝试动态注册）
+      //   "clientSecret": "",               // OAuth 客户端密钥
+      //   "scope": "",                      // OAuth scope
+      //   "callbackPort": 19876,            // 回调端口（默认 19876）
+      //   "redirectUri": "http://127.0.0.1:19876/mcp/oauth/callback"  // 默认值
+      // }
+    }
+  },
+
+
+  // ═══════════════════════════════════════════════════════════════
+  // 开发工具
+  // ═══════════════════════════════════════════════════════════════
+
+  // 代码格式化：true=启用内置 | false=禁用 | 对象=按格式化器覆盖（不配则不启用）
+  // "formatter": true,
+  "formatter": {
+    "your-formatter": {
+      "disabled": false,                     // 禁用此格式化器
+      // 示例: ["npx", "prettier", "--write"]
+      "command": [],                         // 格式化命令
+      // 示例: { "NODE_ENV": "production" }
+      "environment": {},                     // 环境变量
+      // 示例: [".ts", ".js", ".json"]
+      "extensions": []                       // 处理的文件扩展名
+    }
+  },
+
+  // LSP 语言服务器：true=启用全部内置 | false=禁用 | 对象=按服务器覆盖（不配则不启用）
+  // 内置支持 38 种：deno, typescript, vue, eslint, oxlint, biome, gopls,
+  //   ruby-lsp, pyright, elixir-ls, zls, rust, clangd, svelte, astro 等
+  // "lsp": true,
+  "lsp": {
+    "your-lsp": {
+      // 示例: ["rust-analyzer"]
+      "command": [],                         // 启动 LSP 服务器的命令（自定义服务器必填）
+      // 示例: [".rs"]
+      "extensions": [],                      // 关联的文件扩展名
+      "disabled": false,                     // 禁用此 LSP
+      // 示例: { "RUST_LOG": "info" }
+      "env": {},                             // 环境变量
+      // 示例: { "checkOnSave": true }
+      "initialization": {}                   // LSP 初始化选项
+    }
+  },
+
+  // 文件监听
+  "watcher": {
+    // 示例: ["node_modules", ".git", "dist"]
+    "ignore": []                             // 不监听的路径模式
+  },
+
+
+  // ═══════════════════════════════════════════════════════════════
+  // 高级调优
+  // ═══════════════════════════════════════════════════════════════
+
+  // 上下文压缩
+  "compaction": {
+    "auto": true,                            // 上下文满时自动压缩（默认 true，仅 false 显式禁用）
+    "prune": false,                          // 压缩时修剪旧工具输出（默认 false，仅 true 显式启用）
+    "tail_turns": 2,                         // 压缩时保留的最近对话轮数（默认 2）
+    // 示例: 8192（0=不配，运行时自动计算：min(8000, max(2000, 可用tokens*0.25))）
+    "preserve_recent_tokens": 0,             // 保留的最近 tokens 上限
+    // 示例: 20000（0=不配，运行时自动计算：min(20000, 模型最大输出tokens)）
+    "reserved": 0                            // 压缩预留缓冲 tokens
+  },
+
+  // 附件处理
+  "attachment": {
+    "image": {
+      "auto_resize": true,                   // 超限时自动缩放（默认 true）
+      "max_width": 2000,                     // 最大宽度（px，默认 2000）
+      "max_height": 2000,                    // 最大高度（px，默认 2000）
+      "max_base64_bytes": 5242880            // 最大 base64 体积（默认 5MB = 5*1024*1024）
+    }
+  },
+
+  // 工具输出截断
+  "tool_output": {
+    "max_lines": 2000,                       // 超过此行数触发截断（默认 2000）
+    "max_bytes": 51200                       // 超过此字节数触发截断（默认 50KB = 50*1024）
+  },
+
+  // 实验性功能（不配时全部不启用）
+  "experimental": {
+    "disable_paste_summary": false,          // 禁用粘贴摘要
+    "batch_tool": false,                     // 启用批量工具
+    "openTelemetry": false,                  // 启用 OpenTelemetry
+    // 示例: ["edit", "bash"]
+    "primary_tools": [],                     // 仅 primary agent 可用的工具列表
+    "continue_loop_on_deny": false,          // 工具被拒绝后继续 agent 循环
+    // 示例: 30000
+    "mcp_timeout": 0,                        // MCP 请求超时（毫秒，0=不配）
+    "policies": []                           // 策略声明列表
+  },
+
+
+  // ═══════════════════════════════════════════════════════════════
+  // 已废弃字段（保留参考，不要使用）
+  // ═══════════════════════════════════════════════════════════════
+
+  // "mode": {},          // @deprecated 已迁移到 "agent" 字段
+  // "reference": {},     // @deprecated 已迁移到 "references" 字段
+  // "autoshare": true,   // @deprecated 已迁移到 "share" 字段
+  // "layout": "stretch"  // @deprecated 始终使用 stretch 布局
+}

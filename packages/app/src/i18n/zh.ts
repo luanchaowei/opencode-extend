@@ -455,7 +455,7 @@ export const dict = {
   "session.header.logout": "退出",
   "dialog.newSession.currentTime": "当前时间",
   "backend.health.error": "服务器繁忙，正在尝试重连...",
-  "backend.health.recovered": "后端服务已恢复",
+  "backend.health.recovered": "服务器已恢复",
   "session.sidePanel.huangquEnv": "黄区环境",
   "model.test.missingProviderOrModel": "缺少 providerID 或 modelID",
   "model.test.modelBeingTested": "该模型正在检测中",
