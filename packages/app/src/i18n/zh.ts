@@ -454,7 +454,7 @@ export const dict = {
   "session.header.adminPanel": "管理面板",
   "session.header.logout": "退出",
   "dialog.newSession.currentTime": "当前时间",
-  "backend.health.error": "后端服务异常，正在尝试重连...",
+  "backend.health.error": "后端服务心跳异常，请稍等...",
   "backend.health.recovered": "后端服务已恢复",
   "session.sidePanel.huangquEnv": "黄区环境",
   "model.test.missingProviderOrModel": "缺少 providerID 或 modelID",
