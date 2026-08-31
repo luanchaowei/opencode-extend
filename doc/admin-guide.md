@@ -209,7 +209,7 @@ http://<WEB_HOST>:<WEB_PORT>/admin.html
 
 | 配置项 | .env 变量名 | 说明 |
 |--------|------------|------|
-| 文件树监听周期（毫秒） | `VITE_FILE_TREE_POLL_INTERVAL` | 文件树自动刷新间隔，默认 5000 毫秒 |
+| 文件树监听周期（毫秒） | `VITE_FILE_TREE_POLL_INTERVAL` | 文件树自动刷新间隔，默认 10000 毫秒（10秒） |
 | 心跳周期（毫秒） | `VITE_HEARTBEAT_INTERVAL` | 客户端心跳上报间隔，默认 60000 毫秒 |
 | 磁盘使用率阈值（%） | `VITE_DISK_USAGE_THRESHOLD` | 超过此阈值时禁止上传文件，默认 90% |
 | 监控磁盘挂载点 | `VITE_MONITOR_DISK_MOUNTS` | 系统监控页面展示的磁盘挂载点，逗号分隔，默认 `/` |

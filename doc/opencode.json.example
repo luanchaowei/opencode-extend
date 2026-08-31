@@ -128,18 +128,18 @@
             // 示例: 131072
             "input": 0,                      // 最大输入 tokens（0=不配，不限制）
             // 示例: 16384
-            "output": 0                      // 最大输出 tokens（默认 0）
+            "output": 0                      // 最大输出 tokens（默认 0，必填！不配会报 schema 校验错误）
           },
 
-          // ── 计费（美元/百万 tokens，默认全部 0）──
+          // ── 计费（美元/百万 tokens，配了 cost 则 input/output 必填）──
           "cost": {
-            "input": 0,
-            "output": 0,
+            "input": 0,                       // 输入价格（必填）
+            "output": 0,                      // 输出价格（必填）
             "cache_read": 0,                 // 缓存读取价（可选，默认 0）
             "cache_write": 0,                // 缓存写入价（可选，默认 0）
-            "context_over_200k": {           // 仅 limit.context > 200000 时才需要配
-              "input": 0,
-              "output": 0,
+            "context_over_200k": {           // 仅 limit.context > 200000 时才需要配（配了则 input/output 必填）
+              "input": 0,                     // 输入价格（必填）
+              "output": 0,                   // 输出价格（必填）
               "cache_read": 0,
               "cache_write": 0
             }

@@ -114,15 +114,18 @@ VITE_OPENCODE_SERVER_PASSWORD=            # 后端认证密码，为空不认证
 VITE_OPENCODE_SERVER_USERNAME=opencode    # 后端认证用户名
 
 # === 用户目录 ===
-VITE_OPENCODE_DEFAULT_DIR=/home/user/client  # 用户工作目录，每个IP自动创建子目录
+VITE_OPENCODE_DEFAULT_DIR=/home/user/client  # 用户工作目录基准路径，每个IP/用户自动创建子目录
 
 # === 登录认证 ===
 AUTH_ENABLED=false                        # 是否启用登录，false=不登录直接用
 ADMIN_USERNAME=admin                      # 超级管理员用户名（仅 AUTH_ENABLED=true 时生效）
 ADMIN_PASSWORD=Admin123!                  # 超级管理员密码
+VITE_REGISTRATION_ENABLED=false          # 是否开放用户自助注册，true=开放注册页面
 
-# === 统计数据 ===
-VITE_STATS_DATA_PATH=/path/to/data        # stats.db 存储路径，默认可执行文件所在目录
+# === 模型管理 ===
+VITE_HIDDEN_PROVIDERS=                   # 隐藏的供应商 ID，逗号分隔
+VITE_MODEL_TEST_TIMEOUT=30000            # 模型检测超时时间（毫秒），默认 30000
+VITE_MODEL_TEST_DIR=/tmp/opencode-model-test  # 模型检测临时会话路径，使用干净目录避免 skill 干扰
 
 # === 企业功能 ===
 VITE_CONTACT_ADMIN=                       # 支撑人员，多个用 | 分隔
@@ -132,21 +135,18 @@ VITE_CASE_LIBRARY_DIR=                    # 知识库目录路径
 VITE_ANNOUNCEMENT_TEXT=                   # 公告文案，为空不显示
 
 # === 系统参数 ===
-VITE_FILE_TREE_POLL_INTERVAL=5000         # 文件树刷新间隔（毫秒）
+VITE_FILE_TREE_POLL_INTERVAL=10000        # 文件树刷新间隔（毫秒）
 VITE_HEARTBEAT_INTERVAL=60000            # 心跳上报间隔（毫秒）
 VITE_DISK_USAGE_THRESHOLD=90             # 磁盘使用率阈值（%），超过禁止上传
 
-# === 系统监控 ===
+# === 统计数据 ===
+VITE_STATS_DATA_PATH=/path/to/data        # stats.db 存储路径，默认可执行文件所在目录
+
+# === 进程监控 ===
+VITE_OPENCODE_SERVER_LOG=~/.local/share/opencode/log/opencode.log  # 后端日志路径，进程日志查看功能使用
 VITE_MONITOR_DISK_MOUNTS=/               # 监控的磁盘挂载点，逗号分隔
 VITE_MONITOR_BACKEND_PATTERN=            # 后端进程匹配规则，为空默认 opencode serve.*--port 端口
 VITE_MONITOR_FRONTEND_PATTERN=           # 前端进程匹配规则，为空默认 bun.*packages/app
-
-# === 模型管理 ===
-VITE_HIDDEN_PROVIDERS=                   # 隐藏的供应商 ID，逗号分隔
-VITE_REGISTRATION_ENABLED=false          # 是否开放用户自助注册，true=开放注册页面
-VITE_MODEL_TEST_TIMEOUT=30000            # 模型检测超时时间（毫秒），默认 30000
-VITE_MODEL_TEST_DIR=/tmp/opencode-model-test  # 模型检测临时会话路径，使用干净目录避免 skill 干扰
-VITE_OPENCODE_SERVER_LOG=~/.local/share/opencode/log/opencode.log  # 后端日志路径
 ENV_EXAMPLE
 
 # === 4. 逐平台编译并打包 ===

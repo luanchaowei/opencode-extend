@@ -22,7 +22,7 @@ export const { use: useDevice, provider: DeviceProvider } = createSimpleContext(
        } catch (error) {
          console.error('Failed to get device info:', error)
        }
-       return { clientIP: null, contactAdmin: [], feedbackUrl: "", caseLibraryDir: "", helpDocUrl: "", fileTreePollInterval: 5000, heartbeatInterval: 60000, diskUsageThreshold: 90, hiddenProviders: [], onboardingCompleted: 0, username: "", role: "" }
+       return { clientIP: null, contactAdmin: [], feedbackUrl: "", caseLibraryDir: "", helpDocUrl: "", fileTreePollInterval: 10000, heartbeatInterval: 60000, diskUsageThreshold: 90, hiddenProviders: [], onboardingCompleted: 0, username: "", role: "" }
     })
 
     const clientIP = () => deviceInfo()?.clientIP
@@ -33,7 +33,7 @@ export const { use: useDevice, provider: DeviceProvider } = createSimpleContext(
     const role = () => deviceInfo()?.role ?? ""
 
     const helpDocUrl = () => deviceInfo()?.helpDocUrl ?? ""
-    const fileTreePollInterval = () => deviceInfo()?.fileTreePollInterval ?? 5000
+    const fileTreePollInterval = () => deviceInfo()?.fileTreePollInterval ?? 10000
     const heartbeatInterval = () => deviceInfo()?.heartbeatInterval ?? 60000
     const diskUsageThreshold = () => deviceInfo()?.diskUsageThreshold ?? 90
     const hiddenProviders = () => deviceInfo()?.hiddenProviders ?? []

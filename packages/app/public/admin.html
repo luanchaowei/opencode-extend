@@ -311,8 +311,8 @@
             <div class="settings-grid">
               <div class="field">
                 <label>文件树监听周期（毫秒）</label>
-                <input id="fileTreePollInterval" type="number" placeholder="5000" min="1000">
-                <div class="hint">文件树自动刷新间隔，默认5000毫秒（5秒）</div>
+                <input id="fileTreePollInterval" type="number" placeholder="10000" min="1000">
+                <div class="hint">文件树自动刷新间隔，默认10000毫秒（10秒）</div>
               </div>
               <div class="field">
                 <label>心跳周期（毫秒）</label>
@@ -534,7 +534,7 @@
           document.getElementById('contactAdmin').value = data.contactAdmin || ''
           document.getElementById('feedbackUrl').value = data.feedbackUrl || ''
           document.getElementById('helpDocUrl').value = data.helpDocUrl || ''
-          document.getElementById('fileTreePollInterval').value = data.fileTreePollInterval || '5000'
+          document.getElementById('fileTreePollInterval').value = data.fileTreePollInterval || '10000'
           document.getElementById('heartbeatInterval').value = data.heartbeatInterval || '60000'
           document.getElementById('diskUsageThreshold').value = data.diskUsageThreshold || '90'
           document.getElementById('caseLibraryDir').value = data.caseLibraryDir || ''

@@ -568,7 +568,7 @@ export default [
             res.setHeader("Content-Type", "application/json")
             const helpDocUrl = process.env.VITE_HELP_DOC_URL || ""
             const announcementText = (process.env.VITE_ANNOUNCEMENT_TEXT || "").replace(/\\n/g, "\n")
-            const fileTreePollInterval = process.env.VITE_FILE_TREE_POLL_INTERVAL || "5000"
+            const fileTreePollInterval = process.env.VITE_FILE_TREE_POLL_INTERVAL || "10000"
             const heartbeatInterval = process.env.VITE_HEARTBEAT_INTERVAL || "60000"
             const diskUsageThreshold = process.env.VITE_DISK_USAGE_THRESHOLD || "90"
             const defaultDir = process.env.VITE_OPENCODE_DEFAULT_DIR || ""
@@ -1571,7 +1571,7 @@ export default [
               contactAdmin: process.env.VITE_CONTACT_ADMIN || "",
               feedbackUrl: process.env.VITE_FEEDBACK_URL || "",
               helpDocUrl: process.env.VITE_HELP_DOC_URL || "",
-              fileTreePollInterval: process.env.VITE_FILE_TREE_POLL_INTERVAL || "5000",
+              fileTreePollInterval: process.env.VITE_FILE_TREE_POLL_INTERVAL || "10000",
               heartbeatInterval: process.env.VITE_HEARTBEAT_INTERVAL || "60000",
               diskUsageThreshold: process.env.VITE_DISK_USAGE_THRESHOLD || "90",
               caseLibraryDir: process.env.VITE_CASE_LIBRARY_DIR || "",
