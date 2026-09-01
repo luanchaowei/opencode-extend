@@ -443,6 +443,17 @@
           <button class="range-btn" onclick="closeLogDialog()">关闭</button>
         </div>
       </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <input id="log-search" type="text" placeholder="搜索日志（不区分大小写）..." oninput="renderLog(this.value)" style="flex:1;background:#0a0a0a;border:1px solid #2a2a2a;border-radius:6px;padding:6px 12px;font-size:13px;color:#e5e5e5;box-sizing:border-box">
+        <button class="range-btn" onclick="clearLogSearch()">清除</button>
+        <span id="log-count" style="font-size:12px;color:#888;white-space:nowrap"></span>
+      </div>
+      <div style="display:flex;gap:16px;margin-bottom:12px;font-size:11px;color:#666">
+        <span><span style="color:#f87171">●</span> 错误 (error/failed/exception/fatal/panic/crash/refused/denied)</span>
+        <span><span style="color:#fbbf24">●</span> 警告 (warn/timeout/deprecated/retry/slow)</span>
+        <span><span style="color:#4ade80">●</span> 正常 (success/started/listening/completed/ready/ok)</span>
+        <span><span style="color:#ccc">●</span> 其他</span>
+      </div>
       <pre id="log-content" style="flex:1;overflow:auto;background:#0a0a0a;border:1px solid #2a2a2a;border-radius:6px;padding:12px;font-size:11px;color:#ccc;font-family:monospace;white-space:pre-wrap;word-break:break-all;min-height:300px"></pre>
     </div>
   </div>
@@ -620,27 +631,91 @@
     function viewLog(type) {
       currentLogType = type
       document.getElementById('log-dialog-title').textContent = (type === 'backend' ? '后端' : '前端') + '进程日志'
+      document.getElementById('log-search').value = ''
+      rawLogLines = []
       document.getElementById('log-dialog-overlay').style.display = 'flex'
       refreshLog()
+      setTimeout(() => document.getElementById('log-search').focus(), 100)
     }
 
     function closeLogDialog() {
       document.getElementById('log-dialog-overlay').style.display = 'none'
+      document.getElementById('log-search').value = ''
+      rawLogLines = []
+    }
+
+    document.addEventListener('keydown', function(e) {
+      const overlay = document.getElementById('log-dialog-overlay')
+      if (overlay.style.display === 'flex') {
+        if (e.key === 'Escape') {
+          const input = document.getElementById('log-search')
+          if (input.value) { input.value = ''; renderLog('') }
+          else { closeLogDialog() }
+        }
+      }
+    })
+
+    let rawLogLines = []
+
+    function highlightLogLine(line) {
+      let escaped = line.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      const lower = line.toLowerCase()
+      let color = '#ccc'
+      if (/\b(error|failed|exception|fatal|panic|crash|refused|denied|econnrefused|eaddrinuse)\b/i.test(line)) {
+        color = '#f87171'
+      } else if (/\b(warn|timeout|deprecated|retry|slow)\b/i.test(line)) {
+        color = '#fbbf24'
+      } else if (/\b(success|started|listening|completed|ready|ok)\b/i.test(line)) {
+        color = '#4ade80'
+      }
+      return '<span style="color:' + color + '">' + escaped + '</span>'
+    }
+
+    function renderLog(query) {
+      const el = document.getElementById('log-content')
+      const countEl = document.getElementById('log-count')
+      if (!rawLogLines.length) {
+        el.textContent = '暂无日志'
+        countEl.textContent = ''
+        return
+      }
+      const q = (query || '').toLowerCase().trim()
+      let filtered = rawLogLines
+      if (q) {
+        filtered = rawLogLines.filter(line => line.toLowerCase().includes(q))
+      }
+      if (filtered.length > 0) {
+        el.innerHTML = filtered.map(highlightLogLine).join('\n')
+        el.scrollTop = el.scrollHeight
+      } else {
+        el.textContent = '无匹配行'
+      }
+      countEl.textContent = q ? filtered.length + '/' + rawLogLines.length + ' 行' : rawLogLines.length + ' 行'
+    }
+
+    function clearLogSearch() {
+      const input = document.getElementById('log-search')
+      input.value = ''
+      renderLog('')
+      input.focus()
     }
 
     async function refreshLog() {
       const el = document.getElementById('log-content')
       el.textContent = '加载中...'
+      document.getElementById('log-count').textContent = ''
       try {
         const resp = await fetch('/api/logs?type=' + currentLogType + '&lines=300')
         const data = await resp.json()
         if (data.lines && data.lines.length > 0) {
-          el.textContent = data.lines.join('\n')
-          el.scrollTop = el.scrollHeight
+          rawLogLines = data.lines
+          renderLog(document.getElementById('log-search').value)
         } else {
+          rawLogLines = []
           el.textContent = data.error || '暂无日志'
         }
       } catch (err) {
+        rawLogLines = []
         el.textContent = '加载失败: ' + err.message
       }
     }
