@@ -466,6 +466,14 @@ async function highlightCodeBlocks(html: string): Promise<string> {
 
 export type NativeMarkdownParser = (markdown: string) => Promise<string>
 
+function escapeTildes(text: string): string {
+  const parts = text.split(/(```[\s\S]*?```|`[^`]+`)/g)
+  return parts.map((part, i) => {
+    if (i % 2 === 1) return part
+    return part.replace(/(?<!~)~(?!~)/g, "\\~")
+  }).join("")
+}
+
 export const { use: useMarked, provider: MarkedProvider } = createSimpleContext({
   name: "Marked",
   init: (props: { nativeParser?: NativeMarkdownParser }) => {
@@ -509,13 +517,17 @@ export const { use: useMarked, provider: MarkedProvider } = createSimpleContext(
       const nativeParser = props.nativeParser
       return {
         async parse(markdown: string): Promise<string> {
-          const html = await nativeParser(markdown)
+          const html = await nativeParser(escapeTildes(markdown))
           const withMath = renderMathExpressions(html)
           return highlightCodeBlocks(withMath)
         },
       }
     }
 
-    return jsParser
+    return {
+      async parse(markdown: string): Promise<string> {
+        return jsParser.parse(escapeTildes(markdown))
+      },
+    }
   },
 })
