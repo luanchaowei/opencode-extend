@@ -1081,7 +1081,6 @@ async function handleAPI(req, server) {
           })
           if (res.ok) {
             const map = await res.json()
-            console.log(`[${getTzTime()}] align dir=${dir} backendStatus=${JSON.stringify(map)}`)
             Object.assign(allRealStatuses, map)
           } else {
             console.log(`[${getTzTime()}] align dir=${dir} backend returned ${res.status}`)
