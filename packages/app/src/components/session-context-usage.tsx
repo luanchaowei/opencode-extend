@@ -30,12 +30,20 @@ export function SessionContextUsage(props: SessionContextUsageProps) {
   const messages = createMemo(() => (params.id ? (sync.data.message[params.id] ?? []) : []))
   const context = createMemo(() => getSessionContext(messages(), providers.all()))
 
+  const progressColor = () => {
+    const p = context()?.usage ?? 0
+    if (p >= 80) return "var(--text-diff-delete-base, #f87171)"
+    if (p >= 50) return "var(--surface-warning-strong, #fbbf24)"
+    return "var(--text-diff-add-base, #4ade80)"
+  }
+
   const circle = () => (
     <div class="flex items-center justify-center">
       <ProgressCircle
         size={16}
         strokeWidth={2}
         percentage={context()?.usage ?? 0}
+        style={{ "--progress-circle-progress": progressColor() }}
       />
     </div>
   )
