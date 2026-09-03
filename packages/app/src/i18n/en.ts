@@ -216,6 +216,11 @@ export const dict = {
   "error.page.report.discord": "on GitCode",
   "error.page.version": "Version: {{version}}",
 
+  "context.usage.limit": "Context Limit",
+  "context.usage.tokens": "Current Tokens",
+  "context.usage.usage": "Usage",
+  "context.usage.view": "View context usage",
+
   "error.dev.rootNotFound":
     "Root element not found. Did you forget to add it to your index.html? Or maybe the id attribute got misspelled?",
 

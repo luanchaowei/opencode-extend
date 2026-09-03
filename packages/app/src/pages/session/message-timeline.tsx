@@ -26,6 +26,7 @@ import { useSettings } from "@/context/settings"
 import { useSDK } from "@/context/sdk"
 import { useLocal } from "@/context/local"
 import { useSync } from "@/context/sync"
+import { SessionContextUsage } from "@/components/session-context-usage"
 import { messageAgentColor } from "@/utils/agent"
 import { sessionTitle } from "@/utils/session-title"
 import { decode64 } from "@/utils/base64"
@@ -765,6 +766,7 @@ return language.t("common.requestFailed")
                   <Show when={sessionID()} keyed>
                     {(id) => (
                       <div class="shrink-0 flex items-center gap-3">
+                        <SessionContextUsage placement="bottom" />
                         <Show when={!parentID()}>
                           <DropdownMenu
                             gutter={4}

@@ -202,6 +202,11 @@ export const dict = {
   "error.page.report.prefix": "请将此错误报告给 opencode-extend",
   "error.page.report.discord": "在 GitCode 上",
   "error.page.version": "版本：{{version}}",
+
+  "context.usage.limit": "上下文限制",
+  "context.usage.tokens": "当前用量",
+  "context.usage.usage": "使用率",
+  "context.usage.view": "查看上下文用量",
   "error.dev.rootNotFound": "未找到根元素。你是不是忘了把它添加到 index.html？或者 id 属性拼写错了？",
 
   "directory.error.invalidUrl": "URL 中的目录无效。",
