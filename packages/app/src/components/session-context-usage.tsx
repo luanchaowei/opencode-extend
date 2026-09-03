@@ -32,9 +32,9 @@ export function SessionContextUsage(props: SessionContextUsageProps) {
 
   const progressColor = () => {
     const p = context()?.usage ?? 0
-    if (p >= 80) return "var(--text-diff-delete-base, #f87171)"
-    if (p >= 50) return "var(--surface-warning-strong, #fbbf24)"
-    return "var(--text-diff-add-base, #4ade80)"
+    if (p >= 80) return "#f87171"
+    if (p >= 50) return "#fbbf24"
+    return "#4ade80"
   }
 
   const circle = () => (
