@@ -1,5 +1,5 @@
 ---
-name: doc-sync
+name: opencode-extend-doc-sync
 description: 功能变更后同步更新对应文档。当对 opencode-extend 项目的源码进行任何功能变更（新增、修改、删除功能、API 变更）后，必须触发此技能，检查并更新 doc/ 下受影响的文档。
 ---
 
