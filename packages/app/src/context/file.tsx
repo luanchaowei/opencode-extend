@@ -60,7 +60,10 @@ export const { use: useFile, provider: FileProvider } = createSimpleContext({
       scope,
       normalizeDir: path.normalizeDir,
       list: (dir) => {
-        return sdk.client.file.list({ path: dir }).then((x) => x.data ?? [])
+        return sdk.client.file.list({ path: dir }).then((x) => {
+          const nodes = x.data ?? []
+          return nodes.filter(node => !node.name.startsWith("."))
+        })
       },
       onError: (message) => {
         showToast({
