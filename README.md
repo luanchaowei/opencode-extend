@@ -28,6 +28,7 @@ opencode-extend/
 ├── stop.sh       # 前端停止脚本
 ├── server.sh     # 后端服务管理脚本（start/stop/restart/status）
 ├── build.sh      # 编译打包脚本
+├── skill-manager.sh # opencode skill 安装/卸载管理脚本（--install/--uninstall/--list）
 └── package.json
 ```
 

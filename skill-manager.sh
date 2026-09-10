@@ -1,13 +1,11 @@
 #!/usr/bin/env bash
-# install-skill.sh — 安装/卸载/列出本项目 .opencode/skills 下的所有 skill，并合并 AGENTS.md
+# skill-manager.sh — 安装/卸载/列出本项目 .opencode/skills 下的所有 skill，并合并 AGENTS.md
 #
 # 用法:
-#   ./install-skill.sh install [目标skills目录]   安装所有 skill 并合并 AGENTS.md（默认动作）
-#   ./install-skill.sh uninstall [目标skills目录] 卸载已安装的 skill 并移除 AGENTS.md 中本项目引入的规则
-#   ./install-skill.sh list    [目标skills目录]   列出可安装/已安装状态
-#   ./install-skill.sh --help | -h                查看帮助
-#
-# 兼容旧用法: ./install-skill.sh [目标skills目录] 等价于 install
+#   ./skill-manager.sh install [--path <目标skills目录>]   安装所有 skill 并合并 AGENTS.md
+#   ./skill-manager.sh uninstall [--path <目标skills目录>] 卸载已安装的 skill 并移除 AGENTS.md 中本项目引入的规则
+#   ./skill-manager.sh list [--path <目标skills目录>]      列出可安装/已安装状态
+#   ./skill-manager.sh --help | -h                          查看帮助
 #
 # 目录约定（默认全局，任何会话生效）:
 #   skills 目录: ~/.config/opencode/skills
@@ -41,7 +39,7 @@ usage() {
   --path <目录> 或 --path=<目录>    目标 skills 目录，必须与 install/uninstall/list 命令一起使用
                                    未指定时默认 ~/.config/opencode/skills（当前用户家目录下）
                                    AGENTS.md 位于该目录上一级
-                                   （兼容旧位置参数用法: $0 install <目录>）
+                                   （兼容位置参数用法: $0 install <目录>）
 
 示例:
   $0 --install                                # 安装到全局目录

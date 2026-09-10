@@ -118,3 +118,39 @@ bun packages/scripts/query-stats.js "SELECT COUNT(*) FROM session_day_seen"
 # 使用 --sql 参数
 bun packages/scripts/query-stats.js --sql "SELECT * FROM users"
 ```
+
+## Skill 管理（skill-manager.sh）
+
+将本项目 `.opencode/skills/` 下的所有 opencode skill 安装到全局（或指定）目录，并同步合并 `AGENTS.md` 约束规则，使其在任意会话中生效。
+
+### 基本用法
+
+```bash
+# 查看帮助（不带参数执行同样显示帮助）
+./skill-manager.sh --help
+
+# 安装到全局目录（~/.config/opencode/skills，任何会话生效）
+./skill-manager.sh --install
+
+# 安装到指定目录（AGENTS.md 位于该目录上一级）
+./skill-manager.sh --install --path /path/to/skills
+./skill-manager.sh install --path=/path/to/skills
+
+# 卸载（删除已安装的本项目 skill，并从 AGENTS.md 移除本项目规则）
+./skill-manager.sh --uninstall
+./skill-manager.sh --uninstall --path /path/to/skills
+
+# 查看安装状态
+./skill-manager.sh --list
+./skill-manager.sh --list --path /path/to/skills
+```
+
+### AGENTS.md 合并规则
+
+- **install**：目标 `AGENTS.md` 不存在时直接复制；已存在时按 `## 规则名` 分节合并——同名规则用本项目版本覆盖，目标独有规则保留，本项目新增规则追加到末尾
+- **uninstall**：按本项目 `AGENTS.md` 的规则名从目标中移除对应节，目标独有规则保留；若目标仅含本项目内容则整个删除
+- 兼容位置参数用法：`./skill-manager.sh install <目录>`
+
+### 错误处理
+
+未知命令、未知选项、`--path` 缺值/重复指定/未与命令一起使用、参数过多等情况均报错并以非零码退出。
