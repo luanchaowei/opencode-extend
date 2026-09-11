@@ -215,6 +215,7 @@ export function OnboardingTour() {
     if (started) return
     if (localStorage.getItem("onboarding-completed")) return
     if (device.onboardingCompleted()) return
+    if (document.querySelector('[data-component="migration-notice"]')) return
     setTimeout(() => start(), 1500)
   })
 

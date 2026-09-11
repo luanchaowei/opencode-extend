@@ -282,6 +282,15 @@
                 <div class="hint">支持 Markdown：**粗体** [链接](url) - 列表，修改后刷新页面生效</div>
               </div>
               <div class="field">
+                <label>迁移公告</label>
+                <div style="display:flex;gap:8px">
+                  <input id="migrationNotice" type="text" placeholder="为空则不显示迁移公告" style="flex:1" readonly>
+                  <input id="migrationNoticeRaw" type="hidden">
+                  <button class="range-btn" onclick="openMigrationEditor()">编辑</button>
+                </div>
+                <div class="hint">配置后全屏弹窗覆盖整个页面，不可关闭。支持 Markdown：**粗体** [链接](url) - 列表，修改后刷新页面生效</div>
+              </div>
+              <div class="field">
                 <label>支撑人员</label>
                 <input id="contactAdmin" type="text" placeholder="多个用 | 分隔">
                 <div class="hint">格式：张三|李四，多个人员用 | 分隔</div>
@@ -434,6 +443,18 @@
     </div>
   </div>
 
+  <div id="migration-dialog-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:300;align-items:center;justify-content:center">
+    <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:12px;padding:24px;width:90%;max-width:500px;box-shadow:0 8px 32px rgba(0,0,0,0.4)">
+      <h2 style="font-size:16px;font-weight:600;color:#fff;margin-bottom:16px">编辑迁移公告</h2>
+      <div class="hint" style="margin-bottom:8px">配置后全屏弹窗覆盖整个页面，不可关闭。支持 Markdown：**粗体** [链接](url) - 列表项</div>
+      <textarea id="migration-editor" rows="6" placeholder="输入迁移公告内容..." style="width:100%;background:#0a0a0a;border:1px solid #2a2a2a;border-radius:6px;padding:8px 12px;font-size:13px;color:#e5e5e5;box-sizing:border-box;resize:vertical;font-family:monospace"></textarea>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
+        <button class="range-btn" onclick="closeMigrationEditor()">取消</button>
+        <button class="range-btn active" onclick="saveMigrationEditor()">确定</button>
+      </div>
+    </div>
+  </div>
+
   <div id="log-dialog-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:300;align-items:center;justify-content:center">
     <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:12px;padding:24px;width:90%;max-width:1100px;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 8px 32px rgba(0,0,0,0.4)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
@@ -542,6 +563,9 @@
           const rawAnnouncement = data.announcementText || ''
           document.getElementById('announcementTextRaw').value = rawAnnouncement
           document.getElementById('announcementText').value = rawAnnouncement.replace(/\n/g, ' ').slice(0, 80)
+          const rawMigration = data.migrationNotice || ''
+          document.getElementById('migrationNoticeRaw').value = rawMigration
+          document.getElementById('migrationNotice').value = rawMigration.replace(/\n/g, ' ').slice(0, 80)
           document.getElementById('contactAdmin').value = data.contactAdmin || ''
           document.getElementById('feedbackUrl').value = data.feedbackUrl || ''
           document.getElementById('helpDocUrl').value = data.helpDocUrl || ''
@@ -582,6 +606,7 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             announcementText: document.getElementById('announcementTextRaw').value,
+            migrationNotice: document.getElementById('migrationNoticeRaw').value,
             contactAdmin: document.getElementById('contactAdmin').value,
             feedbackUrl: document.getElementById('feedbackUrl').value,
             helpDocUrl: document.getElementById('helpDocUrl').value,
@@ -624,6 +649,22 @@
       document.getElementById('announcementTextRaw').value = text
       document.getElementById('announcementText').value = text.replace(/\n/g, ' ').slice(0, 80)
       closeAnnouncementEditor()
+    }
+
+    function openMigrationEditor() {
+      document.getElementById('migration-editor').value = document.getElementById('migrationNoticeRaw').value
+      document.getElementById('migration-dialog-overlay').style.display = 'flex'
+    }
+
+    function closeMigrationEditor() {
+      document.getElementById('migration-dialog-overlay').style.display = 'none'
+    }
+
+    function saveMigrationEditor() {
+      const text = document.getElementById('migration-editor').value
+      document.getElementById('migrationNoticeRaw').value = text
+      document.getElementById('migrationNotice').value = text.replace(/\n/g, ' ').slice(0, 80)
+      closeMigrationEditor()
     }
 
     let currentLogType = 'frontend'

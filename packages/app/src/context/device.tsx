@@ -1,15 +1,15 @@
 import { createSimpleContext } from "@opencode-ai/ui/context"
-import { createResource } from "solid-js"
+import { createResource, onCleanup } from "solid-js"
 import { getFilename } from "@opencode-ai/core/util/path"
 
 export const { use: useDevice, provider: DeviceProvider } = createSimpleContext({
   name: "Device",
   init: () => {
-    const [deviceInfo] = createResource(async () => {
+    const [deviceInfo, { refetch: refetchDeviceInfo }] = createResource(async () => {
       try {
         const [devResult, authResult] = await Promise.allSettled([
-          fetch('/device/info'),
-          fetch('/api/auth/me'),
+          fetch('/device/info', { cache: "no-store" }),
+          fetch('/api/auth/me', { cache: "no-store" }),
         ])
         const devResp = devResult.status === 'fulfilled' ? devResult.value : null
         const authResp = authResult.status === 'fulfilled' ? authResult.value : null
@@ -46,6 +46,9 @@ export const { use: useDevice, provider: DeviceProvider } = createSimpleContext(
       const dirName = getFilename(projectWorktree)
       return dirName === ip
     }
+
+    const configPollTimer = setInterval(() => refetchDeviceInfo(), 30000)
+    onCleanup(() => clearInterval(configPollTimer))
 
     return {
       clientIP,

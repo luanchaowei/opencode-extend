@@ -162,13 +162,15 @@ export default function Layout(props: ParentProps) {
     }
     prevBackendHealthy = h
   })
-  const [deviceInfoData] = createResource(async () => {
+  const [deviceInfoData, { refetch: refetchDeviceInfo }] = createResource(async () => {
     try {
-      const resp = await fetch("/device/info")
+      const resp = await fetch("/device/info", { cache: "no-store" })
       if (resp.ok) return await resp.json()
     } catch {}
     return {}
   })
+  const layoutConfigPollTimer = setInterval(() => refetchDeviceInfo(), 10000)
+  onCleanup(() => clearInterval(layoutConfigPollTimer))
   const initialDirectory = decode64(params.dir)
   const route = createMemo(() => {
     const slug = params.dir
@@ -2126,6 +2128,17 @@ export default function Layout(props: ParentProps) {
 return (
     <div class="relative bg-background-base flex-1 min-h-0 min-w-0 flex flex-col select-none [&_input]:select-text [&_textarea]:select-text [&_[contenteditable]]:select-text">
       {autoselecting() ?? ""}
+      <Show when={deviceInfoData()?.migrationNotice}>
+        <div data-component="migration-notice" style="position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;padding:24px;box-sizing:border-box">
+          <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:12px;padding:32px;max-width:600px;width:100%;max-height:80vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,0.6)">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
+              <Icon name="warning" class="size-5" style={{ color: "#fbbf24" }} />
+              <h2 style="font-size:18px;font-weight:600;color:#fff;margin:0">迁移公告</h2>
+            </div>
+            <div style="color:#e5e5e5;font-size:14px;line-height:1.8" innerHTML={renderMarkdown(deviceInfoData()?.migrationNotice || "")} />
+          </div>
+        </div>
+      </Show>
       <Show when={deviceInfoData()?.announcementText}>
         <div data-component="announcement" class="flex items-center justify-center py-1.5 px-4 gap-2" style="background-color: #fbbf24; color: #78350f;">
           <Icon name="warning" class="size-4" />

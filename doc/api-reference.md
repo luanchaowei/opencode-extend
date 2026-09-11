@@ -285,6 +285,7 @@ Set-Cookie: `session_id=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax`
   "caseLibraryDir": "/path/to/cases",
   "helpDocUrl": "https://docs.example.com",
   "announcementText": "系统公告内容",
+  "migrationNotice": "迁移公告内容",
   "fileTreePollInterval": 10000,
   "heartbeatInterval": 60000,
   "diskUsageThreshold": 90,
@@ -356,6 +357,7 @@ Set-Cookie: `session_id=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax`
 | 字段 | 对应 .env 变量 |
 |------|---------------|
 | `announcementText` | `VITE_ANNOUNCEMENT_TEXT` |
+| `migrationNotice` | `VITE_MIGRATION_NOTICE` |
 | `contactAdmin` | `VITE_CONTACT_ADMIN` |
 | `feedbackUrl` | `VITE_FEEDBACK_URL` |
 | `helpDocUrl` | `VITE_HELP_DOC_URL` |

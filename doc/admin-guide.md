@@ -199,6 +199,7 @@ http://<WEB_HOST>:<WEB_PORT>/admin.html
 | 配置项 | .env 变量名 | 说明 |
 |--------|------------|------|
 | 公告 | `VITE_ANNOUNCEMENT_TEXT` | 顶部公告条显示的内容，为空则不显示 |
+| 迁移公告 | `VITE_MIGRATION_NOTICE` | 配置后全屏弹窗覆盖整个页面且不可关闭，用于重要迁移通知，为空则不显示 |
 | 支撑人员 | `VITE_CONTACT_ADMIN` | 联系方式列表，多个用 `\|` 分隔 |
 | 意见反馈 URL | `VITE_FEEDBACK_URL` | 点击后新窗口打开的反馈页面地址 |
 | 帮助文档 URL | `VITE_HELP_DOC_URL` | 点击后新窗口打开的帮助文档地址 |

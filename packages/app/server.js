@@ -672,6 +672,7 @@ async function handleAPI(req, server) {
       caseLibraryDir: process.env.VITE_CASE_LIBRARY_DIR || "",
       helpDocUrl: process.env.VITE_HELP_DOC_URL || "",
       announcementText: (process.env.VITE_ANNOUNCEMENT_TEXT || "").replace(/\\n/g, "\n"),
+      migrationNotice: (process.env.VITE_MIGRATION_NOTICE || "").replace(/\\n/g, "\n"),
       fileTreePollInterval: parseInt(process.env.VITE_FILE_TREE_POLL_INTERVAL || "10000", 10),
       heartbeatInterval: parseInt(process.env.VITE_HEARTBEAT_INTERVAL || "60000", 10),
       diskUsageThreshold: parseInt(process.env.VITE_DISK_USAGE_THRESHOLD || "90", 10),
@@ -1293,6 +1294,7 @@ async function handleAPI(req, server) {
       hiddenProviders: process.env.VITE_HIDDEN_PROVIDERS || "",
       modelTestTimeout: process.env.VITE_MODEL_TEST_TIMEOUT || "30000",
       modelTestDir: process.env.VITE_MODEL_TEST_DIR || "/tmp/opencode-model-test",
+      migrationNotice: (process.env.VITE_MIGRATION_NOTICE || "").replace(/\\n/g, "\n"),
       authEnabled: envVars.AUTH_ENABLED === "true",
       registrationEnabled: process.env.VITE_REGISTRATION_ENABLED === "true",
     })
@@ -1304,6 +1306,7 @@ async function handleAPI(req, server) {
       const body = JSON.parse(await readBody(req))
       const envMap = {
         announcementText: "VITE_ANNOUNCEMENT_TEXT",
+        migrationNotice: "VITE_MIGRATION_NOTICE",
         contactAdmin: "VITE_CONTACT_ADMIN",
         feedbackUrl: "VITE_FEEDBACK_URL",
         helpDocUrl: "VITE_HELP_DOC_URL",
