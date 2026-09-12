@@ -455,13 +455,13 @@
     </div>
   </div>
 
-  <div id="confirm-dialog-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:400;align-items:center;justify-content:center">
+  <div id="save-confirm-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:400;align-items:center;justify-content:center">
     <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:12px;padding:24px;width:90%;max-width:420px;box-shadow:0 8px 32px rgba(0,0,0,0.4)">
-      <h2 id="confirm-dialog-title" style="font-size:16px;font-weight:600;color:#fff;margin-bottom:12px"></h2>
-      <p id="confirm-dialog-message" style="font-size:13px;color:#a0a0a0;line-height:1.6;margin-bottom:20px"></p>
+      <h2 id="save-confirm-title" style="font-size:16px;font-weight:600;color:#fff;margin-bottom:12px"></h2>
+      <p id="save-confirm-message" style="font-size:13px;color:#a0a0a0;line-height:1.6;margin-bottom:20px"></p>
       <div style="display:flex;justify-content:flex-end;gap:8px">
-        <button class="range-btn" id="confirm-dialog-cancel">取消</button>
-        <button class="range-btn active" id="confirm-dialog-ok">确定</button>
+        <button class="range-btn" id="save-confirm-cancel">取消</button>
+        <button class="range-btn active" id="save-confirm-ok">确定</button>
       </div>
     </div>
   </div>
@@ -553,15 +553,15 @@
 
     function showConfirm(title, message) {
       return new Promise((resolve) => {
-        const overlay = document.getElementById('confirm-dialog-overlay')
-        document.getElementById('confirm-dialog-title').textContent = title
-        document.getElementById('confirm-dialog-message').textContent = message
+        const overlay = document.getElementById('save-confirm-overlay')
+        document.getElementById('save-confirm-title').textContent = title
+        document.getElementById('save-confirm-message').textContent = message
         overlay.style.display = 'flex'
-        document.getElementById('confirm-dialog-ok').onclick = () => {
+        document.getElementById('save-confirm-ok').onclick = () => {
           overlay.style.display = 'none'
           resolve(true)
         }
-        document.getElementById('confirm-dialog-cancel').onclick = () => {
+        document.getElementById('save-confirm-cancel').onclick = () => {
           overlay.style.display = 'none'
           resolve(false)
         }
@@ -625,7 +625,7 @@
 
     async function save() {
       if (!authed) return
-      const confirmed = await showConfirm('确认保存配置？', '保存后立即生效，用户界面将在数秒内自动更新，无需刷新页面。配置同时写入 .env 文件持久化。')
+      const confirmed = await showConfirm('确认保存配置？', '数据将持久化保存，界面10s内自动刷新。')
       if (!confirmed) return
       const btn = document.getElementById('save-btn')
       btn.disabled = true
