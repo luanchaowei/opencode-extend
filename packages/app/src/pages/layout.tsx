@@ -162,14 +162,18 @@ export default function Layout(props: ParentProps) {
     }
     prevBackendHealthy = h
   })
-  const [deviceInfoData, { refetch: refetchDeviceInfo }] = createResource(async () => {
+  const [deviceInfoData, setDeviceInfoData] = createSignal<Record<string, any>>({})
+  const fetchDeviceInfo = async () => {
     try {
       const resp = await fetch("/device/info", { cache: "no-store" })
-      if (resp.ok) return await resp.json()
+      if (resp.ok) {
+        const data = await resp.json()
+        setDeviceInfoData(prev => JSON.stringify(prev) === JSON.stringify(data) ? prev : data)
+      }
     } catch {}
-    return {}
-  })
-  const layoutConfigPollTimer = setInterval(() => refetchDeviceInfo(), 10000)
+  }
+  void fetchDeviceInfo()
+  const layoutConfigPollTimer = setInterval(() => fetchDeviceInfo(), 10000)
   onCleanup(() => clearInterval(layoutConfigPollTimer))
   const initialDirectory = decode64(params.dir)
   const route = createMemo(() => {

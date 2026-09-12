@@ -279,7 +279,7 @@
                   <input id="announcementTextRaw" type="hidden">
                   <button class="range-btn" onclick="openAnnouncementEditor()">编辑</button>
                 </div>
-                <div class="hint">支持 Markdown：**粗体** [链接](url) - 列表，修改后刷新页面生效</div>
+                <div class="hint">支持 Markdown：**粗体** [链接](url) - 列表，保存后自动生效</div>
               </div>
               <div class="field">
                 <label>迁移公告</label>
@@ -288,7 +288,7 @@
                   <input id="migrationNoticeRaw" type="hidden">
                   <button class="range-btn" onclick="openMigrationEditor()">编辑</button>
                 </div>
-                <div class="hint">配置后全屏弹窗覆盖整个页面，不可关闭。支持 Markdown：**粗体** [链接](url) - 列表，修改后刷新页面生效</div>
+                <div class="hint">配置后全屏弹窗覆盖整个页面，不可关闭。支持 Markdown：**粗体** [链接](url) - 列表，保存后自动生效</div>
               </div>
               <div class="field">
                 <label>支撑人员</label>
@@ -455,6 +455,17 @@
     </div>
   </div>
 
+  <div id="confirm-dialog-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:400;align-items:center;justify-content:center">
+    <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:12px;padding:24px;width:90%;max-width:420px;box-shadow:0 8px 32px rgba(0,0,0,0.4)">
+      <h2 id="confirm-dialog-title" style="font-size:16px;font-weight:600;color:#fff;margin-bottom:12px"></h2>
+      <p id="confirm-dialog-message" style="font-size:13px;color:#a0a0a0;line-height:1.6;margin-bottom:20px"></p>
+      <div style="display:flex;justify-content:flex-end;gap:8px">
+        <button class="range-btn" id="confirm-dialog-cancel">取消</button>
+        <button class="range-btn active" id="confirm-dialog-ok">确定</button>
+      </div>
+    </div>
+  </div>
+
   <div id="log-dialog-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:300;align-items:center;justify-content:center">
     <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:12px;padding:24px;width:90%;max-width:1100px;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 8px 32px rgba(0,0,0,0.4)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
@@ -540,6 +551,23 @@
       setTimeout(() => { el.style.display = 'none' }, 3000)
     }
 
+    function showConfirm(title, message) {
+      return new Promise((resolve) => {
+        const overlay = document.getElementById('confirm-dialog-overlay')
+        document.getElementById('confirm-dialog-title').textContent = title
+        document.getElementById('confirm-dialog-message').textContent = message
+        overlay.style.display = 'flex'
+        document.getElementById('confirm-dialog-ok').onclick = () => {
+          overlay.style.display = 'none'
+          resolve(true)
+        }
+        document.getElementById('confirm-dialog-cancel').onclick = () => {
+          overlay.style.display = 'none'
+          resolve(false)
+        }
+      })
+    }
+
     async function loadConfig() {
       showPanel('loading')
       try {
@@ -597,6 +625,8 @@
 
     async function save() {
       if (!authed) return
+      const confirmed = await showConfirm('确认保存配置？', '保存后立即生效，用户界面将在数秒内自动更新，无需刷新页面。配置同时写入 .env 文件持久化。')
+      if (!confirmed) return
       const btn = document.getElementById('save-btn')
       btn.disabled = true
       btn.textContent = '保存中...'
@@ -624,7 +654,7 @@
           })
         })
         if (resp.ok) {
-          showMsg('配置已保存，刷新页面生效，重启后持久化', 'success')
+          showMsg('配置已保存，用户界面将自动更新', 'success')
         } else {
           showMsg('保存失败', 'error')
         }

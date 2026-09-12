@@ -1,11 +1,18 @@
 import { createSimpleContext } from "@opencode-ai/ui/context"
-import { createResource, onCleanup } from "solid-js"
+import { createSignal, onCleanup } from "solid-js"
 import { getFilename } from "@opencode-ai/core/util/path"
 
 export const { use: useDevice, provider: DeviceProvider } = createSimpleContext({
   name: "Device",
   init: () => {
-    const [deviceInfo, { refetch: refetchDeviceInfo }] = createResource(async () => {
+    const [deviceInfo, setDeviceInfo] = createSignal<Record<string, any>>({
+      clientIP: null, contactAdmin: [], feedbackUrl: "", caseLibraryDir: "",
+      helpDocUrl: "", fileTreePollInterval: 10000, heartbeatInterval: 60000,
+      diskUsageThreshold: 90, hiddenProviders: [], onboardingCompleted: 0,
+      username: "", role: "",
+    })
+
+    const fetchDeviceInfo = async () => {
       try {
         const [devResult, authResult] = await Promise.allSettled([
           fetch('/device/info', { cache: "no-store" }),
@@ -17,13 +24,17 @@ export const { use: useDevice, provider: DeviceProvider } = createSimpleContext(
         if (authResp?.ok) authData = await authResp.json()
         if (devResp?.ok) {
           const { clientIP, contactAdmin, feedbackUrl, caseLibraryDir, helpDocUrl, fileTreePollInterval, heartbeatInterval, diskUsageThreshold, hiddenProviders, onboardingCompleted } = await devResp.json()
-           return { clientIP, contactAdmin, feedbackUrl, caseLibraryDir, helpDocUrl, fileTreePollInterval, heartbeatInterval, diskUsageThreshold, hiddenProviders: hiddenProviders ?? [], onboardingCompleted: onboardingCompleted ?? 0, username: authData?.username ?? "", role: authData?.role ?? "" }
-         }
-       } catch (error) {
-         console.error('Failed to get device info:', error)
-       }
-       return { clientIP: null, contactAdmin: [], feedbackUrl: "", caseLibraryDir: "", helpDocUrl: "", fileTreePollInterval: 10000, heartbeatInterval: 60000, diskUsageThreshold: 90, hiddenProviders: [], onboardingCompleted: 0, username: "", role: "" }
-    })
+          const data = { clientIP, contactAdmin, feedbackUrl, caseLibraryDir, helpDocUrl, fileTreePollInterval, heartbeatInterval, diskUsageThreshold, hiddenProviders: hiddenProviders ?? [], onboardingCompleted: onboardingCompleted ?? 0, username: authData?.username ?? "", role: authData?.role ?? "" }
+          setDeviceInfo(prev => JSON.stringify(prev) === JSON.stringify(data) ? prev : data)
+        }
+      } catch (error) {
+        console.error('Failed to get device info:', error)
+      }
+    }
+
+    void fetchDeviceInfo()
+    const configPollTimer = setInterval(() => fetchDeviceInfo(), 30000)
+    onCleanup(() => clearInterval(configPollTimer))
 
     const clientIP = () => deviceInfo()?.clientIP
     const contactAdmin = () => deviceInfo()?.contactAdmin ?? []
@@ -46,9 +57,6 @@ export const { use: useDevice, provider: DeviceProvider } = createSimpleContext(
       const dirName = getFilename(projectWorktree)
       return dirName === ip
     }
-
-    const configPollTimer = setInterval(() => refetchDeviceInfo(), 30000)
-    onCleanup(() => clearInterval(configPollTimer))
 
     return {
       clientIP,
