@@ -47,16 +47,6 @@ fi
 bash stop.sh
 while ss -tlnp | grep -q ":${WEB_PORT:-3000} "; do sleep 0.5; done
 
-LOG_FILE="${LOG_PATH:-/tmp/opencode-extend.log}"
-for i in 5 4 3 2 1; do
-  if [ "$i" = "5" ]; then
-    rm -f "${LOG_FILE}.${i}" 2>/dev/null || true
-  else
-    [ -f "${LOG_FILE}.${i}" ] && mv "${LOG_FILE}.${i}" "${LOG_FILE}.$((i+1))" 2>/dev/null || true
-  fi
-done
-[ -f "${LOG_FILE}" ] && mv "${LOG_FILE}" "${LOG_FILE}.1" 2>/dev/null || true
-
 if [ "$MODE" = "prod" ]; then
   echo "启动生产模式: http://${WEB_HOST:-0.0.0.0}:${WEB_PORT:-3000}"
   nohup bun packages/app/server.js > "${LOG_PATH:-/tmp/opencode-extend.log}" 2>&1 &

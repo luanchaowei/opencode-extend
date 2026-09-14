@@ -133,7 +133,7 @@ VITE_FEEDBACK_URL=                        # 问题反馈 URL
 VITE_HELP_DOC_URL=                        # 帮助文档 URL
 VITE_CASE_LIBRARY_DIR=                    # 知识库目录路径
 VITE_ANNOUNCEMENT_TEXT=                   # 公告文案，为空不显示
-VITE_MIGRATION_NOTICE=                    # 迁移公告，为空不显示；配置后全屏弹窗不可关闭
+VITE_MIGRATION_NOTICE=                    # 全屏公告，为空不显示；配置后全屏弹窗不可关闭
 
 # === 系统参数 ===
 VITE_FILE_TREE_POLL_INTERVAL=10000        # 文件树刷新间隔（毫秒）

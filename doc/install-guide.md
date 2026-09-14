@@ -81,7 +81,7 @@ VITE_FEEDBACK_URL=https://example.com/feedback # 问题反馈 URL
 VITE_CASE_LIBRARY_DIR=/path/to/cases   # 知识库目录
 VITE_HELP_DOC_URL=https://docs.example.com # 帮助文档 URL
 VITE_ANNOUNCEMENT_TEXT="..."           # 公告文案
-VITE_MIGRATION_NOTICE=""               # 迁移公告，为空不显示；配置后全屏弹窗不可关闭
+VITE_MIGRATION_NOTICE=""               # 全屏公告，为空不显示；配置后全屏弹窗不可关闭
 
 # 系统参数
 VITE_FILE_TREE_POLL_INTERVAL=10000     # 文件树自动刷新间隔（毫秒），默认 10000

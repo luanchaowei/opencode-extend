@@ -282,9 +282,9 @@
                 <div class="hint">支持 Markdown：**粗体** [链接](url) - 列表，保存后自动生效</div>
               </div>
               <div class="field">
-                <label>迁移公告</label>
+                <label>全屏公告</label>
                 <div style="display:flex;gap:8px">
-                  <input id="migrationNotice" type="text" placeholder="为空则不显示迁移公告" style="flex:1" readonly>
+                  <input id="migrationNotice" type="text" placeholder="为空则不显示全屏公告" style="flex:1" readonly>
                   <input id="migrationNoticeRaw" type="hidden">
                   <button class="range-btn" onclick="openMigrationEditor()">编辑</button>
                 </div>
@@ -445,9 +445,9 @@
 
   <div id="migration-dialog-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:300;align-items:center;justify-content:center">
     <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:12px;padding:24px;width:90%;max-width:500px;box-shadow:0 8px 32px rgba(0,0,0,0.4)">
-      <h2 style="font-size:16px;font-weight:600;color:#fff;margin-bottom:16px">编辑迁移公告</h2>
+      <h2 style="font-size:16px;font-weight:600;color:#fff;margin-bottom:16px">编辑全屏公告</h2>
       <div class="hint" style="margin-bottom:8px">配置后全屏弹窗覆盖整个页面，不可关闭。支持 Markdown：**粗体** [链接](url) - 列表项</div>
-      <textarea id="migration-editor" rows="6" placeholder="输入迁移公告内容..." style="width:100%;background:#0a0a0a;border:1px solid #2a2a2a;border-radius:6px;padding:8px 12px;font-size:13px;color:#e5e5e5;box-sizing:border-box;resize:vertical;font-family:monospace"></textarea>
+      <textarea id="migration-editor" rows="6" placeholder="输入全屏公告内容..." style="width:100%;background:#0a0a0a;border:1px solid #2a2a2a;border-radius:6px;padding:8px 12px;font-size:13px;color:#e5e5e5;box-sizing:border-box;resize:vertical;font-family:monospace"></textarea>
       <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
         <button class="range-btn" onclick="closeMigrationEditor()">取消</button>
         <button class="range-btn active" onclick="saveMigrationEditor()">确定</button>

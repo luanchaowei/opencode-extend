@@ -2137,7 +2137,7 @@ return (
           <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:12px;padding:32px;max-width:600px;width:100%;max-height:80vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,0.6)">
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
               <Icon name="warning" class="size-5" style={{ color: "#fbbf24" }} />
-              <h2 style="font-size:18px;font-weight:600;color:#fff;margin:0">迁移公告</h2>
+              <h2 style="font-size:18px;font-weight:600;color:#fff;margin:0">公告</h2>
             </div>
             <div style="color:#e5e5e5;font-size:14px;line-height:1.8" innerHTML={renderMarkdown(deviceInfoData()?.migrationNotice || "")} />
           </div>

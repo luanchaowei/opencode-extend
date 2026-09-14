@@ -285,7 +285,7 @@ Set-Cookie: `session_id=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax`
   "caseLibraryDir": "/path/to/cases",
   "helpDocUrl": "https://docs.example.com",
   "announcementText": "系统公告内容",
-  "migrationNotice": "迁移公告内容",
+  "migrationNotice": "全屏公告内容",
   "fileTreePollInterval": 10000,
   "heartbeatInterval": 60000,
   "diskUsageThreshold": 90,
