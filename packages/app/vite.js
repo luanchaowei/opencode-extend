@@ -1277,10 +1277,10 @@ export default [
         if (req.url === "/api/stats/heartbeat" && req.method === "POST") {
           try {
             const body = JSON.parse(await readBody())
-            const { clientIP, sessions, timestamp } = body
+            const { clientIP, sessions } = body
             if (!clientIP) { res.statusCode = 400; res.end(JSON.stringify({ error: "Missing clientIP" })); return }
             const userId = authEnabled ? (getSessionFromReq(req)?.userId || null) : null
-            statsDb.heartbeat(clientIP, sessions, timestamp, userId)
+            statsDb.heartbeat(clientIP, sessions, Date.now(), userId)
             res.setHeader("Content-Type", "application/json")
             res.end(JSON.stringify({ ok: true, buildTime }))
           } catch (err) {
@@ -1309,10 +1309,10 @@ export default [
         if (req.url === "/api/stats/session-create" && req.method === "POST") {
           try {
             const body = JSON.parse(await readBody())
-            const { clientIP, sessionID, timestamp } = body
+            const { clientIP, sessionID } = body
             if (!clientIP || !sessionID) { res.statusCode = 400; res.end(JSON.stringify({ error: "Missing clientIP or sessionID" })); return }
             const userId = authEnabled ? (getSessionFromReq(req)?.userId || null) : null
-            statsDb.sessionCreate(clientIP, sessionID, timestamp, userId)
+            statsDb.sessionCreate(clientIP, sessionID, Date.now(), userId)
             res.setHeader("Content-Type", "application/json")
             res.end(JSON.stringify({ ok: true }))
           } catch (err) {
@@ -1340,9 +1340,9 @@ export default [
         if (req.url === "/api/stats/message-send" && req.method === "POST") {
           try {
             const body = JSON.parse(await readBody())
-            const { sessionID, timestamp } = body
+            const { sessionID } = body
             if (!sessionID) { res.statusCode = 400; res.end(JSON.stringify({ error: "Missing sessionID" })); return }
-            statsDb.messageSend(timestamp)
+            statsDb.messageSend(Date.now())
             res.setHeader("Content-Type", "application/json")
             res.end(JSON.stringify({ ok: true }))
           } catch (err) {

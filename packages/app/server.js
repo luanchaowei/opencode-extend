@@ -992,10 +992,10 @@ async function handleAPI(req, server) {
   if (url.pathname === "/api/stats/heartbeat" && method === "POST") {
     try {
       const body = JSON.parse(await readBody(req))
-      const { clientIP, sessions, timestamp } = body
+      const { clientIP, sessions } = body
       if (!clientIP) return jsonResponse({ error: "Missing clientIP" }, 400)
       const userId = authEnabled ? (getSession(req)?.userId || null) : null
-      statsDb.heartbeat(clientIP, sessions, timestamp, userId)
+      statsDb.heartbeat(clientIP, sessions, Date.now(), userId)
       return jsonResponse({ ok: true, buildTime })
     } catch (err) {
       console.error(`[${getTzTime()}] POST /api/stats/heartbeat error: ${err.message}\n${err.stack}`)
@@ -1021,10 +1021,10 @@ async function handleAPI(req, server) {
   if (url.pathname === "/api/stats/session-create" && method === "POST") {
     try {
       const body = JSON.parse(await readBody(req))
-      const { clientIP, sessionID, timestamp } = body
+      const { clientIP, sessionID } = body
       if (!clientIP || !sessionID) return jsonResponse({ error: "Missing clientIP or sessionID" }, 400)
       const userId = authEnabled ? (getSession(req)?.userId || null) : null
-      const result = statsDb.sessionCreate(clientIP, sessionID, timestamp, userId)
+      const result = statsDb.sessionCreate(clientIP, sessionID, Date.now(), userId)
       if (result.isNew) {
         console.log(`[${getTzTime()}] session-create NEW: ip=${clientIP} sid=${sessionID} total=${result.total}`)
       } else {
@@ -1053,9 +1053,9 @@ async function handleAPI(req, server) {
   if (url.pathname === "/api/stats/message-send" && method === "POST") {
     try {
       const body = JSON.parse(await readBody(req))
-      const { sessionID, timestamp } = body
+      const { sessionID } = body
       if (!sessionID) return jsonResponse({ error: "Missing sessionID" }, 400)
-      statsDb.messageSend(timestamp)
+      statsDb.messageSend(Date.now())
       return jsonResponse({ ok: true })
     } catch (err) {
       console.error(`[${getTzTime()}] POST /api/stats/message-send error: ${err.message}\n${err.stack}`)
