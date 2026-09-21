@@ -194,7 +194,7 @@
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
               <h2 style="font-size:16px;font-weight:600;color:#fff">当前在线会话</h2>
               <div style="display:flex;gap:12px;align-items:center">
-                <input type="text" id="search-input" placeholder="搜索..." oninput="filterTable()" style="background:#1a1a1a;border:1px solid #2a2a2a;color:#e5e5e5;width:180px;padding:4px 12px;border-radius:4px;font-size:12px">
+                <input type="text" id="search-input" placeholder="搜索..." oninput="filterTable()" onkeyup="filterTable()" style="background:#1a1a1a;border:1px solid #2a2a2a;color:#e5e5e5;width:180px;padding:4px 12px;border-radius:4px;font-size:12px">
                 <select id="filter-ip" class="range-btn" onchange="filterTable()"><option value="">全部IP</option></select>
                 <select id="filter-status" class="range-btn" onchange="filterTable()"><option value="">全部状态</option><option value="busy">AI处理中</option><option value="retry">重试中</option><option value="idle">空闲</option></select>
               </div>
@@ -864,7 +864,7 @@
         allSessions = data.currentSessions.sort((a, b) => statusSortOrder(a.status) - statusSortOrder(b.status))
         currentPage = 1
         populateIpFilter(allSessions)
-        renderTable(allSessions)
+        renderTable(getFilteredSessions())
         lastTrendData = data.trend
         renderChart(data.trend)
       } catch (err) {
