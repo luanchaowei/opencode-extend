@@ -1207,7 +1207,7 @@
         resultEl.textContent = '✓ 可用'
         resultEl.style.color = '#22c55e'
         durationEl.textContent = fmtDuration(tr.durationMs)
-        durationEl.style.color = tr.durationMs > 10000 ? '#f87171' : tr.durationMs > 5000 ? '#f59e0b' : '#4ade80'
+        durationEl.style.color = tr.durationMs > 20000 ? '#f87171' : tr.durationMs > 10000 ? '#f59e0b' : '#4ade80'
         timeEl.textContent = fmtTime(tr.testedAt)
       } else {
         resultEl.textContent = '✗ ' + (tr.error || '不可用')
