@@ -15,6 +15,10 @@ export function fixMermaidParens(code: string): string {
       if (label.startsWith('"') || !/[()]/.test(label)) return match
       return `${id}{"${label}"}`
     })
+    .replace(/\|([^|()]*\([^|]*\)[^|()]*)\|/g, (match, label: string) => {
+      if (label.startsWith('"') || !/[()]/.test(label)) return match
+      return `|"${label}"|`
+    })
 }
 
 export async function processMermaidBlocks(text: string, mermaidLib: Mermaid): Promise<string> {
