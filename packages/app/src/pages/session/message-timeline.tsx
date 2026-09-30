@@ -266,6 +266,37 @@ export function MessageTimeline(props: {
     if (!id) return idle
     return sync.data.session_status[id] ?? idle
   })
+
+  const exportSession = async () => {
+    const id = sessionID()
+    if (!id) return
+    const sessionRes = await sdk.client.session.get({ sessionID: id })
+    const info = sessionRes.data
+    if (!info) return
+    const items: { info: MessageType; parts: Part[] }[] = []
+    let cursor: string | undefined
+    do {
+      const res = await sdk.client.session.messages({ sessionID: id, limit: 50, before: cursor })
+      const page = (res.data ?? []).filter((x) => !!x?.info?.id)
+      items.push(...page)
+      cursor = res.response.headers.get("x-next-cursor") ?? undefined
+    } while (cursor)
+    items.sort((a, b) => a.info.time.created - b.info.time.created || (a.info.id < b.info.id ? -1 : 1))
+    const exportData = { info, messages: items }
+    const content = JSON.stringify(exportData, null, 2)
+    const title = info.title || id
+    const filename = `${title}.json`.replace(/[\\/:*?"<>|]/g, "_")
+    const blob = new Blob([content], { type: "application/json;charset=utf-8" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
+
   const working = createMemo(() => sessionStatus().type !== "idle")
   const tint = createMemo(() => messageAgentColor(sessionMessages(), sync.data.agent))
 
@@ -824,6 +855,14 @@ return language.t("common.requestFailed")
                                   }}
                                 >
                                   <DropdownMenu.ItemLabel>{language.t("command.session.compact")}</DropdownMenu.ItemLabel>
+                                </DropdownMenu.Item>
+                                <DropdownMenu.Item
+                                  onSelect={() => {
+                                    setTitle("menuOpen", false)
+                                    exportSession()
+                                  }}
+                                >
+                                  <DropdownMenu.ItemLabel>{language.t("command.session.export")}</DropdownMenu.ItemLabel>
                                 </DropdownMenu.Item>
                                 <DropdownMenu.Separator />
                                 <DropdownMenu.Item
