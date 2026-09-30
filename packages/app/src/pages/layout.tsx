@@ -163,6 +163,7 @@ export default function Layout(props: ParentProps) {
     prevBackendHealthy = h
   })
   const [deviceInfoData, setDeviceInfoData] = createSignal<Record<string, any>>({})
+  const [migrationDismissed, setMigrationDismissed] = createSignal(false)
   const fetchDeviceInfo = async () => {
     try {
       const resp = await fetch("/device/info", { cache: "no-store" })
@@ -2132,9 +2133,17 @@ export default function Layout(props: ParentProps) {
 return (
     <div class="relative bg-background-base flex-1 min-h-0 min-w-0 flex flex-col select-none [&_input]:select-text [&_textarea]:select-text [&_[contenteditable]]:select-text">
       {autoselecting() ?? ""}
-      <Show when={deviceInfoData()?.migrationNotice}>
+      <Show when={deviceInfoData()?.migrationNotice && !migrationDismissed()}>
         <div data-component="migration-notice" style="position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;padding:24px;box-sizing:border-box">
-          <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:12px;padding:32px;max-width:600px;width:100%;max-height:80vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,0.6)">
+          <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:12px;padding:32px;max-width:600px;width:100%;max-height:80vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,0.6);position:relative">
+            <button
+              type="button"
+              style="position:absolute;top:12px;right:12px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;border:none;background:transparent;color:#888;font-size:18px;cursor:pointer;border-radius:4px"
+              onclick={() => setMigrationDismissed(true)}
+              aria-label="关闭"
+            >
+              ✕
+            </button>
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
               <Icon name="warning" class="size-5" style={{ color: "#fbbf24" }} />
               <h2 style="font-size:18px;font-weight:600;color:#fff;margin:0">公告</h2>
