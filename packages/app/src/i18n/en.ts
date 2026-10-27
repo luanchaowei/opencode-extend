@@ -473,7 +473,6 @@ export const dict = {
   "dialog.newSession.currentTime": "Current Time",
   "backend.health.error": "Backend service unavailable, reconnecting...",
   "backend.health.recovered": "Backend service recovered",
-  "session.sidePanel.huangquEnv": "Huangqu Env",
   "model.test.missingProviderOrModel": "Missing providerID or modelID",
   "model.test.modelBeingTested": "Model is being tested",
   "model.test.missingDir": "VITE_OPENCODE_DEFAULT_DIR not configured",

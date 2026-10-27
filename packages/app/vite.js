@@ -75,7 +75,7 @@ const loginPageHtml = `<!DOCTYPE html>
 <html lang="zh-CN" style="color-scheme: light">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>登录 - GE诊断助手</title>
+<title>登录 - 问题分析助手</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf3 100%); color: var(--text-strong, #171717); font-family: system-ui, -apple-system, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
@@ -98,7 +98,7 @@ const loginPageHtml = `<!DOCTYPE html>
 </head>
 <body>
 <div class="login-box">
-  <h1>GE诊断助手</h1>
+  <h1>问题分析助手</h1>
   <form id="login-form">
     <div class="field"><label>用户名</label><input type="text" id="username" autocomplete="username" autofocus></div>
     <div class="field"><label>密码</label><input type="password" id="password" autocomplete="current-password"></div>
@@ -132,7 +132,7 @@ const registerPageHtml = `<!DOCTYPE html>
 <html lang="zh-CN" style="color-scheme: light">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>注册 - GE诊断助手</title>
+<title>注册 - 问题分析助手</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf3 100%); color: var(--text-strong, #171717); font-family: system-ui, -apple-system, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
