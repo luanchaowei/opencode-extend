@@ -1,11 +1,19 @@
 import { useParams } from "@solidjs/router"
-import { createEffect, createMemo, createSignal, For, Show, type Accessor, type JSX } from "solid-js"
+import {
+  createEffect,
+  createMemo,
+  createSignal,
+  For,
+  onCleanup,
+  Show,
+  type Accessor,
+  type JSX,
+} from "solid-js"
 import { createStore } from "solid-js/store"
 import { createSortable } from "@thisbeyond/solid-dnd"
 import { createMediaQuery } from "@solid-primitives/media"
 import { base64Encode } from "@opencode-ai/core/util/encode"
 import { getFilename } from "@opencode-ai/core/util/path"
-import { Button } from "@opencode-ai/ui/button"
 import { Collapsible } from "@opencode-ai/ui/collapsible"
 import { DropdownMenu } from "@opencode-ai/ui/dropdown-menu"
 import { Icon } from "@opencode-ai/ui/icon"
@@ -260,6 +268,44 @@ const WorkspaceSessionList = (props: {
     (props.isOwnProject?.() ?? true) && !props.loading() && props.sessions().length > 0
   )
 
+  const [sentinelEl, setSentinelEl] = createSignal<HTMLDivElement | undefined>()
+  let loadingMore = false
+  let sentinelVisible = false
+  let disposed = false
+
+  onCleanup(() => {
+    disposed = true
+  })
+
+  const autoLoad = async () => {
+    if (loadingMore || disposed || !props.hasMore()) return
+    loadingMore = true
+    const before = props.sessions().length
+    try {
+      await props.loadMore()
+    } finally {
+      loadingMore = false
+    }
+    if (disposed || !sentinelVisible || !props.hasMore()) return
+    if (props.sessions().length <= before) return
+    void autoLoad()
+  }
+
+  createEffect(() => {
+    if (!props.hasMore() || searching()) return
+    const el = sentinelEl()
+    if (!el) return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        sentinelVisible = entries.some((entry) => entry.isIntersecting)
+        if (sentinelVisible) void autoLoad()
+      },
+      { rootMargin: "0px 0px 80px 0px" },
+    )
+    observer.observe(el)
+    onCleanup(() => observer.disconnect())
+  })
+
   return (
     <nav class="flex flex-col gap-1">
       <Show when={showSearch()}>
@@ -309,19 +355,7 @@ const WorkspaceSessionList = (props: {
         )}
       </For>
       <Show when={props.hasMore() && !searching()}>
-        <div class="relative w-full py-1">
-          <Button
-            variant="ghost"
-            class="flex w-full text-left justify-start text-14-regular text-text-weak pl-2 pr-10"
-            size="large"
-            onClick={(e: MouseEvent) => {
-              void props.loadMore()
-              ;(e.currentTarget as HTMLButtonElement).blur()
-            }}
-          >
-            {props.language.t("common.loadMore")}
-          </Button>
-        </div>
+        <div ref={setSentinelEl} class="h-1" aria-hidden="true" />
       </Show>
     </nav>
   )

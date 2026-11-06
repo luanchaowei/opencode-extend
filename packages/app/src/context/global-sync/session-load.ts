@@ -5,7 +5,7 @@ export async function loadRootSessionsWithFallback(input: RootLoadArgs) {
     const query = { 
       directory: input.directory, 
       roots: true as const, 
-      limit: input.limit,
+      limit: input.limit + 1,
       archived: false,
     }
     const result = await input.list(query)
@@ -14,7 +14,7 @@ export async function loadRootSessionsWithFallback(input: RootLoadArgs) {
       data: result.data,
       limit: input.limit,
       rawCount,
-      limited: rawCount >= input.limit,
+      limited: rawCount > input.limit,
     } as const
   } catch {
     const result = await input.list({ 
@@ -34,5 +34,5 @@ export async function loadRootSessionsWithFallback(input: RootLoadArgs) {
 
 export function estimateRootSessionTotal(input: { rawCount: number; limit: number; limited: boolean }) {
   if (!input.limited) return input.rawCount
-  return input.rawCount + 1
+  return input.limit + 1
 }
